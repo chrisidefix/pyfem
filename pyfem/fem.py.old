@@ -1,0 +1,5 @@
+#import os, sys
+#sys.path.append("/media/sf_Dropbox/codes/ppfem")
+#print sys.path
+from node import *
+from domain import *
