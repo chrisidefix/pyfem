@@ -1,0 +1,34 @@
+# Include PyFEM libraries
+import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
+
+
+# Include PyFEM libraries
+from pyfem import *
+
+block = Block3D()
+block.make_box([0,0,0], [1,1,1])
+block.set_divisions(100,10,10)
+
+mesh = Mesh(block)
+mesh.generate()
+
+domain = Domain(mesh)
+
+# Setting element types and parameters
+domain.elems.set_elem_model(EqElasticSolid(E=1.0E5, nu=0.3))
+
+# Filtering faces
+fixed_faces  = domain.faces.with_x(0.0)
+loaded_faces = domain.faces.with_x(1.0)
+
+# Boundary conditions
+fixed_faces .set_brys(ux=0.0, uy=0.0, uz=0.0)
+loaded_faces.set_brys(tx=1.0)
+
+#Setting solver and solving
+domain.set_solver(SolverEq())
+domain.solver.set_incs(1)
+
+domain.solver.solve()
+domain.solver.write_output()
+
