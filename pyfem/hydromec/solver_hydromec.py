@@ -116,7 +116,24 @@ class SolverHydromec(Solver):
                 c.append(cloc[j])
                 v.append(M[i,j])
 
-    def mountF(self):
+    def mountRHS(self, dt):
+        ndofs = len(self.dofs)
+
+        #for i, dof in enumerate(self.dofs):
+        #    F[i] = dof.bryF
+
+        # List with natural values
+        RHS = [dof.bryF for dof in self.dofs]
+
+        for e in self.aelems:
+            # Permeability matrix
+            H   = e.elem_model.getP()
+            # Total pore-pressure vector
+            P = [ node.keys["wp"].U for node in e.elem_model.nodes ]
+            # Permeability map
+            loc = e.elem_model.get_P_loc()
+            RHS[loc] += dt*P*
+
 
 
     def solve(self):
