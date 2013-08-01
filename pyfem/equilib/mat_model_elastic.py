@@ -13,17 +13,10 @@ class ModelLinElastic(Model):
         self.Kn = 0.0
         self.Dm = 0.0
 
-        if args: data = args[0]
-        else:    data = kwargs
+        data = args[0] if args else kwargs
 
         self.set_params(**data)
         self.set_state(**data)
-
-
-        #if len(args)>0:
-        #    self.set_params(args[0])
-        #if len(args)>1:
-        #    self.set_state(args[1])
 
     @property
     def name(self):

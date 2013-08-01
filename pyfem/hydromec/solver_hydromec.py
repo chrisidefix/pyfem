@@ -1,11 +1,14 @@
 from pyfem.solver import *
 from pyfem.tools.matvec import *
-from elem_model_seep import *
+from pyfem.equilib.elem_model_eq   import *
+from pyfem.seepage.elem_model_seep import *
+from elem_model_hydromec import *
+
 import math
 from numpy.linalg import norm
+import scipy
 from scipy.sparse import lil_matrix
 from scipy import *
-import scipy
 from scipy.sparse.linalg import factorized
 
 class SolverHydromec(Solver):
@@ -21,6 +24,7 @@ class SolverHydromec(Solver):
         self.K22  = None
         self.LUsolver = None
         self.plane_stress = False
+        self.time_lapse = 0.0
     
     def prime_and_check(self):
         nnodes = len(self.nodes)
@@ -81,67 +85,39 @@ class SolverHydromec(Solver):
         dT = 1.0
         self.alpha = 1.0
 
-        for e in self.aelems:
-            # mount P
-            if hasattr(e, "calcP"):
-                M   = e.elem_model.calcP()*self.alpha*dT
-                loc = e.elem_model.get_P_loc()
-                add_submatrix(r,c,v, M, loc, loc)
-
-            # mount K
-            if hasattr(e, "calcK"):
-                M   = e.elem_model.calcK()
-                loc = e.elem_model.get_K_loc()
-                add_submatrix(r,c,v, M, loc, loc)
-
-            # mount M
-            if hasattr(e, "calcM"):
-                M   = e.elem_model.calcM()
-                loc = e.elem_model.get_M_loc()
-                add_submatrix(r,c,v, M, loc, loc)
-
-            # mount L
-            if hasattr(e, "calcL"):
-                M   = e.elem_model.calcL()
-                rloc, cloc = e.elem_model.get_L_loc()
-                add_submatrix(r,c,v, M, rloc, cloc)
-
-            # mount C
-            if hasattr(e, "calcC"):
-                M   = e.elem_model.calcC()
-                rloc, cloc = e.elem_model.get_C_loc()
-                add_submatrix(r,c,v, M, rloc, cloc)
-
-        calc_funcs = [ "calcP", "calcK", "calcM", "calcL", "calcC" ]
-        loc_funcs  = [ "get_P_loc", "get_K_loc", "get_M_loc", "get_L_loc", "get_C_loc"]
-        matr_coefs = [ self.alpha*dT, 1.0, 1.0, 1.0, 1.0 ]
+        calc_funcs = [ "calcP"      , "calcK"    , "calcM"    , "calcL"    , "calcC" ]
+        loc_funcs  = [ "get_P_loc"  , "get_K_loc", "get_M_loc", "get_L_loc", "get_C_loc"]
+        matr_coefs = [ self.alpha*dT, 1.0        , 1.0        , 1.0        , 1.0 ]
 
         for e in self.aelems:
-            for func, coef in zip(calc_funcs, matr_coefs):
-            if hasattr(e, func):
-                M   = getattr(e.elem_model, func)()*coef
-                loc = getattr(e.elem_model, lfunc)()
-                if isinstance(loc, tuple):
-                    rloc = loc[0]
-                    cloc = loc[1]
-                else:
-                    rloc = loc
-                    cloc = loc
+            for func, lfunc, coef in zip(calc_funcs, loc_funcs, matr_coefs):
+                if hasattr(e.elem_model, func):
+                    M   = getattr(e.elem_model, func)()*coef
+                    loc = getattr(e.elem_model, lfunc)()
+                    if isinstance(loc, tuple):
+                        rloc = loc[0]
+                        cloc = loc[1]
+                    else:
+                        rloc = loc
+                        cloc = loc
 
-                for i in range(M.shape[0]):
-                    for j in range(M.shape[1]):
-                        r.append(rloc[i])
-                        c.append(cloc[j])
-                        v.append(M[i,j])
+                    for i in range(M.shape[0]):
+                        for j in range(M.shape[1]):
+                            r.append(rloc[i])
+                            c.append(cloc[j])
+                            v.append(M[i,j])
 
         self.K = scipy.sparse.coo_matrix((v, (r,c)), (ndofs, ndofs))
 
-    def add_submatrix(r,c,v, M, rloc, cloc):
+    def add_submatrix(self, r,c,v, M, rloc, cloc):
         for i in range(M.shape[0]):
             for j in range(M.shape[1]):
                 r.append(rloc[i])
                 c.append(cloc[j])
                 v.append(M[i,j])
+
+    def mountF(self):
+
 
     def solve(self):
         scheme = self.scheme
@@ -172,6 +148,7 @@ class SolverHydromec(Solver):
         lam   = 1.0/self.nincs
         DU    = lam*U
         DF    = lam*F
+        dt    = lam*self.time_lapse
         DFint = None
         R     = None
 
@@ -191,6 +168,7 @@ class SolverHydromec(Solver):
                 if self.verbose: print "  increment", self.inc, ":"
                 DU = lam*U
                 DF = lam*F
+                dt = lam*self.time_lapse
                 calcK    = True
                 converged = False
                 DFi = DF.copy()
@@ -199,7 +177,8 @@ class SolverHydromec(Solver):
                 for it in range(self.nmaxits):
                     if it: DU *= 0.0
 
-                    DFint, R = self.solve_inc(DU, DFi, calcK) # Calculates DU, DFint and completes DFi
+                    DFint, R = self.solve_inc(DU, DFi, dt, calcK) # Calculates DU, DFint and completes DFi
+                    dt  = 0.0  # Time is not applied again
                     if scheme=="MNR": calcK = False
 
                     DFi       = DFi - DFint
@@ -222,7 +201,7 @@ class SolverHydromec(Solver):
                     raise Exception("SolveHydromec.solve: Solver with scheme (M)NR did not converge")
             
             if scheme == "FE":
-                DFint, R = self.solve_inc(DU, DF)
+                DFint, R = self.solve_inc(DU, DF, dt)
                 if not no_natural:
                     self.residue = norm(R)/(norm(DFint)*self.nincs)
                 else:
@@ -239,7 +218,7 @@ class SolverHydromec(Solver):
 
         if self.verbose: print "  end stage:", self.stage
 
-    def solve_inc(self, DU, DF, calcK=True):
+    def solve_inc(self, DU, DF, dt, calcK=True):
         """
           [  K11   K12 ]  [ U1? ]    [ F1  ]
           [            ]  [     ] =  [     ]
@@ -287,17 +266,17 @@ class SolverHydromec(Solver):
         for i, dof in enumerate(self.pdofs): DF[dof.eq_id] = F2[i]
 
         if incver: print "updating..." ; sys.stdout.flush()
-        DFint = self.update_elems_and_nodes(DU) # Also calculates DFint
+        DFint = self.update_elems_and_nodes(DU, dt) # Also calculates DFint
 
         R = DF - DFint
         return DFint, R
 
-    def update_elems_and_nodes(self, DU):
+    def update_elems_and_nodes(self, DU, dt):
         DFint = zeros(len(self.dofs))
         
         # Updating elements
         for e in self.aelems:
-            e.elem_model.update_state(DU, DFint)
+            e.elem_model.update_state(DU, DFint, dt)
 
         # Updating dofs
         for i, dof in enumerate(self.dofs):

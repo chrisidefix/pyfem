@@ -2,18 +2,18 @@
 from elem_model_hydromec import *
 
 # Material models
-from mat_model_lin_perm import *
+from mat_model_lin_hydromec import *
 
 #Solver
-from solver_seep import *
+from solver_hydromec import *
 
 
 ############################################################################## Solid elements
 
 
-class SeepLinPerm(ElemModelSeep):
+class HydromecLin(ElemModelHydromec):
     def __init__(self, *args, **kwargs):
-        ElemModelSeep.__init__(self, *args, **kwargs)
-        mat_model = ModelLinPerm(*args, **kwargs)
+        ElemModelHydromec.__init__(self, *args, **kwargs)
+        mat_model = ModelLinHydromec(*args, **kwargs)
         self.set_mat_model(mat_model)
 

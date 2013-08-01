@@ -113,7 +113,7 @@ class ElemModelHydromec(ElemModel):
         J = mul(D, C)
         return mul(inv(J),D), det(J)
 
-    def stiff(self):
+    def calcK(self):
         nnodes = len(self.nodes)
         ndim   = self.ndim
         C = self.coords()
@@ -127,6 +127,15 @@ class ElemModelHydromec(ElemModel):
             K += mul(B.T, Dep, B)*coef
 
         return K
+
+    def get_K_loc(self):
+        loc = []
+        for n in self.nodes:
+            loc.append(n.keys["ux"].eq_id)
+            loc.append(n.keys["uy"].eq_id)
+            if self.ndim==3:
+                loc.append(n.keys["uz"].eq_id)
+        return loc
 
     def calcP(self):
         """
@@ -150,7 +159,7 @@ class ElemModelHydromec(ElemModel):
         thk    = self.thickness
 
         for ip in self.ips:
-            B, detJ = self.calcB(ip.R, C)
+            B, detJ = self.calcBp(ip.R, C)
             mdl     = ip.mat_model
             K       = mdl.calcK()
             coef    = detJ*ip.w*thk*mdl.K_coef()
@@ -201,11 +210,26 @@ class ElemModelHydromec(ElemModel):
             D        = deriv_func(self.shape_type, ip.R)
             detJ     = det(mul(D, C))
             mdl      = ip.mat_model
-            n_dSr_dp = mld.n_dSr_dp()
+            n_dSr_dp = mdl.n_dSr_dp()
             coef     = detJ*ip.w*thk
             M       += mul(N.T, N)*n_dSr_dp*coef
 
-        return P
+        return M
+
+    def get_M_loc(self):
+        """
+        Calculates the index map for the mass matrix
+        ============================================
+
+        INPUT:
+            None
+
+        RETURNS:
+            loc: a list with the dof indexes
+        """
+
+        return self.get_P_loc()
+
 
     def calcL(self):
         """
@@ -231,17 +255,44 @@ class ElemModelHydromec(ElemModel):
         L      = zeros(ndim*nnodes, nnodes)
         thk    = self.thickness
 
-        m.T    = array([[1.0, 1.0, 1.0, 0.0, 0.0, 0.0]]).T
+        mT     = array([[1.0, 1.0, 1.0, 0.0, 0.0, 0.0]]).T
 
         for ip in self.ips:
             N        = shape_func(self.shape_type, ip.R)
+            N        = as_row(N)
             D        = deriv_func(self.shape_type, ip.R)
             Bu, detJ = self.calcB(ip.R, C)
             mdl      = ip.mat_model
             coef     = detJ*ip.w*thk
-            L       += mul(Bu.T, mT, N)*n_dSr_dp*coef
+            L       += mul(Bu.T, mT, N)*coef
 
         return L
+
+    def get_L_loc(self):
+        return self.get_K_loc(), self.get_P_loc()
+
+    def calcC(self):
+        """
+        Calculates the compling matrix C
+        ================================
+
+                    /    
+            C   =  -| 
+                    /                    
+
+            m.T =  [1 1 1 0 0 0]
+
+        INPUT:
+            None
+
+        RETURNS:
+            C: An npxnu numpy array matrix
+        """
+
+        return self.calcL().T
+
+    def get_C_loc(self):
+        return self.get_P_loc(), self.get_K_loc()
 
     def calcQh(self):
         ndim  = self.ndim
@@ -260,16 +311,7 @@ class ElemModelHydromec(ElemModel):
 
         return Qh
 
-    def U(self):
-        # Mount U vector
-        
-        U_ = []
-        for node in self.nodes:
-            U_.append(node.keys["wp"].U)
-
-        return array(U_)
-
-    def update_state(self, DU, DF):
+    def update_state(self, DU, DF, dt):
         """
         Updates system natural vector
         =============================
@@ -281,41 +323,55 @@ class ElemModelHydromec(ElemModel):
         RETURNS:
             None
         """
+        ndim   = self.ndim
         nnodes = len(self.nodes)
         loc    = self.get_P_loc()
-        dU     = zeros(nnodes)
         U      = zeros(nnodes)
-        dF     = zeros(nnodes)
+        dF     = zeros(ndim*nnodes)
+        dQ     = zeros(nnodes)
 
         # Mount incremental U vector
-        loc = self.get_P_loc()
-        dU = [ DU[loc[i]] for i in range(nnodes) ]
+        locK = self.get_K_loc()
+        dU   = [ DU[idx] for idx in locK ]
 
-        # Mount total U vector
-        U = self.U()
+        # Mount incremental P vector
+        locP = self.get_P_loc()
+        dP   = [ DU[idx] for idx in locP ]
+
+        # Mount total P vector
+        P = [ node.keys["wp"].U for node in self.nodes ]
 
         C = self.coords()
 
+        m = array([1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+
         for ip in self.ips:
-            B,detJ = self.calcB(ip.R, C)
-            N      = shape_func(self.shape_type, ip.R)
-            dwp    = float(mul(N.T,dU))       # Increment in pore-pressure
-            mdl    = ip.mat_model
+            B,detJ  = self.calcB(ip.R, C)
+            deps    = mul(B,dU)
 
+            Bp,detJ = self.calcBp(ip.R, C)
+            N       = shape_func(self.shape_type, ip.R)
+            dwp     = float(mul(N.T,dP))       # Increment in pore-pressure
+            mdl     = ip.mat_model
 
-            G      = mul(B,U)/self.gamw   # gradient
-            G[-1] += 1.0          # gravity gradient in the vertical direction
-            dnSr,V = mdl.update_state(dwp, G)
+            G       = mul(Bp,P)/self.gamw   # gradient
+            G[-1]  += 1.0          # gravity gradient in the vertical direction
+            dsig, dnSr, V  = mdl.update_state(deps, dwp, G)
 
-            dT = 1
-            mcoef  = mdl.K_coef()
-            coef   = detJ*ip.w*mcoef
-            dnSr   = 0.0
-            dF    += N.T*dnSr*coef - mul(B.T,V)*dT*coef
-            OUT("dF")
+            mcoef   = 1.0
+            coef    = detJ*ip.w*mcoef
+            dnSr    = 0.0
 
-        for i in range(nnodes):
-            DF[loc[i]] += dF[i]
+            _dsig = dsig + dwp*m
+            dF += mul(B.T, _dsig)*coef
+
+            dQ += N.T*dnSr*coef - mul(Bp.T,V)*dt*coef
+
+        for i, idx in enumerate(locK):
+            DF[idx] += dF[i]
+
+        for i, idx in enumerate(locP):
+            DF[idx] += dQ[i]
 
     def activate(self):
         pass
@@ -483,66 +539,6 @@ class ElemModelHydromec(ElemModel):
 
         return nodal_values, elem_values
     
-
-    def get_nodal_and_elem_vals(self):
-        """ 
-        Return nodal and element data
-        =============================
-        
-        INPUT:
-            None
-
-        RETURNS:
-            nodal_values: a dictionary containing nodal data
-            elem_values : a dictionary containing element data
-        """
-
-        return calc_nodal_and_elem_vals(self, ['ux', 'uy', 'uz', 'wp']
-
-
-    def calc_nodal_and_elem_vals(self, nodal_keys):
-        """ 
-        Return nodal and element data
-        =============================
-        
-        INPUT:
-            None
-
-        RETURNS:
-            nodal_values: a dictionary containing nodal data
-            elem_values : a dictionary containing element data
-        """
-
-        ndim = self.ndim
-        nodal_values = {}
-        elem_values  = {}
-
-        # Adding nodal displacements
-        UX, UY, UZ = [], [], []
-        WP = []
-        for node in self.nodes:
-            V = []
-            for key in nodal_values: 
-                V.append(
-            WP.append(node.keys["wp"].U)
-            UX.append(node.keys["ux"].U)
-            UY.append(node.keys["uy"].U)
-            if ndim == 3:
-                UZ.append(node.keys["uz"].U)
-
-        nodal_values["wp"] = WP
-        nodal_values["ux"] = UX
-        nodal_values["uy"] = UY
-        if ndim == 3:
-            nodal_values["uz"] = UZ
-
-        # Getting values from integration points
-        ip_values = {}
-        all_ip_vals = []
-
-        for ip in self.ips:
-            ip_vals = ip.mat_model.get_vals()
-            all_ip_vals.append(ip_vals)
 
         nips = len(self.ips)
         nipvals = len(ip_vals)
