@@ -522,6 +522,153 @@ class BlockInset(Block):
         P1_prev = None   
 
         # Splitting inset
+        next_sh = init_sh
+        while True:
+            if final_segment:
+                X = X1
+            else:
+                curr_sh = next_sh
+                step = 0.5*norm(X1-X)
+                X += step*T
+                for i in range(20):
+                    R  = self.inverse_map(curr_sh, X)
+                    bdist = self.bdistance(curr_sh, R)
+                    #print i, curr_sh.id, bdist, X
+                    if abs(bdist)<TOL:
+                        #print i, " remain ", step
+                        break
+                    step *= 0.5+TOL
+                    if bdist>0.0:
+                        X += step*T
+                    else:
+                        X -= step*T
+                else:
+                    print "Bisection did not converge"
+
+            # Getting line points
+            # First point
+            P0 = Point(X0) if first_segment else P1
+            
+            # Second point
+            P1 = Point(X)
+
+            # Middle point
+            P2 = Point((Xp + X)/2.0) if self.quadratic else None
+
+            # Points
+            Ps = [P0, P1, P2] if self.quadratic else [P0, P1]
+            
+            # Creating new points
+            for i, P in enumerate(Ps):
+                if i>0 or first_segment:
+                    P.id = len(points)
+                    points.add(P)
+
+            # Saving segment and related nodal points
+            S             = Shape()
+            S.tag         = self.tag
+            S.shape_type  = LIN3 if self.quadratic else LIN2
+            S.id          = len(shapes)
+            shapes.add(S)
+            for P in Ps:
+                S.points.append(P)
+            
+            # Saving link shape
+            if self.punctual:
+                # Creates discrete joint elements
+                for P in Ps:
+                    Sj = Shape()
+                    Sj.shape_type = LINK1
+                    Sj.tag = self.tag
+                    Sj.points.extend(curr_sh.points)
+                    Sj.points.append(P)
+                    Sj.lnk_shapes = [S, curr_sh]
+                    Sj.id = len(shapes)
+                    shapes.add(Sj)
+            else:
+                # Create a continuous joint element
+                Sj = Shape()
+                if not self.quadratic:
+                    Sj.shape_type = LINK2
+                else:
+                    Sj.shape_type = LINK3
+
+                Sj.tag = self.tag
+                Sj.points.extend(curr_sh.points) # uses trespassed element points
+                Sj.points.extend(S.points)       # adds bar points
+                Sj.lnk_shapes = [S, curr_sh]
+                Sj.id = len(shapes)
+                shapes.add(Sj)
+
+            if final_segment: return
+
+            # Preparing for the next segment
+            first_segment = False
+            Xp = X.copy()
+            next_sh = self.find_shape(X + tinylen*T, shapes) # The first tresspased shape
+            #print curr_sh.id, next_sh.id, final_segment, final_sh.id
+            if next_sh == final_sh:
+                final_segment = True
+
+    def split_back(self, points, shapes, faces):
+        """
+        Performs the discretization of a crossed entity
+        ===============================================
+
+        This function modifies a mesh (given as sets of points and shapes)
+        in order to add new shapes and points corresponding to the 
+        discretization of a crossing entity.
+
+        INPUT:
+            points: A set of points of an existing mesh
+            shapes: A set of shapes of an existing mesh
+            faces : A set of faces. Not being used in this function but
+                    inlcluded to math the function definition as in the 
+                    base class.
+        RETURNS:
+            None
+        """
+
+        #self.find_neighbors(shapes, points)
+
+        # Constants
+        TINY = 1.0E-3
+        TOL  = 1.0E-4
+
+        # Getting initial and final coordinates
+        X0 = self.coords[0,:] # Coordinate of first point
+        X1 = self.coords[1,:] # Coordinate of last  point
+        
+        # Initial conditions
+        length  = norm(X1-X0)
+        tinylen = TINY*length
+        bdist = 0.0        # boundary function initial value
+        step  = length     # initial step length
+
+        # Defining required vectors
+        Xp = X0.copy()       # shape begin coordinates (previous point)
+        X  = Xp.copy()       # test point coordinates
+        T  = (X1-X0)/length  # unitary vector for the inset
+
+        # Find the initial and final element
+        init_sh  = self.find_shape(X0 + tinylen*T, shapes) # The first tresspased shape
+        final_sh = self.find_shape(X1 - tinylen*T, shapes) # The last tresspased shape
+        near_shapes = set([init_sh, final_sh])
+
+        # Flag used to determine if the current segment is the final segment
+        final_segment = True if init_sh==final_sh else False 
+        
+        # Flag for the first segment
+        first_segment = True
+
+        # Initializing more variables
+        curr_sh = prev_sh = init_sh
+        next_sh = final_sh
+
+        # Last point of previous segment point coordinates
+        P1_prev = None   
+
+        # Splitting inset
         while True:
             #print step, bdist, curr_sh.id, prev_sh.id
             curr_sh = None
@@ -550,10 +697,7 @@ class BlockInset(Block):
                     S = Shape()
                     S.tag = self.tag
 
-                    if not self.quadratic:
-                        S.shape_type = LIN2
-                    else:
-                        S.shape_type = LIN3
+                    S.shape_type = LIN3 if self.quadratic else LIN2
                     
                     # First point
                     if first_segment:
@@ -597,8 +741,10 @@ class BlockInset(Block):
                     # Saving link shape
                     if self.punctual:
                         # Creates punctual joint elements
-                        Ps = [P0, P1]
-                        if self.quadratic: Ps.append(P2)
+                        #Ps = [P0, P1]
+                        #if self.quadratic: Ps.append(P2)
+                        Ps = [P0, P1, P2] if self.quadratic else [P0, P1]
+
                         for P in Ps:
                             Sj = Shape()
                             Sj.shape_type = LINK1
@@ -638,5 +784,6 @@ class BlockInset(Block):
             else: #when intersection is backward
                 step = -abs(step) #retrocession
                 next_sh = curr_sh
+
 
 

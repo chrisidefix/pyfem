@@ -191,11 +191,13 @@ class Mesh:
             print >> output, "ASCII"                          
             print >> output, "DATASET UNSTRUCTURED_GRID"      
             print >> output, ""
-            print >> output, "POINTS ", npoints,  " float" 
+            print >> output, "POINTS ", npoints,  " float64" 
 
             # Write points
             for point in self.points:
-                print >> output, "{:15.3}".format(round(point.x,3)), "{:15.3}".format(point.y), "{:15.3}".format(point.z)
+                #print >> output, "{:15.3}".format(round(point.x,3)), "{:15.3}".format(point.y), "{:15.3}".format(point.z)
+                #print >> output, "{:15.6}".format(point.x, "{:15.3}".format(point.y), "{:15.3}".format(point.z)
+                print >> output, "%23.15e %23.15e %23.15e" % (point.x, point.y, point.z)
             print >> output, ""
 
             # Write connectivities
