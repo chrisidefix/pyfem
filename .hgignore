@@ -1,0 +1,18 @@
+syntax: glob
+CTestTestfile.cmake
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+*.xmf
+*.pyc
+*.swp
+*.swo
+*.a
+*.so
+*.o
+.pydevproject
+*.vtk
+*.bk
+

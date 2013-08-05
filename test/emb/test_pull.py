@@ -4,8 +4,8 @@ import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
 
 from pyfem import *
 
-punctual_model = False
 punctual_model = True
+punctual_model = False
 
 # Mesh generation
 #################################################################################################
@@ -36,12 +36,14 @@ block.set_coords([
 
 block.make_box((0,0,0),(1,6,1))
 
-block.set_divisions (1,20,1)
+block.set_divisions (2,20,10)
 #block.set_quadratic()
 
 iblock = BlockInset  ()
 iblock.punctual = punctual_model
-iblock.set_coords    ([ (0.5, 2.05, 0.2),  (0.5, 6.0 , 0.8)])
+#iblock.set_coords    ([ (0.5, 2.045256, 0.5),  (0.5, 6.0 , 0.5)]) #sloped
+iblock.set_coords    ([ (0.5, 2.045256, 0.2),  (0.5, 6.0 , 0.8)]) #sloped
+#iblock.set_quadratic(False)
 
 mesh = Mesh()
 mesh.blocks.append  (block)
@@ -52,7 +54,7 @@ alp = atan((0.8-0.2)/(6.0-2.05))
 # Mesh generation
 mesh.generate  ()
 mesh.write_file("tmesh.vtk")
-#exit()
+exit()
 
 
 # Setting domain
@@ -90,7 +92,7 @@ hook_node = bar_nodes[-1]
 
 # Calculating load levels
 load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 1.2]
-load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 0.999]
+load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 0.9999]
 load_incs   = [ i-j for i,j in zip(load_levels[1:],load_levels)]
 
 # Number of stages

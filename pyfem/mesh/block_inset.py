@@ -1,4 +1,5 @@
 import os,sys
+from math import log
 
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
@@ -486,7 +487,7 @@ class BlockInset(Block):
 
         # Constants
         TINY = 1.0E-3
-        TOL  = 1.0E-4
+        TOL  = 1.0E-5
 
         # Getting initial and final coordinates
         X0 = self.coords[0,:] # Coordinate of first point
@@ -530,20 +531,25 @@ class BlockInset(Block):
                 curr_sh = next_sh
                 step = 0.5*norm(X1-X)
                 X += step*T
-                for i in range(20):
-                    R  = self.inverse_map(curr_sh, X)
+                n = int(log(step/TOL,2)) + 1
+                step0 = 0.0
+                for i in range(n):
+                    R     = self.inverse_map(curr_sh, X)
                     bdist = self.bdistance(curr_sh, R)
-                    #print i, curr_sh.id, bdist, X
-                    if abs(bdist)<TOL:
-                        #print i, " remain ", step
-                        break
                     step *= 0.5+TOL
-                    if bdist>0.0:
-                        X += step*T
+
+                    # Bisection algorithm
+                    if bdist>=-TOL: # (-TOL) is needed to aproximate the 'intersection' outside the cell
+                        X += step*T # forward
                     else:
-                        X -= step*T
-                else:
-                    print "Bisection did not converge"
+                        X -= step*T # backward
+
+                    dstep = abs(step - step0)
+                    step0 = step
+
+                if abs(dstep)>TOL:
+                    print "Block_inset.split: Bisection did not converge with dstep=%23.15e"%(bdist)
+
 
             # Getting line points
             # First point
@@ -583,7 +589,7 @@ class BlockInset(Block):
                     Sj.points.extend(curr_sh.points)
                     Sj.points.append(P)
                     Sj.lnk_shapes = [S, curr_sh]
-                    Sj.id = len(shapes)
+                    Sj.id = len(shapes3)
                     shapes.add(Sj)
             else:
                 # Create a continuous joint element
@@ -600,15 +606,13 @@ class BlockInset(Block):
                 Sj.id = len(shapes)
                 shapes.add(Sj)
 
-            if final_segment: return
+            if abs(norm(X-X0) - length) < TOL:
+                return
 
             # Preparing for the next segment
-            first_segment = False
             Xp = X.copy()
+            first_segment = False
             next_sh = self.find_shape(X + tinylen*T, shapes) # The first tresspased shape
-            #print curr_sh.id, next_sh.id, final_segment, final_sh.id
-            if next_sh == final_sh:
-                final_segment = True
 
     def split_back(self, points, shapes, faces):
         """
