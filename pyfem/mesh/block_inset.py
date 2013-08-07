@@ -13,8 +13,8 @@ class BlockInset(Block):
         ===========================================
 
         This discretizes entities as reinforcements that cross the mesh.
-        For example, a reinforcement entitie can be discretized into several 
-        bar elements according to the tresspased elements. In addition, joint 
+        For example, a reinforcement entitie can be discretized into several
+        bar elements according to the tresspased elements. In addition, joint
         elements are created to link the tresspased elements with the bar
         elements.
 
@@ -40,11 +40,11 @@ class BlockInset(Block):
 
     def set_coords(self, C):
         """
-        Sets the block coordinates 
+        Sets the block coordinates
         ==========================
 
-        input: 
-            C:  A list of lists with start and end coordinates of 
+        input:
+            C:  A list of lists with start and end coordinates of
                 a crossing entity. A numpy matrix is also allowed.
         """
 
@@ -52,15 +52,15 @@ class BlockInset(Block):
         nrows = len(C)
         self.coords = zeros(nrows, 3)
         self.coords[:,:ncols] = array(C)[:,:ncols]
-        
+
     def shape_func(self, shape, R):
         """
         Returns the shape function values for conventional solid shapes
         ===============================================================
-        
+
         INPUT:
             shape: An integer that represent the shape type
-            R:     A list containing natural coordinates of the point 
+            R:     A list containing natural coordinates of the point
                    where the shape functions are evaluated
         RETURNS:
             N:     A list with all shape functions
@@ -492,7 +492,7 @@ class BlockInset(Block):
         # Getting initial and final coordinates
         X0 = self.coords[0,:] # Coordinate of first point
         X1 = self.coords[1,:] # Coordinate of last  point
-        
+
         # Initial conditions
         length  = norm(X1-X0)
         tinylen = TINY*length
@@ -506,49 +506,38 @@ class BlockInset(Block):
 
         # Find the initial and final element
         init_sh  = self.find_shape(X0 + tinylen*T, shapes) # The first tresspased shape
-        final_sh = self.find_shape(X1 - tinylen*T, shapes) # The last tresspased shape
-        near_shapes = set([init_sh, final_sh])
 
-        # Flag used to determine if the current segment is the final segment
-        final_segment = True if init_sh==final_sh else False 
-        
+        if init_sh==None:
+            print "Block_inset.split: Inset limits outside the mesh."
+
         # Flag for the first segment
         first_segment = True
 
         # Initializing more variables
-        curr_sh = prev_sh = init_sh
-        next_sh = final_sh
-
-        # Last point of previous segment point coordinates
-        P1_prev = None   
+        curr_sh = init_sh
 
         # Splitting inset
-        next_sh = init_sh
         while True:
-            if final_segment:
-                X = X1
-            else:
-                curr_sh = next_sh
-                step = 0.5*norm(X1-X)
-                X += step*T
-                n = int(log(step/TOL,2)) + 1
-                step0 = 0.0
-                for i in range(n):
-                    R     = self.inverse_map(curr_sh, X)
-                    bdist = self.bdistance(curr_sh, R)
-                    step *= 0.5+TOL
+            step = 0.5*norm(X1-X)
+            X += step*T
+            n = int(log(step/TOL,2)) + 1
+            step0 = 0.0
+            for i in range(n):
+                R     = self.inverse_map(curr_sh, X)
+                bdist = self.bdistance(curr_sh, R)
+                step *= 0.5+TOL
 
-                    # Bisection algorithm
-                    if bdist>=-TOL: # (-TOL) is needed to aproximate the 'intersection' outside the cell
-                        X += step*T # forward
-                    else:
-                        X -= step*T # backward
+                # Bisection algorithm
+                if bdist>=-TOL: # (-TOL) is needed to aproximate the 'intersection' outside the cell
+                    X += step*T # forward
+                else:
+                    X -= step*T # backward
 
-                    dstep = abs(step - step0)
-                    step0 = step
+                dstep = abs(step - step0)
+                step0 = step
 
-                if abs(dstep)>TOL:
-                    print "Block_inset.split: Bisection did not converge with dstep=%23.15e"%(bdist)
+            if abs(dstep)>TOL:
+                print "Block_inset.split: Bisection did not converge with dstep=%23.15e"%(bdist)
 
 
             # Getting line points
@@ -591,6 +580,8 @@ class BlockInset(Block):
                     Sj.lnk_shapes = [S, curr_sh]
                     Sj.id = len(shapes3)
                     shapes.add(Sj)
+                    #cells.add_cell(type,points, tag=tag)
+                    #add_cell(cells, type,points, tag=tag)
             else:
                 # Create a continuous joint element
                 Sj = Shape()
@@ -606,13 +597,16 @@ class BlockInset(Block):
                 Sj.id = len(shapes)
                 shapes.add(Sj)
 
-            if abs(norm(X-X0) - length) < TOL:
+            curr_len = norm(X-X0)
+            if abs(curr_len - length) < TOL or curr_len > length:
                 return
 
             # Preparing for the next segment
             Xp = X.copy()
             first_segment = False
             next_sh = self.find_shape(X + tinylen*T, shapes) # The first tresspased shape
+            #TODO: check if next_sh == None
+            curr_sh = next_sh
 
     def split_back(self, points, shapes, faces):
         """

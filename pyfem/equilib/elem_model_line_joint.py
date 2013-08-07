@@ -42,7 +42,7 @@ class ElemModelLineJoint(ElemModelEq):
             K += mul(B.T, Dep, B)*coef
 
         return K
-    
+
     def calcB(self, R, Ch, Ct):
         """
         Calculates the matrix that relates nodal displacements with relative displacements
@@ -50,7 +50,7 @@ class ElemModelLineJoint(ElemModelEq):
 
         B = T* [NN*MM  -NN]      ndim x ndim*(m+n)
 
-        where 
+        where
         T is a direction cosines matrix
         NN is a matrix containing truss element shape functions
         evaluated at the point of interest R.
@@ -65,13 +65,13 @@ class ElemModelLineJoint(ElemModelEq):
         M_12 is the first shape function from tresspased element
         evaluated at the second node of truss element.
         I is a ndim x ndim identity matrix
-        
+
         """
 
         ndim   = self.ndim
         nnodes = len(self.nodes)
         truss_nnodes = len(self.truss.nodes)
-        D = deriv_func(self.shape_type, R) 
+        D = deriv_func(self.shape_type, R)
         J = mul(D, Ct)
         T = self.calcT(J)
 
@@ -93,22 +93,22 @@ class ElemModelLineJoint(ElemModelEq):
                 istack.append(m*eye(ndim))
             stack.append(concatenate(istack, axis=1))
         MM = concatenate(stack, axis=0)
-        
+
         B = mul(T, concatenate([mul(NN,MM), -NN], axis=1))
         return B, pdet(J)
 
     def calcT(self, J):
         L0 = J/norm(J)
-        
+
         if self.ndim==2:
             pass
-        
+
         # Finding second vector
-        if   L0[0,0] == 1.0: 
+        if   L0[0,0] == 1.0:
             L1 = array([[0.0, 1.0, 0.0]])
-        elif L0[0,1] == 1.0: 
+        elif L0[0,1] == 1.0:
             L1 = array([[0.0, 0.0, 1.0]])
-        elif L0[0,2] == 1.0: 
+        elif L0[0,2] == 1.0:
             L1 = array([[1.0, 0.0, 0.0]])
         else:
             # Auxiliar vector L which must be different from L0 
@@ -129,7 +129,7 @@ class ElemModelLineJoint(ElemModelEq):
 
         # Mounting Ts matrix
         D = deriv_func(self.shape_type, R)
-        J = mul(D, Ct)         # Jacobian
+        J = mul(D, Ct)       # Jacobian
         T = self.calcT(J)    #
 
         l0 = T[0, 0]; m0 = T[0, 1]; n0 = T[0, 2]

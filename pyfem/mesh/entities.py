@@ -62,6 +62,8 @@ class Shape:
         self.data       = {}    # Extra data
 
     def __eq__(self, other):
+        if other==None:
+            return False
         if len(self.points) != len(other.points):
             return False
 
