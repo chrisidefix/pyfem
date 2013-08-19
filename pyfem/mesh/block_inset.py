@@ -543,7 +543,7 @@ class BlockInset(Block):
             # Getting line points
             # First point
             P0 = Point(X0) if first_segment else P1
-            
+
             # Second point
             P1 = Point(X)
 
@@ -552,12 +552,12 @@ class BlockInset(Block):
 
             # Points
             Ps = [P0, P1, P2] if self.quadratic else [P0, P1]
-            
+
             # Creating new points
             for i, P in enumerate(Ps):
                 if i>0 or first_segment:
                     P.id = len(points)
-                    points.add(P)
+                    points.add(P) # Warning with points that match background mesh points
 
             # Saving segment and related nodal points
             S             = Shape()
@@ -567,7 +567,7 @@ class BlockInset(Block):
             shapes.add(S)
             for P in Ps:
                 S.points.append(P)
-            
+
             # Saving link shape
             if self.punctual:
                 # Creates discrete joint elements

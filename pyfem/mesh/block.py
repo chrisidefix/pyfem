@@ -22,10 +22,10 @@ class Block:
 
     def set_coords(self, C):
         """
-        sets the block coordinates 
+        sets the block coordinates
         ==========================
 
-        input: 
+        input:
             C:  A list of lists with all coordinates.
                 A numpy matrix is also accepted.
         """
@@ -34,7 +34,7 @@ class Block:
         nrows = len(C)
         self.coords = zeros(nrows, 3)
         self.coords[:,:ncols] = array(C)[:,:ncols]
-    
+
     def set_tag(self, tag):
         self.tag = tag
 

@@ -75,6 +75,10 @@ class ElemModelLineJoint(ElemModelEq):
         J = mul(D, Ct)
         T = self.calcT(J)
 
+
+        OUT("R")
+        OUT("T")
+
         # Mount NN matrix
         N = shape_func(self.shape_type, R)
         stack = []

@@ -18,7 +18,7 @@ class ElemModelEq(ElemModel):
         self.is_truss = False  # default value
 
         props = args[0] if args else kwargs
-            
+
         self.gamma = props.get("gamma", 10.0)
         self.A     = props.get("A"    , 10.0)
 
@@ -72,6 +72,11 @@ class ElemModelEq(ElemModel):
         ndim   = self.ndim
         D = deriv_func(self.shape_type, R)
         J = mul(D, C)
+        #print
+        #print "C", C
+        #print "D", D
+        #print "Jvec =", J, pdet(J)
+        #print
 
         # B matrix for truss elements
         if self.is_truss:
@@ -145,7 +150,7 @@ class ElemModelEq(ElemModel):
         keys = ["ux", "uy", "uz"][:ndim]
 
         U_ = zeros(nnodes* ndim)
-        
+ 
         i = 0
         for n in self.nodes:
             for key in keys:

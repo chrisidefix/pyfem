@@ -25,7 +25,7 @@ class SolverHydromec(Solver):
         self.LUsolver = None
         self.plane_stress = False
         self.time_lapse = 0.0
-    
+
     def prime_and_check(self):
         nnodes = len(self.nodes)
 
@@ -62,7 +62,7 @@ class SolverHydromec(Solver):
 
         for n in self.nodes:
             for dof in n.dofs:
-                if dof.prescU: 
+                if dof.prescU:
                     self.pdofs.append(dof)
                 else:
                     self.udofs.append(dof)
@@ -85,8 +85,8 @@ class SolverHydromec(Solver):
         dT = 1.0
         self.alpha = 1.0
 
-        calc_funcs = [ "calcP"      , "calcK"    , "calcM"    , "calcL"    , "calcC" ]
-        loc_funcs  = [ "get_P_loc"  , "get_K_loc", "get_M_loc", "get_L_loc", "get_C_loc"]
+        calc_funcs = [ "calcH"      , "calcK"    , "calcM"    , "calcL"    , "calcC" ]
+        loc_funcs  = [ "get_H_loc"  , "get_K_loc", "get_M_loc", "get_L_loc", "get_C_loc"]
         matr_coefs = [ self.alpha*dT, 1.0        , 1.0        , 1.0        , 1.0 ]
 
         for e in self.aelems:
@@ -119,53 +119,54 @@ class SolverHydromec(Solver):
     def mountRHS(self, dt):
         ndofs = len(self.dofs)
 
-        #for i, dof in enumerate(self.dofs):
-        #    F[i] = dof.bryF
-
-        # List with natural values
-        RHS = [dof.bryF for dof in self.dofs]
+        # Vector with natural values
+        RHS = array([dof.bryF for dof in self.dofs])
 
         for e in self.aelems:
             # Permeability matrix
-            H   = e.elem_model.getP()
+            H   = e.elem_model.calcH()
             # Total pore-pressure vector
             P = [ node.keys["wp"].U for node in e.elem_model.nodes ]
             # Permeability map
-            loc = e.elem_model.get_P_loc()
-            RHS[loc] += dt*P*
+            loc = e.elem_model.get_H_loc()
+            RHS[loc] += dt*mul(H,P)
 
+            Qh = e.elem_model.calcQh()
+            RHS[loc] += dt*Qh
 
+        #print "dt: ", dt
+        #print RHS
+        #exit()
 
-    def solve(self):
+        return RHS
+
+    def solve(self, Dt):
         scheme = self.scheme
 
         self.stage += 1
         if not scheme: scheme = "MNR"
 
-        if self.verbose: 
+        if self.verbose:
             print "Solver: SolveHydromec"
             print "  stage", self.stage, ":"
             print "  scheme:", self.scheme
-        
+
         # Initialize SolveHydromec object and check
         self.prime_and_check()
 
-        if self.verbose: 
+        if self.verbose:
             print "  active elems:", len(self.aelems)
             print "  unknown dofs:", len(self.udofs)
 
         # Init U and F vectors
-        U = zeros(self.ndofs)
-        F = zeros(self.ndofs)
-        for i, dof in enumerate(self.dofs):
-            U[i] = dof.bryU
-            F[i] = dof.bryF
+        lam   = 1.0/self.nincs
+        dt    = lam*Dt
+        U     = array([dof.bryU for dof in self.dofs])
+        F     = self.mountRHS(dt)
 
         nu    = len(self.udofs)
-        lam   = 1.0/self.nincs
         DU    = lam*U
         DF    = lam*F
-        dt    = lam*self.time_lapse
         DFint = None
         R     = None
 
@@ -185,7 +186,7 @@ class SolverHydromec(Solver):
                 if self.verbose: print "  increment", self.inc, ":"
                 DU = lam*U
                 DF = lam*F
-                dt = lam*self.time_lapse
+                dt = lam*Dt
                 calcK    = True
                 converged = False
                 DFi = DF.copy()
@@ -216,7 +217,7 @@ class SolverHydromec(Solver):
 
                 if not converged:
                     raise Exception("SolveHydromec.solve: Solver with scheme (M)NR did not converge")
-            
+
             if scheme == "FE":
                 DFint, R = self.solve_inc(DU, DF, dt)
                 if not no_natural:
@@ -225,7 +226,7 @@ class SolverHydromec(Solver):
                     self.residue = 0.0
                     for dof in self.udofs:
                         self.residue += (DF[dof.eq_id] - DFint[dof.eq_id])**2
-                    self.residue = self.residue/(norm(DF)*self.nincs)
+                    self.residue = self.residue/(norm(DF)*self.nincs + 1.)
 
                 if math.isnan(self.residue): raise Exception("SolveHydromec.solve: Solver failed")
                 if self.verbose: print "  increment:", self.inc, " error = ", self.residue

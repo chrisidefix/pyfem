@@ -30,12 +30,12 @@ class ModelLinHydromec(Model):
         the_copy        = ModelLinHydromec()
         the_copy.sig = self.sig.copy()
         the_copy.eps = self.eps.copy()
-        the_copy.E   = self.E  
-        the_copy.nu  = self.nu 
-        
+        the_copy.E   = self.E
+        the_copy.nu  = self.nu
+
         the_copy.k      = self.k
         the_copy.wp     = self.wp
-        the_copy.gw     = self.gw 
+        the_copy.gw     = self.gw
         the_copy.attr = self.attr.copy()
         the_copy.ndim   = self.ndim
         return the_copy
@@ -46,7 +46,7 @@ class ModelLinHydromec(Model):
     def set_params(self, **params):
         if "E"  in params: self.E  = params["E"]
         if "nu" in params: self.nu = params["nu"]
-        if "k"  in params: self.E  = params["k"]
+        if "k"  in params: self.k  = params["k"]
 
     def set_state(self, **state):
         sqrt2 = 2.0**0.5

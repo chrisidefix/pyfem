@@ -1,6 +1,7 @@
 """
 PYFEM - Finite element software
 Raul Durand 2010-2013
+Dorival Pedroso 2013
 """
 
 from pyfem.tools.matvec import *
@@ -8,14 +9,14 @@ from pyfem.elem_model import *
 from numpy import average
 
 class ElemModelHydromec(ElemModel):
-    
+
     def __init__(self, *args, **kwargs):
         """
         2D/3D Element Model for Hydromechanical problems
         ================================================
 
         INPUT:
-            props: dictionary with element properties and 
+            props: dictionary with element properties and
                    constitutive model properties
                    gammaw: especific weight of water
 
@@ -56,14 +57,14 @@ class ElemModelHydromec(ElemModel):
             n.add_dof("wp", "wd")
             n.add_dof("ux", "fx")
             n.add_dof("uy", "fy")
-            if ndim==3: n.add_dof("uz", "fz") 
+            if ndim==3: n.add_dof("uz", "fz")
 
     def remove_dofs(self):
         for n in self.nodes:
             n.remove_dof("wp", "wd")
             n.remove_dof("ux", "fx")
             n.remove_dof("uy", "fy")
-            if ndim==3: n.remove_dof("uz", "fz") 
+            if ndim==3: n.remove_dof("uz", "fz")
 
     def calcB(self, R, C):
         nnodes = len(self.nodes)
@@ -94,7 +95,7 @@ class ElemModelHydromec(ElemModel):
                 B[5,2+i*ndim] = dNdx/sqrt2;   B[5,0+i*ndim] = dNdz/sqrt2
 
         return B, detJ
-    
+
 
     def calcBp(self, R, C):
         """
@@ -106,7 +107,7 @@ class ElemModelHydromec(ElemModel):
             C: Element nodal coordinates
 
         RETURNS:
-            B: An ndim x n numpy array as B matrix
+            B: A ndim x n numpy array as B matrix
         """
 
         D = deriv_func(self.shape_type, R)
@@ -137,37 +138,37 @@ class ElemModelHydromec(ElemModel):
                 loc.append(n.keys["uz"].eq_id)
         return loc
 
-    def calcP(self):
+    def calcH(self):
         """
         Calculates the permeability matrix
         ==================================
 
-                    /    
-            P   =   | B.T * K/gammaw * B * dV
-                    /                    
+                    /
+            H   =   | B.T * K/gammaw * B * dV
+                    /
 
         INPUT:
             None
 
         RETURNS:
-            P: An nxn numpy array as the permeability matrix
+            H: An nxn numpy array as the permeability matrix
         """
-        
+
         nnodes = len(self.nodes)
         C      = self.coords()
-        P      = zeros(nnodes, nnodes)
+        H      = zeros(nnodes, nnodes)
         thk    = self.thickness
 
         for ip in self.ips:
             B, detJ = self.calcBp(ip.R, C)
             mdl     = ip.mat_model
             K       = mdl.calcK()
-            coef    = detJ*ip.w*thk*mdl.K_coef()
-            P      += mul(B.T, K, B)/self.gamw*coef
+            coef    = detJ*ip.w*thk
+            H      += mul(B.T, K, B)/self.gamw*coef
 
-        return P
+        return H
 
-    def get_P_loc(self):
+    def get_H_loc(self):
         """
         Calculates the index map for the permeability matrix
         ====================================================
@@ -189,9 +190,9 @@ class ElemModelHydromec(ElemModel):
         Calculates the mass matrix
         ==========================
 
-                    /    
+                    /
             M   =   | N.T * n_dSr_dp * N * dV
-                    /                    
+                    /
 
         INPUT:
             None
@@ -199,7 +200,7 @@ class ElemModelHydromec(ElemModel):
         RETURNS:
             M: An nxn numpy array as the mass matrix
         """
-        
+
         nnodes = len(self.nodes)
         C      = self.coords()
         M      = zeros(nnodes, nnodes)
@@ -228,17 +229,17 @@ class ElemModelHydromec(ElemModel):
             loc: a list with the dof indexes
         """
 
-        return self.get_P_loc()
+        return self.get_H_loc()
 
 
     def calcL(self):
         """
-        Calculates the compling matrix L
+        Calculates the coupling matrix L
         ================================
 
-                    /    
-            L   =  -| Bu.T * m.T * Np * dV
-                    /                    
+                    /
+            L   =   | Bu.T * m.T * Np * dV
+                    /
 
             m.T =  [1 1 1 0 0 0]
 
@@ -248,7 +249,7 @@ class ElemModelHydromec(ElemModel):
         RETURNS:
             L: An nuxnp numpy array matrix
         """
-        
+
         nnodes = len(self.nodes)
         C      = self.coords()
         ndim   = self.ndim
@@ -264,21 +265,21 @@ class ElemModelHydromec(ElemModel):
             Bu, detJ = self.calcB(ip.R, C)
             mdl      = ip.mat_model
             coef     = detJ*ip.w*thk
-            L       += mul(Bu.T, mT, N)*coef
+            L       += -mul(Bu.T, mT, N)*coef
 
         return L
 
     def get_L_loc(self):
-        return self.get_K_loc(), self.get_P_loc()
+        return self.get_K_loc(), self.get_H_loc()
 
     def calcC(self):
         """
         Calculates the compling matrix C
         ================================
 
-                    /    
-            C   =  -| 
-                    /                    
+                    /
+            C   =  -|
+                    /
 
             m.T =  [1 1 1 0 0 0]
 
@@ -289,25 +290,32 @@ class ElemModelHydromec(ElemModel):
             C: An npxnu numpy array matrix
         """
 
-        return self.calcL().T
+        return -self.calcL().T
 
     def get_C_loc(self):
-        return self.get_P_loc(), self.get_K_loc()
+        return self.get_H_loc(), self.get_K_loc()
 
     def calcQh(self):
-        ndim  = self.ndim
-        C     = self.coords()
-        Qh    = zeros(nnodes)
-        b     = zeros(ndim)
-        b[-1] = self.gamw
-        thk   = self.thickness
+        """
+        Calculates the compling matrix C
+        """
+
+        nnodes = len(self.nodes)
+        ndim   = self.ndim
+        C      = self.coords()
+        Qh     = zeros(nnodes)
+        b      = zeros(ndim)
+        b[-1]  = self.gamw
+        thk    = self.thickness
 
         for ip in self.ips:
-            B, detJ = self.calcB(ip.R, C)
-            mcoef   = mdl.stiff_coef()
-            K       = mdl.permeability()
-            coef    = detJ*ip.w*thk*mcoef
-            Qh     += mul(B.T, K, b)*coef/self.gamw
+            Bp, detJ = self.calcBp(ip.R, C)
+            mdl     = ip.mat_model
+            #mcoef   = mdl.stiff_coef()
+            #K       = mdl.permeability()
+            K       = mdl.calcK()
+            coef    = detJ*ip.w*thk
+            Qh     += mul(Bp.T, K, b)*coef/self.gamw
 
         return Qh
 
@@ -325,18 +333,20 @@ class ElemModelHydromec(ElemModel):
         """
         ndim   = self.ndim
         nnodes = len(self.nodes)
-        loc    = self.get_P_loc()
+        loc    = self.get_H_loc()
         U      = zeros(nnodes)
         dF     = zeros(ndim*nnodes)
         dQ     = zeros(nnodes)
 
         # Mount incremental U vector
         locK = self.get_K_loc()
-        dU   = [ DU[idx] for idx in locK ]
+        dU = DU[locK]
+        #dU   = [ DU[idx] for idx in locK ]
 
         # Mount incremental P vector
-        locP = self.get_P_loc()
-        dP   = [ DU[idx] for idx in locP ]
+        locH = self.get_H_loc()
+        dP = DU[locH]
+        #dP   = [ DU[idx] for idx in locH ]
 
         # Mount total P vector
         P = [ node.keys["wp"].U for node in self.nodes ]
@@ -362,16 +372,31 @@ class ElemModelHydromec(ElemModel):
             coef    = detJ*ip.w*mcoef
             dnSr    = 0.0
 
-            _dsig = dsig + dwp*m
-            dF += mul(B.T, _dsig)*coef
+            #_dsig = dsig + dwp*m
+            dsig   += dwp*m
+            dF     += mul(B.T, dsig)*coef
 
-            dQ += N.T*dnSr*coef - mul(Bp.T,V)*dt*coef
+            dQ += -mul(Bp.T,V)*dt*coef
 
-        for i, idx in enumerate(locK):
-            DF[idx] += dF[i]
+            OUT('V')
 
-        for i, idx in enumerate(locP):
-            DF[idx] += dQ[i]
+        # Updating global vectors
+        DF[locK] += dF
+        DF[locH] += dQ
+
+        OUT('dU')
+        OUT('dP')
+
+        OUT('dt')
+        OUT('dF')
+        OUT('dQ')
+        exit()
+
+        #for i, idx in enumerate(locK):
+        #    DF[idx] += dF[i]
+
+        #for i, idx in enumerate(locH):
+        #    DF[idx] += dQ[i]
 
     def activate(self):
         pass
@@ -380,7 +405,7 @@ class ElemModelHydromec(ElemModel):
         pass
 
     def set_face_bry(self, fnodes, fshape_type, key, val):
-        if key == "tz" and self.ndim == 2: 
+        if key == "tz" and self.ndim == 2:
             raise Exception("tz boundary load is only available for ndim=3")
 
         # Apply the boundary conditions
@@ -388,7 +413,7 @@ class ElemModelHydromec(ElemModel):
             for node in fnodes:
                 node.set_bry(key, val)
         elif key in ["tx", "ty", "tz", "tn"]:
-            ndim = self.ndim    
+            ndim = self.ndim
             nfnodes = len(fnodes)
 
             # Calculate the face coordinates matrix
@@ -478,10 +503,10 @@ class ElemModelHydromec(ElemModel):
         self.nodes.set_brys_from_mat(["fx", "fy", "fz"][0:ndim], F)
 
     def get_nodal_and_elem_vals(self):
-        """ 
+        """
         Return nodal and element data
         =============================
-        
+
         INPUT:
             None
 
@@ -538,7 +563,6 @@ class ElemModelHydromec(ElemModel):
             elem_values[label] = average(IP[:,i])
 
         return nodal_values, elem_values
-    
 
         nips = len(self.ips)
         nipvals = len(ip_vals)

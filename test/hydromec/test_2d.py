@@ -26,14 +26,14 @@ domain.elems.set_elem_model(emodel)
 #Setting boundary conditions
 domain.nodes.sub(y=0).set_bc(ux=0, wp=-10)
 
-domain.nodes.sub(y= 0.0).set_bc(ux=0, uy=0, wp=-10.0)
-domain.nodes.sub(x= [0.0, 1.0]).set_bc(ux=0)
+domain.nodes.sub(y=0.0).set_bc(ux=0, uy=0, wp=-10.0)
+domain.nodes.sub(x=[0.0, 1.0]).set_bc(ux=0)
 domain.nodes.sub(y=10.0).set_bc(wp=10.0)
 
 #Setting solver and solving
 domain.set_solver( SolverHydromec() )
 #domain.solver.set_incs(1)
-domain.solver.solve()
+domain.solver.solve(Dt=10.)
 
 domain.solver.write_output()
 

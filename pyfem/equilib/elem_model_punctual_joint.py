@@ -42,7 +42,7 @@ class ElemModelPunctualJoint(ElemModelEq):
         Ct = self.truss.coords()
         Ch = self.hook.coords()
         l  = linalg.norm(Ct[0]-Ct[1])  # truss length
-        
+
         X = self.nodes[-1].X
         R = inverse_map(self.truss.shape_type, Ct, X)
         B = self.calcB(R, Ch, Ct)
@@ -60,7 +60,7 @@ class ElemModelPunctualJoint(ElemModelEq):
 
             B = T* [I*MM  -I]     ndim x ndim*(m+1)
 
-        where 
+        where
         T is a direction cosines matrix
         I is a ndim x ndim identity matrix
 
@@ -72,11 +72,11 @@ class ElemModelPunctualJoint(ElemModelEq):
         where
         M_1 is the first shape function value
         """
-        
+
         ndim   = self.ndim
         nnodes = len(self.nodes)
         truss_nnodes = len(self.truss.nodes)
-        D = deriv_func(self.truss.shape_type, R) 
+        D = deriv_func(self.truss.shape_type, R)
         J = mul(D, Ct)
         T = self.calcT(J)
 
@@ -91,22 +91,23 @@ class ElemModelPunctualJoint(ElemModelEq):
         for m in M:
             istack.append(m*eye(ndim))
         MM = concatenate(istack, axis=1)
-        
+
         B = mul(T, concatenate([mul(I,MM), -I], axis=1))
         return B
 
     def calcT(self, J):
         L0 = J/norm(J)
-        
+
         if self.ndim==2:
+            assert(False)
             pass
-        
+
         # Finding second vector
-        if   L0[0,0] == 1.0: 
+        if   L0[0,0] == 1.0:
             L1 = array([[0.0, 1.0, 0.0]])
-        elif L0[0,1] == 1.0: 
+        elif L0[0,1] == 1.0:
             L1 = array([[0.0, 0.0, 1.0]])
-        elif L0[0,2] == 1.0: 
+        elif L0[0,2] == 1.0:
             L1 = array([[1.0, 0.0, 0.0]])
         else:
             # Auxiliar vector L which must be different from L0 
@@ -128,7 +129,7 @@ class ElemModelPunctualJoint(ElemModelEq):
         ==========================================================
 
         INPUT:
-            R:  Local coordinates (truss element based) of the 
+            R:  Local coordinates (truss element based) of the
                 point where the stress is required
             Ch: Coordinates matrix of the tresspased element
             Ct: Coordinates matrix of the truss element
@@ -140,15 +141,15 @@ class ElemModelPunctualJoint(ElemModelEq):
                   Ts:  Stress rotation matrix
                   M:   Shape function vector of tresspased element
                        evaluated at point R
-                  Sig: Matrix with all stresses from all ips of the 
+                  Sig: Matrix with all stresses from all ips of the
                        tresspased element
         """
 
         # Mounting direction cosines matrix
         D = deriv_func(self.truss.shape_type, R)
         J = mul(D, Ct)         # Jacobian
-        
-        T = self.calcT(J) 
+
+        T = self.calcT(J)
 
         # Individual componentes of direction cosines
         l0 = T[0, 0]; m0 = T[0, 1]; n0 = T[0, 2]

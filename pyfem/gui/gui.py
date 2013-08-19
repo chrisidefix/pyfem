@@ -215,10 +215,6 @@ class MyFrame(wx.Frame):
                 pos = event.GetPoint()
                 pos = pos[0]+20, pos[1]+20
                 self.tree.PopupMenu(menu, pos)
-
-    
-
-
         pass
 
 

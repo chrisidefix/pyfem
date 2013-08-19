@@ -27,41 +27,41 @@ class BlockLine(Block):
 
         return cp
 
-    def set_coords(self, C):
-        """
-        C is a list with all coordinates
-        It could be a matrix where rows are the point coordinates
-        """
+    #def set_coords(self, C):
+    #    """
+    #    C is a list with all coordinates
+    #    It could be a matrix where rows are the point coordinates
+    #    """
 
-        list_size = len(C)
+    #    list_size = len(C)
 
-        if not (list_size==2 or list_size==4 or list_size==6 or list_size==9):
-            raise Exception("Block3D.set_coords: Coords list size does not match 4, 6 or 9")
+    #    if not (list_size==2 or list_size==4 or list_size==6 or list_size==9):
+    #        raise Exception("Block3D.set_coords: Coords list size does not match 4, 6 or 9")
 
-        if list_size == 2: # List with two lists with coordinates
-            self.coords = zeros(2, 3)
-            for i, R in enumerate(self.coords):
-                R[0] = C[i][0]
-                R[1] = C[i][1]
+    #    if list_size == 2: # List with two lists with coordinates
+    #        self.coords = zeros(2, 3)
+    #        for i, R in enumerate(self.coords):
+    #            R[0] = C[i][0]
+    #            R[1] = C[i][1]
 
-        if list_size == 4:  # (2D: two nodes input) there is no 3 noded bars for 2D analysis 
-            self.coords = zeros(list_size/2, 3)
-            for i, R in enumerate(self.coords):
-                R[0] = C[i*2]
-                R[1] = C[i*2+1]
-                R[2] = 0.0
-        
-        if list_size == 6 or list_size == 9:  # (3D)
-            self.coords = zeros(list_size/3, 3) # 2 and 3 nodes input
+    #    if list_size == 4:  # (2D: two nodes input) there is no 3 noded bars for 2D analysis
+    #        self.coords = zeros(list_size/2, 3)
+    #        for i, R in enumerate(self.coords):
+    #            R[0] = C[i*2]
+    #            R[1] = C[i*2+1]
+    #            R[2] = 0.0
+    #
+    #    if list_size == 6 or list_size == 9:  # (3D)
+    #        self.coords = zeros(list_size/3, 3) # 2 and 3 nodes input
 
-            for i, R in enumerate(self.coords):
-                R[0] = C[i*3]
-                R[1] = C[i*3+1]
-                R[2] = C[i*3+2]
+    #        for i, R in enumerate(self.coords):
+    #            R[0] = C[i*3]
+    #            R[1] = C[i*3+1]
+    #            R[2] = C[i*3+2]
 
     def set_divisions(self, n):
         self.n = n
-    
+
     def shape_func(self, r):
         """
               -----o===================o----->  r
@@ -82,32 +82,32 @@ class BlockLine(Block):
         N[1] = 1.0 - r*r
         N[2] = 0.5*(r*r+r)
         return N
-    
+
     def split(self, points, shapes, faces):
         if not self.quadratic:
             self.split_no_o2(points, shapes, faces)
         else:
             self.split_o2(points, shapes, faces)
-    
+
     def split_no_o2(self, points, shapes, faces):
         p_arr = numpy.empty((self.n+1), dtype='object')
-    
+
         # Generating points
         for i in range(self.n+1):
             r=(2.0/self.n)*i-1.0
 
             # calculate shape function values
-            if self.coords.shape[0]==2: 
+            if self.coords.shape[0]==2:
                 N = self.shape_func(r)
             else:
                 N = self.shape_func_o2(r)
 
-            C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+            C = mul(N.T, self.coords)      # interpolated coordinates x, y
             C.round(8)
 
             tmpP = Point()
             tmpP.set_coords(C)
-            
+
             P = tmpP.get_match_from(points)
             if not P:
                 P = tmpP
@@ -115,8 +115,8 @@ class BlockLine(Block):
                 points.add(P)
 
             p_arr[i] = P
-    
-        # Generating shapes 
+
+        # Generating shapes
         for i in range(1, self.n+1):
             # Vertices of shape
             p0 = p_arr[i-1]
@@ -130,26 +130,26 @@ class BlockLine(Block):
             S.id = len(shapes)
             shapes.add(S)
 
-    def split_o2(self, points, shapes, faces): 
+    def split_o2(self, points, shapes, faces):
         p_arr = numpy.empty((2*self.n+1), dtype='object')
-    
+
         # Generating points
         for i in range(2*self.n+1):
             r=(1.0/self.n)*i-1.0
 
             # calculate shape function values
-            if self.coords.shape[0]==2: 
+            if self.coords.shape[0]==2:
                 N = self.shape_func(r)
             else:
                 N = self.shape_func_o2(r)
 
-            C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+            C = mul(N.T, self.coords)      # interpolated coordinates x, y
             C.round(8)
 
 
             tmpP = Point()
             tmpP.set_coords(C)
-            
+
             P = tmpP.get_match_from(points)
             if not P:
                 P = tmpP
@@ -158,7 +158,7 @@ class BlockLine(Block):
 
             p_arr[i] = P
 
-        # Generating shapes 
+        # Generating shapes
         for i in range(2, 2*self.n+1, 2):
             # Vertices of shape
             p0 = p_arr[i-2]
@@ -179,7 +179,7 @@ class BlockLine(Block):
                 'type'   : list,
                 'value'  : [],
                 'display': 'Coordinates',
-                'tip'    : 'Input VTK mesh filename.' 
+                'tip'    : 'Input VTK mesh filename.'
                 }
         data['ndiv']   = {
                 'type'   : str,
@@ -188,7 +188,7 @@ class BlockLine(Block):
                 'tip'    : 'Number of divisions along the block.'
                 }
         return data
-            
+
 
 # Class registering
 Block.register(BlockLine)

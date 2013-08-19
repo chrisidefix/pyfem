@@ -6,7 +6,7 @@ from collections import Counter
 def get_line(file_obj):
     line = ''
     while not line:
-        line = file_obj.readline().strip() 
+        line = file_obj.readline().strip()
     return line
 
 class Mesh:
@@ -39,8 +39,36 @@ class Mesh:
     def set_verbose(self, verbose):
         self.verbose = verbose
 
+    def from_geometry(self, Ps, Cs, Ts, Tags):
+        # Loading points
+        for i, P_coords in enumerate(Ps):
+            P    = Point()
+            P.id = i
+            P_coords.append(0.0)
+            P.set_coords(P_coords)
+            self.points.append(P)
+
+        # Loading shapes
+        for i, con in enumerate(Cs):
+            S = Shape()
+            S.id = i
+            for idx in con:
+                S.points.append(self.points[idx])
+            self.shapes.append(S)
+
+        # Setting types
+        for i, typ in enumerate(Ts):
+            self.shapes[i].shape_type = typ
+
+        # Setting tatgs
+        for i, tag in enumerate(Tags):
+            self.shapes[i].tag = tag
+
+        # Set ndim
+        self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
+
     def load_file(self, filename):
-        # Resets all mesh data 
+        # Resets all mesh data
         self.__init__()
 
         file = open(filename, 'r')
@@ -106,7 +134,7 @@ class Mesh:
                 tag_idx = int(get_line(file))
                 self.shapes[i].tag = tags[tag_idx]
 
-        file.close() 
+        file.close()
 
         # Generate faces
         all_faces = Counter()
@@ -121,10 +149,11 @@ class Mesh:
         self.faces = [F for F, count in all_faces.iteritems() if count==1]
 
         # Find dimension
-        x0 = all(P.x == 0.0 for P in self.points) # check if all x coords are zero
-        y0 = all(P.y == 0.0 for P in self.points)
-        z0 = all(P.z == 0.0 for P in self.points)
-        self.ndim = 3 - x0 - y0 - z0
+        #x0 = all(P.x == 0.0 for P in self.points) # check if all x coords are zero
+        #y0 = all(P.y == 0.0 for P in self.points)
+        #z0 = all(P.z == 0.0 for P in self.points)
+        #self.ndim = 3 - x0 - y0 - z0
+        self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
 
     def add_blocks(self, *args):
         for blk in args:
@@ -149,23 +178,24 @@ class Mesh:
         assert all([shape.id != -1 for shape in self.shapes_set])
         assert all([face .id != -1 for face  in self.faces_set ])
 
-        # Getting ndim
-        given_ndim = True if self.ndim > 1 else False
-
-        if self.ndim == 0:
-            self.ndim = 2
-            for shape in self.shapes_set:
-                if shape.shape_type in [HEX8, HEX20, TET4, TET10]:
-                    self.ndim = 3
-                    break
-
         # Setting up nodes, faces and shapes
         self.points = sorted(self.points_set, key=lambda n: n.id)
         self.shapes = sorted(self.shapes_set, key=lambda s: s.id)
         self.faces  = sorted(self.faces_set , key=lambda f: f.id)
 
+        # Getting ndim
+        given_ndim = True if self.ndim > 1 else False
+
+        if self.ndim == 0:
+            self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
+            #self.ndim = 2
+            #for shape in self.shapes_set:
+            #    if shape.shape_type in [HEX8, HEX20, TET4, TET10]:
+            #        self.ndim = 3
+            #        break
+
         if self.verbose:
-            if not given_ndim: 
+            if not given_ndim:
                 print " ", str(self.ndim, ) + "d found"
             print " ", len(self.points), "  points obtained"
             print " ", len(self.shapes), "  shapes obtained"
@@ -186,12 +216,12 @@ class Mesh:
             ndata += 1 + len(shape.points)
 
         with open(filename, "w") as output:
-            print >> output, "# vtk DataFile Version 3.0"     
-            print >> output, "pyfem output "                  
-            print >> output, "ASCII"                          
-            print >> output, "DATASET UNSTRUCTURED_GRID"      
+            print >> output, "# vtk DataFile Version 3.0"
+            print >> output, "pyfem output "
+            print >> output, "ASCII"
+            print >> output, "DATASET UNSTRUCTURED_GRID"
             print >> output, ""
-            print >> output, "POINTS ", npoints,  " float64" 
+            print >> output, "POINTS ", npoints,  " float64"
 
             # Write points
             for point in self.points:
@@ -201,19 +231,19 @@ class Mesh:
             print >> output, ""
 
             # Write connectivities
-            print >> output, "CELLS ",nshapes, " ", ndata 
+            print >> output, "CELLS ",nshapes, " ", ndata
             for shape in self.shapes:
                 print >> output, len(shape.points), " ",
                 for point in shape.points:
                     print >> output, point.id, " ",
-                print >> output 
-            print >> output 
+                print >> output
+            print >> output
 
             # Write cell types
-            print >> output, "CELL_TYPES ", nshapes 
+            print >> output, "CELL_TYPES ", nshapes
             for shape in self.shapes:
                 print >> output, get_vtk_type(shape.shape_type)
-            print >> output 
+            print >> output
 
     write = write_file
 
@@ -223,13 +253,13 @@ class Mesh:
                 'type'   : str,
                 'value'  : '',
                 'display': 'Input file',
-                'tip'    : 'Input VTK mesh filename.' 
+                'tip'    : 'Input VTK mesh filename.'
                 }
         data['output_file']   = {
                 'type'   : str,
                 'value'  : '',
                 'display': 'Output file',
-                'tip'    : 'Output VTK mesh filename.' 
+                'tip'    : 'Output VTK mesh filename.'
                 }
         data['ndim']   = {
                 'type'   : int,
