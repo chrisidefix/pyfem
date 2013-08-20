@@ -75,9 +75,8 @@ class ElemModelLineJoint(ElemModelEq):
         J = mul(D, Ct)
         T = self.calcT(J)
 
-
-        OUT("R")
-        OUT("T")
+        #OUT("R")
+        #OUT("T")
 
         # Mount NN matrix
         N = shape_func(self.shape_type, R)
@@ -102,6 +101,26 @@ class ElemModelLineJoint(ElemModelEq):
         return B, pdet(J)
 
     def calcT(self, J):
+        if self.ndim==2:
+            raise Exception("Non implemented")
+
+        ndim = self.ndim
+        e0 = J[0]/norm(J)
+
+        a = e0.copy()
+        a[0] += 666.0  # costant added to generate a non parallel vector to e0
+
+        q = numpy.dot(numpy.identity(ndim) - numpy.outer(e0,e0), a)
+
+        OUT("a")
+        OUT("q")
+
+        e1 = q/norm(q)
+        e2 = cross(e0,e1)
+
+        return concatenate([[e0], [e1], [e2]], axis=0)
+
+    def calcT_old(self, J):
         L0 = J/norm(J)
 
         if self.ndim==2:
@@ -125,7 +144,6 @@ class ElemModelLineJoint(ElemModelEq):
         # Finding third vector
         L2 = cross(L0, L1)
         L2 /= norm(L2)
-
 
         return concatenate([L0, L1, L2], axis=0)
 
@@ -172,19 +190,6 @@ class ElemModelLineJoint(ElemModelEq):
 
         return sign
 
-    def internal_force(self):
-        Ct = self.truss.coords()
-        Ch = self.hook.coords()
-        F = zeros(nnodes*ndim)
-
-        for ip in self.ips:
-            B, detJ = self.calcB(ip.R, Ch, Ct)
-            M       = ip.mat_model
-            mcoef   = M.stiff_coef()
-            coef    = detJ*ip.w*mcoef
-            F += mul(B.T, M.sigma())*coef
-
-        return F
 
     def update(self, DU, DF):
         ndim = self.ndim
@@ -283,3 +288,39 @@ class ElemModelLineJoint(ElemModelEq):
 
         return nodal_values, elem_values
 
+    # Debug functions
+    def print_jacobians(self):
+        ndim   = self.ndim
+        nnodes = len(self.nodes)
+        truss_nnodes = len(self.truss.nodes)
+        Ct = self.truss.coords()
+        Ch = self.hook.coords()
+
+        for i, ip in enumerate(self.ips):
+            R = ip.R
+            D = deriv_func(self.shape_type, R)
+            J = mul(D, Ct)
+            T = self.calcT(J)
+
+            print "ip:", i, "\nR: ", R
+            print "J:", J , "\nnorm(J):", pdet(J)
+            print "T: ", T
+            print
+
+
+    def print_internal_force(self):
+        ndim   = self.ndim
+        nnodes = len(self.nodes)
+        Ct = self.truss.coords()
+        Ch = self.hook.coords()
+        F = zeros(nnodes*ndim)
+
+        for ip in self.ips:
+            B, detJ = self.calcB(ip.R, Ch, Ct)
+            M       = ip.mat_model
+            mcoef   = M.stiff_coef()
+            coef    = detJ*ip.w*mcoef
+            sig     = M.sig
+            F += mul(B.T, M.sig)*coef
+
+        print "F:", F

@@ -36,7 +36,7 @@ block.set_coords([
 
 block.make_box((0,0,0),(1,6,1))
 
-block.set_divisions (2,20,10)
+block.set_divisions (1,20,1)
 #block.set_quadratic()
 
 iblock = BlockInset  ()
@@ -54,7 +54,6 @@ alp = atan((0.8-0.2)/(6.0-2.05))
 # Mesh generation
 mesh.generate  ()
 mesh.write_file("tmesh.vtk")
-exit()
 
 
 # Setting domain

@@ -21,12 +21,13 @@ class Mesh:
         self.shapes_set = set()
         self.faces_set  = set()
         #self.faces_set  = Counter() ?
+        print args
         if len(args)>0:
-            blocks = args[0]
-            if isinstance(blocks, list):
-                self.blocks.extend(blocks)
-            elif isinstance(blocks, Block):
-                self.blocks.append(blocks)
+            first = args[0]
+            if isinstance(first, list):
+                self.blocks.extend(first)
+            elif isinstance(first, Block):
+                self.blocks.extend(args)
             else:
                 assert False
 
