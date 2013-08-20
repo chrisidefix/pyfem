@@ -21,7 +21,6 @@ class Mesh:
         self.shapes_set = set()
         self.faces_set  = set()
         #self.faces_set  = Counter() ?
-        print args
         if len(args)>0:
             first = args[0]
             if isinstance(first, list):

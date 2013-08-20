@@ -43,7 +43,7 @@ class Solver:
         self.elems  = domain.elems
         self.nodes  = domain.nodes
 
-    def set_incs(self, nincs): 
+    def set_incs(self, nincs):
         self.nincs = nincs
 
     def set_scheme(self, scheme):
@@ -72,7 +72,7 @@ class Solver:
             a numpy array (nelems x MAX_DATA) containing elements data
             a list containing element data labels
         """
-        
+
         MAX_DATA   = 45   # max number of columns in nodal_labels matrix
         nlabels_idx = {}  # saves nodal values labels and positions
         elabels_idx = {}  # saves elem values labels and positions
@@ -176,7 +176,7 @@ class Solver:
         return nodal_vals, nodal_labels
 
     def write_output(self, path=""):
-        
+
         # Fill active elements list
         if not self.aelems:
             for e in self.elems:
@@ -203,12 +203,12 @@ class Solver:
         with open(filename, "w") as output:
             #print("# vtk DataFile Version 3.0", file=output)
 
-            print >> output, "# vtk DataFile Version 3.0"     
-            print >> output, "pyfem output "                  
-            print >> output, "ASCII"                          
-            print >> output, "DATASET UNSTRUCTURED_GRID"      
+            print >> output, "# vtk DataFile Version 3.0"
+            print >> output, "pyfem output "
+            print >> output, "ASCII"
+            print >> output, "DATASET UNSTRUCTURED_GRID"
             print >> output, ""
-            print >> output, "POINTS ", nnodes,  " float" 
+            print >> output, "POINTS ", nnodes,  " float"
 
             # Write nodes
             for node in self.nodes:
@@ -216,21 +216,21 @@ class Solver:
             print >> output, ""
 
             # Write connectivities
-            print >> output, "CELLS ",naelems, " ", ndata 
+            print >> output, "CELLS ",naelems, " ", ndata
             for elem in self.aelems:
                 print >> output, len(elem.nodes), " ",
                 for node in elem.nodes:
                     print >> output, node.id, " ",
-                print >> output 
-            print >> output 
+                print >> output
+            print >> output
 
             # Write cell types
-            print >> output, "CELL_TYPES ", naelems 
+            print >> output, "CELL_TYPES ", naelems
             for elem in self.aelems:
                 print >> output, get_vtk_type(elem.shape_type)
-            print >> output 
+            print >> output
 
-            
+
             # Write point data
             print >> output, "POINT_DATA ", nnodes
 
@@ -246,18 +246,18 @@ class Solver:
                         print >> output, "{:15.4}".format(0.0)
                 else:
                     print >> output, "{:15.4}{:15.4}{:15.4}".format(0.0, 0.0, 0.0)
-            print >> output 
+            print >> output
 
             for i in range(nncomps):
                 print >> output, "SCALARS ", nodal_labels[i], " float 1"
-                print >> output, "LOOKUP_TABLE default" 
+                print >> output, "LOOKUP_TABLE default"
                 for j in range(nnodes):
-                    print >> output, "{:15.4}".format(float(nodal_vals[j,i])) 
+                    print >> output, "{:15.4}".format(float(nodal_vals[j,i]))
                 print >> output
 
-            if not self.track_per_inc: 
+            if not self.track_per_inc:
                 self.write_history(nodal_vals, nodal_labels)
-            
+
             # Write element data
             print >> output, "CELL_DATA ", naelems
             for i in range(necomps):
@@ -268,7 +268,7 @@ class Solver:
                     print >> output, "{:15.4}".format(float(elem_vals[e_idx, i])) 
                 print >> output
         pass
-    
+
     def track(self, *args):
         for obj in args:
             if isinstance(obj, Node):
@@ -287,7 +287,7 @@ class Solver:
         obj = args[0]
         obj.attr["filename"  ] = filename
         obj.attr["fileheader"] = False
-        
+
         p1 = Node()
 
         if isinstance(obj, Node):

@@ -81,7 +81,7 @@ domain.elems.lines.set_elem_model(EqElasticBar(E=Es, A=0.005))
 if punctual_model:
     domain.elems.joints.set_elem_model(EqMCPunctualJoint(Ks=100.0E3, Kn=100.0E3, Dm=Dm, C=C, phi=phi))
 else:
-    domain.elems.joints.set_elem_model(EqMohrCoulombJoint(Ks=100.0E3, Kn=100.0E3*2, Dm=Dm, C=C, phi=phi))
+    domain.elems.joints.set_elem_model(EqMohrCoulombJoint(Ks=100.0E3, Kn=100.0E3, Dm=Dm, C=C, phi=phi))
 
 # Reinforcement nodes
 bar_nodes = domain.elems.lines.nodes
@@ -91,6 +91,7 @@ hook_node = bar_nodes[-1]
 
 # Calculating load levels
 load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 1.2]
+load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 0.99999]
 load_levels = [0.0, 0.2, 0.4, 0.6, 0.8, 0.9, 0.98, 0.9999]
 load_incs   = [ i-j for i,j in zip(load_levels[1:],load_levels)]
 
@@ -115,7 +116,7 @@ for i in range(nstages):
     domain.solver.solve()
     domain.solver.write_output()
 
-print " total load = ", tload 
+print " total load = ", tload
 
 
 #################################################################################################

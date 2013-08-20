@@ -20,7 +20,7 @@ class SolverEq(Solver):
         self.K22 = None
         self.LUsolver = None
         self.plane_stress = False
-    
+
     def set_plane_stress(self, value):
         self.plane_stress = True
 
@@ -50,7 +50,7 @@ class SolverEq(Solver):
         # Fill active elements collection
         self.aelems = []
         for e in self.elems:
-            if not isinstance(e.elem_model, ElemModelEq): 
+            if not isinstance(e.elem_model, ElemModelEq):
                 raise Exception("SolverEq.prime_and_check: Element model is not suitable")
             if e.elem_model.is_active:
                 self.aelems.append(e)
@@ -61,7 +61,7 @@ class SolverEq(Solver):
 
         for n in self.nodes:
             for dof in n.dofs:
-                if dof.prescU: 
+                if dof.prescU:
                     self.pdofs.append(dof)
                 else:
                     self.udofs.append(dof)
@@ -93,22 +93,22 @@ class SolverEq(Solver):
                     v.append(Ke[i,j])
 
         self.K = scipy.sparse.coo_matrix((v, (r,c)), (ndofs, ndofs))
-    
+
     def solve(self):
         scheme = self.scheme
 
         self.stage += 1
         if not scheme: scheme = "MNR"
 
-        if self.verbose: 
+        if self.verbose:
             print "Solver: SolverEq"
             print "  stage", self.stage, ":"
             print "  scheme:", self.scheme
-        
+
         # Initialize SolverEq object and check
         self.prime_and_check()
 
-        if self.verbose: 
+        if self.verbose:
             print "  active elems:", len(self.aelems)
             print "  unknown dofs:", len(self.udofs)
 
@@ -167,14 +167,14 @@ class SolverEq(Solver):
 
                 if not converged:
                     raise Exception("SolverEq.solve: Solver with scheme (M)NR did not converge")
-            
+
             if scheme == "FE":
                 DFint, R = self.solve_inc(DU, DF)
                 self.residue = numpy.linalg.norm(R)/(numpy.linalg.norm(DFint)*self.nincs)
                 if math.isnan(self.residue): raise Exception("SolverEq.solve: Solver failed")
                 if self.verbose: print "  increment:", self.inc, " error = ", self.residue
 
-            if self.track_per_inc: 
+            if self.track_per_inc:
                 self.write_history()
 
         if self.verbose: print "  end stage:", self.stage
@@ -234,7 +234,7 @@ class SolverEq(Solver):
 
     def update_elems_and_nodes(self, DU):
         DFint = zeros(len(self.dofs))
-        
+
         # Updating elements
         for e in self.aelems:
             e.elem_model.update(DU, DFint)

@@ -316,13 +316,12 @@ class ElemModelLineJoint(ElemModelEq):
         Ch = self.hook.coords()
         F = zeros(nnodes*ndim)
 
+
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, Ch, Ct)
             M       = ip.mat_model
-            mcoef   = M.stiff_coef()
             mcoef   = 1.
             coef    = detJ*ip.w*mcoef
-            #OUT("mcoef")
             sig     = M.sig
             h       = 3.14159*0.15
             sig     = array([1.,2.,3.])

@@ -324,14 +324,14 @@ class BlockInset(Block):
         Determines natural coordinates of a point given in global coordinates
         =====================================================================
 
-        INPUT: 
+        INPUT:
             S: Shape object
             X: List of global coordinates of a point
         RETURNS:
             R: List of natural coordinates of the given point
         """
 
-        TOL   = 1.0E-4
+        TOL   = 1.0E-7
         MAXIT = 25
         R = zeros(3)
 
@@ -360,9 +360,9 @@ class BlockInset(Block):
         Determines an estimate of the distance of a point to the border of a shape
         ==========================================================================
 
-        INPUT: 
+        INPUT:
             S:     Shape object
-            R:     A list containing natural coordinates of the point 
+            R:     A list containing natural coordinates of the point
                    where the shape functions are evaluated
         RETURNS:
             value: An estimate of the distance to the border.
@@ -394,7 +394,7 @@ class BlockInset(Block):
         Determines if a point is inside a shape
         =======================================
 
-        INPUT: 
+        INPUT:
             S:     Shape object
             X:     List of global coordinates of a point
         RETURNS:
@@ -403,11 +403,11 @@ class BlockInset(Block):
 
         if S.shape_type in [LIN2, LIN3, LINK1, LINK2, LINK3]: return False
 
-        TOL = 1.0E-6
-    	R = self.inverse_map(S, X)
+        TOL = 1.0E-7
+        R = self.inverse_map(S, X)
         if self.bdistance(S, R) > -TOL:
             return True;
-        else: 
+        else:
             return False;
 
     def find_shape(self, X, shapes, near_shapes=None):
@@ -415,13 +415,13 @@ class BlockInset(Block):
         Finds the shape that contains a given point
         ===========================================
 
-        INPUT: 
+        INPUT:
             X:            List of global coordinates of a point
             shapes:       A list of shapes
-            near_shapes:  A list of shapes that is know that are close to 
+            near_shapes:  A list of shapes that is know that are close to
                           the given point
         RETURNS:
-            shape:        The shape that contains the given point. 
+            shape:        The shape that contains the given point.
                           In the case of the point is not contained by any shape
                           from the list 'shapes' then an exception is fired
         """
@@ -432,9 +432,9 @@ class BlockInset(Block):
                     return shape
 
         for shape in shapes:
-            if self.is_inside(shape, X): 
+            if self.is_inside(shape, X):
                 return shape
-        
+
         raise Exception("Block_inset::find_shape: Coordinates outside mesh.")
 
     def find_neighbors(self, shapes, points):
@@ -470,14 +470,14 @@ class BlockInset(Block):
         ===============================================
 
         This function modifies a mesh (given as sets of points and shapes)
-        in order to add new shapes and points corresponding to the 
+        in order to add new shapes and points corresponding to the
         discretization of a crossing entity.
 
         INPUT:
             points: A set of points of an existing mesh
             shapes: A set of shapes of an existing mesh
             faces : A set of faces. Not being used in this function but
-                    inlcluded to math the function definition as in the 
+                    inlcluded to math the function definition as in the
                     base class.
         RETURNS:
             None
@@ -486,8 +486,8 @@ class BlockInset(Block):
         #self.find_neighbors(shapes, points)
 
         # Constants
-        TINY = 1.0E-3
-        TOL  = 1.0E-5
+        TINY = 1.0E-4
+        TOL  = 1.0E-7
 
         # Getting initial and final coordinates
         X0 = self.coords[0,:] # Coordinate of first point
@@ -598,7 +598,8 @@ class BlockInset(Block):
                 shapes.add(Sj)
 
             curr_len = norm(X-X0)
-            if abs(curr_len - length) < TOL or curr_len > length:
+            if abs(curr_len - length) < TOL or curr_len > length: # Final segment
+                P1.set_coords(X1)
                 return
 
             # Preparing for the next segment
@@ -621,7 +622,7 @@ class BlockInset(Block):
             points: A set of points of an existing mesh
             shapes: A set of shapes of an existing mesh
             faces : A set of faces. Not being used in this function but
-                    inlcluded to math the function definition as in the 
+                    included to math the function definition as in the 
                     base class.
         RETURNS:
             None
@@ -636,7 +637,7 @@ class BlockInset(Block):
         # Getting initial and final coordinates
         X0 = self.coords[0,:] # Coordinate of first point
         X1 = self.coords[1,:] # Coordinate of last  point
-        
+
         # Initial conditions
         length  = norm(X1-X0)
         tinylen = TINY*length
@@ -654,8 +655,8 @@ class BlockInset(Block):
         near_shapes = set([init_sh, final_sh])
 
         # Flag used to determine if the current segment is the final segment
-        final_segment = True if init_sh==final_sh else False 
-        
+        final_segment = True if init_sh==final_sh else False
+
         # Flag for the first segment
         first_segment = True
 
@@ -664,7 +665,7 @@ class BlockInset(Block):
         next_sh = final_sh
 
         # Last point of previous segment point coordinates
-        P1_prev = None   
+        P1_prev = None
 
         # Splitting inset
         while True:
@@ -696,7 +697,7 @@ class BlockInset(Block):
                     S.tag = self.tag
 
                     S.shape_type = LIN3 if self.quadratic else LIN2
-                    
+
                     # First point
                     if first_segment:
                         tmpP = Point(X0)
@@ -708,7 +709,7 @@ class BlockInset(Block):
                     else:
                         assert P1_prev
                         S.points.append(P1_prev)
-                    
+
                     # Second point
                     if final_segment:
                         tmpP = Point(X)
@@ -735,7 +736,7 @@ class BlockInset(Block):
                     first_segment = False
                     S.id = len(shapes)
                     shapes.add(S)
-                    
+
                     # Saving link shape
                     if self.punctual:
                         # Creates punctual joint elements
