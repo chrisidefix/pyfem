@@ -147,15 +147,15 @@ class BlockInset(Block):
             raise Exception("Block_inset::shape_func: Could not find shape type.")
 
         return N
-    
+
     def deriv_func(self, shape, R):
         """
         Returns the shape function derivatives for conventional solid shapes
         ====================================================================
-        
+
         INPUT:
             shape: An integer that represent the shape type
-            R:     A list containing natural coordinates of the point 
+            R:     A list containing natural coordinates of the point
                    where the shape functions are evaluated
 
         RETURNS:
@@ -220,7 +220,7 @@ class BlockInset(Block):
             rp1=1.0+r; rm1=1.0-r
             sp1=1.0+s; sm1=1.0-s
             tp1=1.0+t; tm1=1.0-t
-            
+
             # Derivatives with respect to r
             D[0, 0] = -0.125*sm1*tm1*(-r-s-t-2)-0.125*rm1*sm1*tm1
             D[0, 1] =  0.125*sm1*tm1*( r-s-t-2)+0.125*rp1*sm1*tm1
@@ -290,13 +290,13 @@ class BlockInset(Block):
         else:
             raise Exception("Block_inset::deriv_func: Could not find shape type.")
         return D
-    
+
     def get_shape_coords(self, S):
         """
         Constructs a matrix with shape coordinates
         ==========================================
 
-        INPUT: 
+        INPUT:
             S: Shape object
         RETURNS:
             C: A matrix with the coordinates of a shape object
@@ -344,7 +344,7 @@ class BlockInset(Block):
             # calculate trial of real coordinates
             N = self.shape_func(S, R)
             Xt = mul(N.T, C).T # interpolating
-            
+
             # calculate the error
             deltaX = Xt - X;
             deltaR = mul(inv(J).T, deltaX)

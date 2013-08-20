@@ -1,6 +1,7 @@
 from pyfem.model import *
 from math import tan
 from math import copysign
+from math import pi
 
 class MatModelMohrCoulombJoint(Model):
     name = "MatModelMohrCoulombJoint"
@@ -16,6 +17,7 @@ class MatModelMohrCoulombJoint(Model):
         self.phi = 0.0
         self.z   = 0.0
         self.H   = 0.0
+        self.h   = 0.0
 
         if args: data = args[0]
         else:    data = kwargs
@@ -23,32 +25,36 @@ class MatModelMohrCoulombJoint(Model):
         if data:
             self.set_params(**data)
             self.set_state(**data)
-    
+
     def copy(self):
         cp = MatModelMohrCoulombJoint()
         cp.ndim = self.ndim
         cp.sig = self.sig.copy()
         cp.eps = self.eps.copy()
-        cp.Ks  = self.Ks 
-        cp.Kn  = self.Kn 
-        cp.Dm  = self.Dm 
-        cp.C   = self.C  
+        cp.Ks  = self.Ks
+        cp.Kn  = self.Kn
+        cp.Dm  = self.Dm
+        cp.C   = self.C
         cp.phi = self.phi
-        cp.z   = self.z  
-        cp.H   = self.H  
+        cp.z   = self.z
+        cp.H   = self.H
         cp.attr = self.attr.copy()
+
+        cp.h   = self.h
         return cp
 
     def prime_and_check(self):
         pass
 
     def set_params(self, **params):
-        self.Ks = params.get("Ks", self.Ks)
-        self.Kn = params.get("Kn", self.Ks) # Kn=Ks by default
-        self.Dm = params.get("Dm", self.Dm)
-        self.C  = params.get("C" , self.C)
-        self.phi= params.get("phi", self.phi)
-        self.H = 1.0E-15*self.Ks
+        self.Ks  = params.get("Ks", self.Ks)
+        self.Kn  = params.get("Kn", self.Ks) # Kn=Ks by default
+        self.Dm  = params.get("Dm", self.Dm)
+        self.C   = params.get("C" , self.C)
+        self.phi = params.get("phi", self.phi)
+        self.H   = 1.0E-15*self.Ks
+
+        self.h   = self.Dm*pi
 
     def set_state(self, **state):
         self.sig[0] = state.get("tau", self.sig[0])
@@ -77,6 +83,7 @@ class MatModelMohrCoulombJoint(Model):
         Kn  = self.Kn
         H   = self.H
         F   = self.yield_func(tau)
+
         if F < -1.0E-5:
             Ksep = Ks
         else:
@@ -86,7 +93,7 @@ class MatModelMohrCoulombJoint(Model):
         #print "H", H
         #print "Ksep", Ksep
         #exit()
-        
+
         if self.ndim==2:
             return  array([\
                     [ Ksep, 0.0 ], \
@@ -96,9 +103,10 @@ class MatModelMohrCoulombJoint(Model):
                     [ Ksep, 0.0, 0.0 ], \
                     [  0.0,  Kn, 0.0 ], \
                     [  0.0, 0.0,  Kn ]])
-            
+
     def stiff_coef(self):
         P = 3.14159265*self.Dm;
+        P = 1.0;
         return P
 
     def stress_update(self, deps):
@@ -118,7 +126,7 @@ class MatModelMohrCoulombJoint(Model):
         F = self.yield_func(self.sig[0])
         Ks = self.Ks
         H  = self.H
-        
+
         MAXIT = 50
         TOL   = 1.0e-5
         DEN   = max(1.0, abs(self.sig[0]))
@@ -132,7 +140,7 @@ class MatModelMohrCoulombJoint(Model):
                 if abs(F)/DEN<TOL and F>0: break
             else:
                 raise Exception("MatModelMohrCoulombJoint.stress_update: Yield function intersection not found")
-            
+
             # Elastic integration
             du_e = aint*deps
             self.eps += du_e
@@ -154,7 +162,7 @@ class MatModelMohrCoulombJoint(Model):
         dsig = self.sig - sig_ini
 
         return dsig
-    
+
     def get_vals(self):
         sig = self.sig
         eps = self.eps

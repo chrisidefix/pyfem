@@ -853,7 +853,7 @@ def extrapolator(shape_type):
        where:
                                    +                +              +
                               E = N * (I - EPS1*EPS1 ) + EPS * EPS1
-     
+
        and            N = [shape functions matrix]
                                1        2        ...        nNodes
                         1    [[N_11 N_12
@@ -906,7 +906,7 @@ def inverse_map(shape_type, C, X):
         # calculate trial of real coordinates
         N = shape_func(shape_type, R)
         Xt = mul(N.T, C).T # interpolating
-        
+
         # calculate the error
         deltaX = Xt - X;
         deltaR = mul(pinv(J).T, deltaX)
@@ -924,6 +924,6 @@ def is_inside(shape_type, C, X):
     R = inverse_map(shape_type, C, X)
     if bdistance(shape_type, R) > -TOL:
         return True;
-    else: 
+    else:
         return False;
 

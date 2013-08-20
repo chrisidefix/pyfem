@@ -39,6 +39,8 @@ class ElemModelLineJoint(ElemModelEq):
             M.attr["sign"] = self.calc_sign(ip.R, Ch, Ct)
             Dep  = M.stiff()
             coef = detJ*ip.w*M.stiff_coef()
+            ###
+            Dep[0,0] *= M.h
             K += mul(B.T, Dep, B)*coef
 
         return K
@@ -111,9 +113,6 @@ class ElemModelLineJoint(ElemModelEq):
         a[0] += 666.0  # costant added to generate a non parallel vector to e0
 
         q = numpy.dot(numpy.identity(ndim) - numpy.outer(e0,e0), a)
-
-        OUT("a")
-        OUT("q")
 
         e1 = q/norm(q)
         e2 = cross(e0,e1)
@@ -211,6 +210,8 @@ class ElemModelLineJoint(ElemModelEq):
             dsig = M.stress_update(deps)
             mcoef= M.stiff_coef()
             coef = detJ*ip.w*mcoef
+            ###
+            dsig[0] *= M.h
             dF += mul(B.T, dsig)*coef
 
         for i in range(ndim*nnodes):
@@ -319,8 +320,19 @@ class ElemModelLineJoint(ElemModelEq):
             B, detJ = self.calcB(ip.R, Ch, Ct)
             M       = ip.mat_model
             mcoef   = M.stiff_coef()
+            mcoef   = 1.
             coef    = detJ*ip.w*mcoef
+            #OUT("mcoef")
             sig     = M.sig
-            F += mul(B.T, M.sig)*coef
+            h       = 3.14159*0.15
+            sig     = array([1.,2.,3.])
+            OUT("ip.R")
+            OUT("sig")
+            OUT("ip.w")
+            OUT("detJ")
+            ###
+            sig[0] *= M.h
+            F += mul(B.T, sig)*coef
+            #F += mul(B.T, M.sig)*coef
 
         print "F:", F
