@@ -1,7 +1,4 @@
 # Include PyFEM libraries
-import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-
-# Include PyFEM libraries
 from pyfem import *
 
 # Define mesh
@@ -15,7 +12,7 @@ block.set_quadratic()
 
 # ... Bar elements 
 block_bar1 = BlockLine()
-block_bar1.set_coords([0,0,1, 0,5,1 ])
+block_bar1.set_coords([(0,0,1), (0,5,1) ])
 block_bar1.set_quadratic()
 block_bar1.set_divisions(20)
 

@@ -1,7 +1,5 @@
 # Include PyFEM libraries
-from pyfem.mesh import *
-from pyfem.fem import *
-from pyfem.equilib import *
+from pyfem import *
 
 # Define mesh
 
