@@ -196,7 +196,7 @@ class SolverEq(Solver):
         scheme = self.scheme
 
         if calcK:
-            if self.verbose and nu>500: print "    building system...", ; sys.stdout.flush()
+            if self.verbose and nu>2000: print "    building system...", ; sys.stdout.flush()
             self.mountK()
             #if self.verbose: print "    done."
 
@@ -214,7 +214,7 @@ class SolverEq(Solver):
         # Solve linear system
         F2 = self.K22*U2  #sparse matrix * dense vector
         if nu:
-            if self.verbose and nu>500: print "solving...", ; sys.stdout.flush()
+            if self.verbose and nu>2000: print "solving...", ; sys.stdout.flush()
             if scheme == "MNR" and decompose   : self.LUsolver = factorized(self.K11)
             if scheme == "NR" or scheme == "FE": self.LUsolver = factorized(self.K11)
             rhs = F1 - self.K12*U2
@@ -225,7 +225,7 @@ class SolverEq(Solver):
         for i, dof in enumerate(self.udofs): DU[dof.eq_id] = U1[i]
         for i, dof in enumerate(self.pdofs): DF[dof.eq_id] = F2[i]
 
-        if self.verbose and nu>500: print "updating..." ; sys.stdout.flush()
+        if self.verbose and nu>2000: print "updating..." ; sys.stdout.flush()
         DFint = self.update_elems_and_nodes(DU) # Also calculates DFint
         #if self.verbose: print "    done."
 

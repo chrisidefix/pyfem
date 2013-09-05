@@ -80,7 +80,6 @@ elem_model = EqElasticSolid(E=1.0e5, nu=0.0, gamma=20.0)
 domain.elems.set_elem_model(elem_model)
 
 # Boundary conditions
-print min_y
 domain.faces.with_y(min_y).set_bc(ux=0.0, uy=0.0)
 domain.faces.with_x(0.0)  .set_bc(ux=0.0)
 domain.faces.with_x(max_x).set_bc(ux=0.0, uy=0.0)

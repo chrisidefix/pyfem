@@ -1,5 +1,5 @@
 # Shape types:
-LIN2  = 3 
+LIN2  = 3
 LIN3  = 21
 TRI3  = 5
 TRI6  = 22
@@ -10,7 +10,7 @@ TET10 = 24
 HEX8  = 12
 HEX20 = 25
 
-LINK1  = 100 
+LINK1  = 100
 LINK2  = 101
 LINK3  = 102
 LIN4   = 105

@@ -202,7 +202,7 @@ def export_as_vtk()
 	file.print "RbMesh output"  
 
 
-	# Filter all edges in selection
+	# Checking edges for tag
 	etys = Sketchup.active_model.entities.to_a
 	has_tag = false
 	for ety in etys
@@ -212,25 +212,6 @@ def export_as_vtk()
 			end
 		end
 	end
-
-	edges.sort! {|a,b| edge_index_for_sort(a) <=> edge_index_for_sort(b) }	
-
-	# Get vertices from edges
-	points = []
-	for edge in edges
-		points = points | edge.vertices
-	end
-
-	# Join broken lines
-	for point in points
-		if point.edges.length>0
-			ed1 = point.edges[0]
-			ed2 = point.edges[0]
-			# Incomplete code...
-			# Needs to reconstruct edges array and reassign tag info
-		end
-	end
-	
 
 	if has_tag
 		# Find all tags

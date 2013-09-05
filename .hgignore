@@ -3,6 +3,8 @@ CTestTestfile.cmake
 CMakeCache.txt
 CMakeFiles
 Makefile
+build/**
+dist/**
 cmake_install.cmake
 install_manifest.txt
 *.xmf
@@ -15,4 +17,3 @@ install_manifest.txt
 .pydevproject
 *.vtk
 *.bk
-

@@ -102,7 +102,7 @@ class ElemModelLineJoint(ElemModelEq):
         B = mul(T, concatenate([mul(NN,MM), -NN], axis=1))
         return B, pdet(J)
 
-    def calcT(self, J):
+    def calcT_test(self, J):
         if self.ndim==2:
             raise Exception("Non implemented")
 
@@ -114,12 +114,13 @@ class ElemModelLineJoint(ElemModelEq):
 
         q = numpy.dot(numpy.identity(ndim) - numpy.outer(e0,e0), a)
 
+        OUT('norm(q)')
         e1 = q/norm(q)
         e2 = cross(e0,e1)
 
         return concatenate([[e0], [e1], [e2]], axis=0)
 
-    def calcT_old(self, J):
+    def calcT(self, J):
         L0 = J/norm(J)
 
         if self.ndim==2:

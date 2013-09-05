@@ -18,10 +18,10 @@ class Block2D(Block):
 
     def set_coords(self, C):
         """
-        Sets the block coordinates 
+        Sets the block coordinates
         ==========================
 
-        INPUT: 
+        INPUT:
             C:  A list with all coordinates.
                 A numpy matrix is also accepted.
         """
@@ -38,7 +38,7 @@ class Block2D(Block):
 
         if not (coord_size==8 or coord_size==16):
             raise Exception("Block2D.set_coords: Coords list size does not match 8 or 16")
-        
+
         self.coords = zeros(coord_size/2, 3)
         for i, R in enumerate(self.coords):
             R[0] = C[i*2]
@@ -66,15 +66,18 @@ class Block2D(Block):
         y0 = float(C1[1])
         lx = C2[0] - C1[0]
         ly = C2[1] - C1[1]
-        
+
         self.coords[0, 0] = x0;    self.coords[0, 1] = y0;    self.coords[0, 2] = 0.0
         self.coords[1, 0] = x0+lx; self.coords[1, 1] = y0;    self.coords[1, 2] = 0.0
         self.coords[2, 0] = x0+lx; self.coords[2, 1] = y0+ly; self.coords[2, 2] = 0.0
         self.coords[3, 0] = x0;    self.coords[3, 1] = y0+ly; self.coords[3, 2] = 0.0
 
-    def make_truss(self, val):
+    def make_truss(self, htag='h', vtag='v', dtag='d'):
         self.is_truss = True
-    
+        self.htag = htag
+        self.vtag = vtag
+        self.dtag = dtag
+
     def shape_func(self, r, s):
         """
 	          3                        2
@@ -98,8 +101,7 @@ class Block2D(Block):
         N[2] = 0.25*(1.0+r+s+r*s)
         N[3] = 0.25*(1.0-r+s-r*s)
         return N
-    
-    
+
     def shape_func_o2(self, r, s):
         """
 	        3           6            2
@@ -174,7 +176,7 @@ class Block2D(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
@@ -764,7 +766,7 @@ class Block2D(Block):
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
                         faces.add(F)
-                        
+
     def split_as_truss(self, points, shapes):
         """
 	        3                        2
@@ -786,15 +788,15 @@ class Block2D(Block):
         assert(self.use_triangle==False)
 
         p_arr = numpy.empty((self.nx+1, self.ny+1), dtype='object')
-        
+
         # Generating points
         for j in range(self.ny+1):
             for i in range(self.nx+1):
                 r=(2.0/self.nx)*i-1.0
-                s=(2.0/self.ny)*j-1.0	
+                s=(2.0/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     N = self.shape_func(r, s)
                 else:
                     N = self.shape_func_o2(r, s)
@@ -802,20 +804,20 @@ class Block2D(Block):
                 #  Coordinates
                 C = mul(N.T, self.coords)      # interpolated coordinates x, y 
                 C.round(8)
-                
+
                 P = None
                 tmpP = Point()
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(1, self.ny+1):
             for i in range(1, self.nx+1):
@@ -825,12 +827,14 @@ class Block2D(Block):
                 p2 = p_arr[i  , j  ,]
                 p3 = p_arr[i-1, j  ,]
 
-                all_conn = [ [p0,p1], [p1,p2], [p2,p3], [p3,p0], [p0,p2], [p1,p3] ]
+                all_conn = [ [p0,p1]  , [p1,p2]  , [p2,p3]  , [p3,p0]  , [p0,p2]  , [p1,p3]   ]
+                all_tag  = [ self.htag, self.vtag, self.htag, self.vtag, self.dtag, self.dtag ]
 
-                for conn in all_conn:
+                for conn, tag in zip(all_conn, all_tag):
                     S = Shape()
                     S.shape_type = LIN2
                     S.points     = conn
                     S.id         = len(shapes)
+                    S.tag        = tag
                     shapes.add(S)
-                        
+

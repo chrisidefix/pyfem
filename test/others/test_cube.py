@@ -1,13 +1,9 @@
 # Include PyFEM libraries
-import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-
-
-# Include PyFEM libraries
 from pyfem import *
 
 block = Block3D()
 block.make_box([0,0,0], [1,1,1])
-block.set_divisions(100,10,10)
+block.set_divisions(10,10,10)
 
 mesh = Mesh(block)
 mesh.generate()

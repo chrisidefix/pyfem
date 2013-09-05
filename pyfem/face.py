@@ -14,70 +14,70 @@ class Face:
         self.shape_type = 0
         self.nodes = CollectionNode()
 
-    def set_bry(self, varname, value):
-        if self.owner_elem is None: 
-            raise NameError("No owner element for face")
-
-        if self.owner_elem.shape_type==0 or self.owner_elem.elem_model is None: 
-            raise NameError("Owner element is not well defined")
-
-        self.owner_elem.elem_model.set_face_bry(self.nodes, self.shape_type, varname, value)
-
-    def set_brys(self, *args, **kwargs):
-        if args: brys = args[0]
-        else:    brys = kwargs
-        for key, value in brys.iteritems():
-            self.set_bry(key, value)
-
     def set_bc(self, *args, **kwargs):
-        self.set_brys(*args, **kwargs)
+        if self.owner_elem is None:
+            raise Exception("No owner element for face")
+
+        if self.owner_elem.shape_type==0 or self.owner_elem.elem_model is None:
+            raise Exception("Owner element is not well defined")
+
+        if args: brys = args[0] # dictionary as input
+        else:    brys = kwargs  # keyword arguments
+
+        for key, value in brys.iteritems():
+            self.owner_elem.elem_model.set_face_bry(self.nodes, self.shape_type, key, value)
 
     @property
-    def min_x(self):
-        if not self.nodes: return None
-        return min([n.x for n in self.nodes])
+    def x(self): return self._unique('x')
 
     @property
-    def min_y(self):
-        if not self.nodes: return None
-        return min([n.y for n in self.nodes])
+    def y(self): return self._unique('y')
 
     @property
-    def min_z(self):
-        if not self.nodes: return None
-        return min([n.z for n in self.nodes])
+    def z(self): return self._unique('z')
 
     @property
-    def max_x(self):
-        if not self.nodes: return None
-        return max([n.x for n in self.nodes])
+    def min_x(self): return self.nodes.min_x
 
     @property
-    def max_y(self):
-        if not self.nodes: return None
-        return max([n.y for n in self.nodes])
+    def min_y(self): return self.nodes.min_y
 
     @property
-    def max_z(self):
-        if not self.nodes: return None
-        return max([n.z for n in self.nodes])
+    def min_z(self): return self.nodes.min_z
 
-    def _unique_x(self):
-        if len(set(node.x for node in self.nodes))==1:
-            return self.nodes[0].x
-        else: 
-            return None
+    @property
+    def max_x(self): return self.nodes.max_x
 
-    def _unique_y(self):
-        if len(set(node.y for node in self.nodes))==1:
-            return self.nodes[0].y
-        else: 
-            return None
+    @property
+    def max_y(self): return self.nodes.max_y
 
-    def _unique_z(self):
-        if len(set(node.z for node in self.nodes))==1:
-            return self.nodes[0].z
-        else: 
+    @property
+    def max_z(self): return self.nodes.max_z
+
+    def _unique(self, coord):
+        """
+        Returns an unique coordinate for all face nodes
+        ===============================================
+
+        INPUT:
+            coord: 'x', 'y', or 'z'
+
+        RETURNS:
+            Check if all values for a given coordinate (coord) are equal
+            for all face nodes. If all are equal then it returns the value
+            for that coordinate otherwise it returns None.
+
+        EXAMPLE:
+            > face._unique('x')
+            1.0
+            > face._unique('y')
+            None
+
+        """
+
+        if len(set(getattr(node,coord) for node in self.nodes))==1:
+            return getattr(self.nodes[0], coord)
+        else:
             return None
 
     def __repr__(self):
@@ -95,7 +95,6 @@ class Face:
         return str(os)
 
 
-
 #/////////////////////////////////////////////////////////////////////////////////// Class CollectionFace
 
 
@@ -104,101 +103,108 @@ class CollectionFace(list):
     def nodes(self):
         res = []
         for face in self:
-            for node in face.nodes:
-                res.append(node)
+            res.extend(face.nodes)
 
         return CollectionNode(set(res))
-    
-    @property
-    def min_x(self):
-        nodes = self.nodes
-        if not nodes: return None
-        return min([n.x for n in nodes])
 
     @property
-    def min_y(self):
-        nodes = self.nodes
-        if not nodes: return None
-        return min([n.y for n in nodes])
+    def min_x(self): return self.nodes.min_x
 
     @property
-    def min_z(self):
-        if not self.nodes: return None
-        return min([n.z for n in self.nodes])
+    def min_y(self): return self.nodes.min_y
 
     @property
-    def max_x(self):
-        nodes = self.nodes
-        if not nodes: return None
-        return max([n.x for n in nodes])
+    def min_z(self): return self.nodes.min_z
 
     @property
-    def max_y(self):
-        nodes = self.nodes
-        if not nodes: return None
-        return max([n.y for n in nodes])
+    def max_x(self): return self.nodes.max_x
 
     @property
-    def max_z(self):
-        nodes = self.nodes
-        if not nodes: return None
-        return max([n.z for n in nodes])
+    def max_y(self): return self.nodes.max_y
 
-    def set_bry(self, varname, value):
-        for face in self:
-            face.set_bry(varname, value)
+    @property
+    def max_z(self): return self.nodes.max_z
 
-    def set_brys(self, *args, **kwargs):
-        if args: brys = args[0]
-        else:    brys = kwargs
-        for key, value in brys.iteritems():
-            self.set_bry(key, value)
+    def __add__(self, other):
+        tmp = set(self)
+        return CollectionFace(list(self) + [f for f in other if not f in tmp])
 
     def set_bc(self, *args, **kwargs):
-        self.set_brys(*args, **kwargs)
+        for f in self:
+            f.set_bc(*args, **kwargs)
 
-    def set_neumann_bc(self, brys):
-        for face in self:
-            face.set_neumann_bc(brys)
+    def _with_attr(self, attr, val=None):
+        """
+        Filters the collection according to a given condition
+        =====================================================
 
-    def set_dirichlet_bc(self, brys):
-        for face in self:
-            face.set_dirichlet_bc(brys)
+        INPUT:
+            attr: A node attribute, e.g. x, id, tag.
+            val : Value for the attribute
+                  values can be float, string, etc. according to attr type.
+                  If value is a list then the condition will be true if attr
+                  value is equal to any element of the list.
 
-    def with_tag(self, tag):
-        return CollectionFace(f for f in self if f.tag==tag)
+        RETURNS:
+            collection: A new collection with nodes that match the condition attr=value
 
-    def with_x(self, *args):
-        tmp = RealList(args)
-        return CollectionFace(f for f in self if f._unique_x() in tmp)
+        EXAMPLE:
+            tmp = self._with_attr('x',0.5)
+            tmp = self._with_attr('y',[1,2])
 
-    def with_y(self, *args):
-        tmp = RealList(args)
-        return CollectionFace(f for f in self if f._unique_y() in tmp)
+        """
 
-    def with_z(self, *args):
-        tmp = RealList(args)
-        return CollectionFace(f for f in self if f._unique_z() in tmp)
+        if attr in ['x', 'y', 'z']:
+            TOL = 1.0E-8
 
-    def with_x_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionFace(f for f in self if f.min_x+TOL>start and f.max_x-TOL<end)
+            if isinstance(val, tuple):
+                raise Exception('CollectionFace::_with_attr: Invalid argument')
 
-    def with_y_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionFace(f for f in self if f.min_y+TOL>start and f.max_y-TOL<end)
+            if isinstance(val,list):
+                tmp = RealList(val, TOL)
+            else:
+                tmp = RealList([val], TOL)
 
-    def with_z_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionFace(f for f in self if f.min_z+TOL>start and f.max_z-TOL<end)
+            return CollectionFace(f for f in self if getattr(f, attr) in tmp)
 
-    def filter(func):
-        nodes = self.nodes
-        result = CollectionFace();
-        for face in self:
-            if func(face):
-                result.append(face)
-        return result
+        if attr in ['id', 'tag']:
+            return CollectionFace(f for f in self if getattr(f,attr) == val)
+
+        assert False
+
+    def sub(self, *args, **kwargs):
+
+        """
+        Filters the collection according to at least one of given conditions
+        ====================================================================
+
+        INPUT:
+            kwargs: A keyword argument dict with multiple conditions.
+
+        RETURNS:
+            coll  : A new collection with nodes that match at least one given condition
+
+        EXAMPLE:
+            > tmp = faces.sub(x=0.0)
+            > tmp = faces.sub(x=[1.0, 2.0, 3.0, 5.0])
+
+            > tmp = faces.sub(lambda n: f.x>2)
+            > tmp = faces.sub(lambda n: f.x>=2 and x<=4)
+
+        """
+
+        # Resultant collection initialization
+        coll = CollectionFace()
+
+        for key, value in kwargs.iteritems():
+            coll = coll + self._with_attr(key, value)
+
+        for value in args:
+            # filter usign lambda function
+            func = value
+            coll = coll + CollectionFace(n for n in self if func(n))
+
+        return coll
 
     def __str__(self):
         os = Stream()
@@ -207,6 +213,6 @@ class CollectionFace(list):
             os << face.id << "@" << face.owner_elem.id << ", "
         os << "]" << endl
         return str(os)
-      
+
 
 
