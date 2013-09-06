@@ -18,7 +18,6 @@ class VarCondition():
     def __ge__(self, value):
         return CoordCondition(self.var_str, ge, value)
 
-    
 
 global x, y, z
 

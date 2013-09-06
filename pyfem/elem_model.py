@@ -1,7 +1,8 @@
-from tools.matvec import *
-from shape_functions import *
-from ip import *
 from copy import copy
+
+from tools.matvec import *
+from mesh.shape_functions import *
+from ip import *
 
 class ElemModel:
     def __init__(self):
@@ -35,7 +36,7 @@ class ElemModel:
     def is_applicable(self, shape_type):
         return False
 
-    def get_nodal_and_elem_vals(self): 
+    def get_nodal_and_elem_vals(self):
         pass
 
     def prime_and_check(self):
@@ -107,7 +108,7 @@ class ElemModel:
         IP, FIP = get_ips_data(self.shape_type)
         nips  = IP .shape[0]
         nfips = FIP.shape[0] if is_solid(self.shape_type) else 0
-        
+
         # ips for element
         for i in range(nips):
             self.ips.append(Ip())

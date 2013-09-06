@@ -1,4 +1,4 @@
-from tools.matvec import *
+from pyfem.tools.matvec import *
 from numpy import array
 
 # ALL 1

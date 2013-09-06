@@ -8,8 +8,8 @@ import scipy
 from scipy.sparse.linalg import factorized
 
 class SolverEq(Solver):
-    def __init__(self):
-        Solver.__init__(self)
+    def __init__(self, domain=None, scheme="FE", nincs=1):
+        Solver.__init__(self, domain=domain, scheme=scheme, nincs=nincs)
         self.name = "SolverEq"
         self.DU = None
         self.DF = None

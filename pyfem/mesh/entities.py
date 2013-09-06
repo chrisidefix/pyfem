@@ -20,7 +20,7 @@ class Point:
 
     def set_coords(self, *args):
         if len(args)==1:
-            x, y, z = args[0]
+            x, y, z = (args[0] + [0])[:3]
         else:
             x, y, z = args
 
@@ -55,11 +55,11 @@ class Shape:
     def __init__(self):
         self.id   = -1
         self.tag  = ""
-        self.shape_type = 0
-        self.points     = []
-        self.lnk_shapes = []    # linked shapes
-        self.owner_shape = None # If the shape represents a face
-        self.data       = {}    # Extra data
+        self.shape_type  = 0
+        self.points      = []
+        self.lnk_shapes  = []    # linked shapes
+        self.owner_shape = None  # If the shape represents a face
+        self.data        = {}    # Extra data
 
     def __eq__(self, other):
         if other==None:
@@ -81,10 +81,6 @@ class Shape:
         return tmp
 
 
-class FaceShape(Shape):
-    def __init__(self):
-        Shape.__init__(self)
-
 def generate_faces(shape):
     """ Generates a list with faces for a given shape
     """
@@ -94,7 +90,7 @@ def generate_faces(shape):
 
     if shape.shape_type==TRI3:
         faces = [Shape() for i in range(3)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN2
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1]]
@@ -104,7 +100,7 @@ def generate_faces(shape):
 
     if shape.shape_type==TRI6:
         faces = [Shape() for i in range(3)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN3
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1], pts[3]]
@@ -114,7 +110,7 @@ def generate_faces(shape):
 
     if shape.shape_type==TRI9:
         faces = [Shape() for i in range(3)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN4
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1], pts[3], pts[6]]
@@ -124,7 +120,7 @@ def generate_faces(shape):
 
     if shape.shape_type==QUAD4:
         faces = [Shape() for i in range(4)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN2
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1]]
@@ -135,7 +131,7 @@ def generate_faces(shape):
 
     if shape.shape_type==QUAD8:
         faces = [Shape() for i in range(4)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN3
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1], pts[4]]
@@ -146,7 +142,7 @@ def generate_faces(shape):
 
     if shape.shape_type==QUAD12:
         faces = [Shape() for i in range(4)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = LIN4
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[1], pts[4], pts[8]]
@@ -157,7 +153,7 @@ def generate_faces(shape):
 
     if shape.shape_type==TET4:
         faces = [Shape() for i in range(4)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = TRI3
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[2], pts[1]]
@@ -168,7 +164,7 @@ def generate_faces(shape):
 
     if shape.shape_type==TET10:
         faces = [Shape() for i in range(4)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = TRI6
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[2], pts[1], pts[6], pts[5], pts[4]]
@@ -179,7 +175,7 @@ def generate_faces(shape):
 
     if shape.shape_type==HEX8:
         faces = [Shape() for i in range(6)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = QUAD4
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[4], pts[7], pts[3]]
@@ -192,7 +188,7 @@ def generate_faces(shape):
 
     if shape.shape_type==HEX20:
         faces = [Shape() for i in range(6)]
-        for F in faces: 
+        for F in faces:
             F.shape_type = QUAD8
             F.owner_shape = shape
         faces[0].points = [pts[0], pts[4], pts[7], pts[3], pts[16], pts[15], pts[19], pts[11]]

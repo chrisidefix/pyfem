@@ -190,15 +190,16 @@ class ElemModelEq(ElemModel):
         pass
 
     def set_face_bry(self, fnodes, fshape_type, key, val):
-        if key == "tz" and self.ndim == 2: 
+        if key == "tz" and self.ndim == 2:
             raise Exception("tz boudary load is only available for ndim=3")
 
         # Apply the boundary conditions
         if key in ["ux", "uy", "uz"]:
             for node in fnodes:
-                node.set_bry(key, val)
+                #node.set_bc(**{key: val})
+                node.set_bc({key: val})
         elif key in ["tx", "ty", "tz", "tn"]:
-            ndim = self.ndim    
+            ndim = self.ndim
             nfnodes = len(fnodes)
 
             # Calculate the face coordinates matrix
@@ -289,10 +290,10 @@ class ElemModelEq(ElemModel):
 
 
     def get_nodal_and_elem_vals(self):
-        """ 
+        """
         Return nodal and element data
         =============================
-        
+
         INPUT:
             None
 

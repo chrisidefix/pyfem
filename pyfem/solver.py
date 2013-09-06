@@ -1,24 +1,27 @@
+import os
+
 from tools.matvec import *
 from node    import *
 from element import *
-import os
+from domain  import *
 #from __future__ import print_function
 
 class Solver:
-    def __init__(self, domain=None):
+    def __init__(self, domain=None, scheme="FE", nincs=1):
         self.name  = "Abstract Solver"
         self.stage = 0
         self.inc   = 0
-        self.nincs = 1
+        self.nincs = nincs
         self.ndim  = -1
         self.Dt    = 0.0
         self.residue   = 0.0
         self.nmaxits   = 50
         self.precision = 1.0E-4
-        self.scheme    = "FE"
+        self.scheme    = scheme
         self.verbose   = True
         self.track_per_inc = False
 
+        self.domain = None
         self.nodes  = None
         self.elems  = None
         self.aelems = []
@@ -33,7 +36,7 @@ class Solver:
 
         if domain is not None:
             if isinstance(domain, Domain):
-                set_domain(domain)
+                self.set_domain(domain)
             else:
                 raise TypeError()
 

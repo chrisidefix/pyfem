@@ -41,6 +41,7 @@ class Node:
     @property
     def z(self): return self.X[2]
 
+
     def is_essential(self, varname):
         if self.keys.has_key(varname):
             return self.keys[varname].strU==varname
@@ -159,6 +160,12 @@ class CollectionNode(list):
     def __sub__(self, other):
         tmp = set(other)
         return CollectionNode(n for n in self if not n in tmp)
+
+    def at(C):
+        #check_args([list, tuple])
+        #check_args(datatype(typ=[list, tuple], size=[2,3]))
+        x, y, z = (C + [0])[:3]
+        return CollectionNode(n for n in self if n.x==x and n.y==y and n.z==z)
 
     def with_tag(self, *args):
         return CollectionNode(n for n in self if n.tag in args)

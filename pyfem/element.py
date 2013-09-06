@@ -1,7 +1,7 @@
-from elem_model import *
-from node import *
-from shape_functions import *
 from copy import copy
+
+from node import *
+from elem_model import *
 from tools.stream import *
 from tools.real_list import *
 
@@ -173,7 +173,7 @@ class CollectionElem(list):
         EXAMPLE:
             tmp = self._with_attr(x=0.5)
             tmp = self._with_attr(y=[1.0, 2.0])
-            
+
         """
 
         if attr in ['dx', 'dy', 'dz']:
@@ -244,31 +244,5 @@ class CollectionElem(list):
     def deactivate(self):
         for e in self:
             e.elem_model.deactivate()
-
-
-def main():
-    pass
-    from equilib.elem_model_eq import ElemModelEq
-    from equilib.linelastic import ModelLinElastic
-    E = Element()
-
-    E.shape_type = HEX8
-    E.ndim = 3
-    for i in range(8):
-        E.nodes.append(Node())
-
-    C = indices((2, 2, 2)).reshape(3, -1).T.astype(float)
-
-    for node, row in zip(E.nodes, C):
-        node.X = row
-
-    E.set_elem_model(ElemModelEq())
-    E.set_model(ModelLinElastic({"E":1.0E5, "nu": 0.3}))
-    
-    print E.elem_model.stiff()
-
-
-if __name__ == "__main__":
-    main()
 
 

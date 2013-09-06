@@ -67,6 +67,29 @@ class Mesh:
         # Set ndim
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
 
+    def from_data(self, verts, cells):
+        # Loading points
+        for i, vert_data in enumerate(verts):
+            P    = Point()
+            P.id = i
+            P.set_coords(vert_data['coord'])
+            P.tag = vert_data.get('tag', '')
+            self.points.append(P)
+
+        # Loading shapes
+        for i, cell_data in enumerate(cells):
+            S = Shape()
+            S.id = i
+            con = cell_data['con']
+            for idx in con:
+                S.points.append(self.points[idx])
+            S.shape_type = cell_data['type']
+            S.tag        = cell_data['tag']
+            self.shapes.append(S)
+
+        # Set ndim
+        self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
+
     def load_file(self, filename):
         # Resets all mesh data
         self.__init__()

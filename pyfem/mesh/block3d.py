@@ -2,7 +2,8 @@ import os,sys
 
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
-from shape_types import *
+from shape_types     import *
+from shape_functions import *
 from block import *
 
 class Block3D(Block):
@@ -39,7 +40,7 @@ class Block3D(Block):
         lx = C2[0] - C1[0]
         ly = C2[1] - C1[1]
         lz = C2[2] - C1[2]
-        
+
         self.coords[0, 0] = x0;    self.coords[0, 1] = y0;    self.coords[0, 2] = z0;
         self.coords[1, 0] = x0+lx; self.coords[1, 1] = y0;    self.coords[1, 2] = z0;
         self.coords[2, 0] = x0+lx; self.coords[2, 1] = y0+ly; self.coords[2, 2] = z0;
@@ -48,93 +49,93 @@ class Block3D(Block):
         self.coords[5, 0] = x0+lx; self.coords[5, 1] = y0;    self.coords[5, 2] = z0+lz;
         self.coords[6, 0] = x0+lx; self.coords[6, 1] = y0+ly; self.coords[6, 2] = z0+lz;
         self.coords[7, 0] = x0;    self.coords[7, 1] = y0+ly; self.coords[7, 2] = z0+lz;
-    
-    def shape_func(self, r, s, t):
-        """
-        
-        Local IDs
-        				 Nodes                                   Faces
-        	z
-        	|           4                  7
-           ,+--y         @________________@                    +________________+ 
-         x'            ,'|              ,'|                  ,'|              ,'| 
-        			 ,'  |            ,'  |                ,'  |  ___       ,'  | 
-        		   ,'    |          ,'    |              ,'    |,'5,'  [0],'    | 
-        	 5   ,'      |      6 ,'      |            ,'      |~~~     ,'      | 
-        	   @'===============@'        |          +'===============+'  ,'|   | 
-        	   |         |      |         |          |   ,'|   |      |   |3|   | 
-        	   |         |      |         |          |   |2|   |      |   |,'   | 
-        	   |       0 @______|_________@          |   |,'   +______|_________+ 
-        	   |       ,'       |       ,' 3         |       ,'       |       ,'  
-        	   |     ,'         |     ,'             |     ,' [1]  ___|     ,'    
-        	   |   ,'           |   ,'               |   ,'      ,'4,'|   ,'      
-        	   | ,'             | ,'                 | ,'        ~~~  | ,'        
-        	   @________________@'                   +________________+'          
-        	 1                   2
-        """
-    
-        N = zeros(8)
-        N[0] = 0.125*(1.0-r-s+r*s-t+s*t+r*t-r*s*t)
-        N[1] = 0.125*(1.0+r-s-r*s-t+s*t-r*t+r*s*t)
-        N[2] = 0.125*(1.0+r+s+r*s-t-s*t-r*t-r*s*t)
-        N[3] = 0.125*(1.0-r+s-r*s-t-s*t+r*t+r*s*t)
-        N[4] = 0.125*(1.0-r-s+r*s+t-s*t-r*t+r*s*t)
-        N[5] = 0.125*(1.0+r-s-r*s+t-s*t+r*t-r*s*t)
-        N[6] = 0.125*(1.0+r+s+r*s+t+s*t+r*t+r*s*t)
-        N[7] = 0.125*(1.0-r+s-r*s+t+s*t-r*t-r*s*t)
-        return N
-    
-    
-    def shape_func_o2(self, r, s, t):
-        """
-        Local IDs
-        				  Vertices                               Faces
-        	t
-        	|           4        15        7    
-           ,+--s         @-------@--------@                   +----------------+ 
-         r'            ,'|              ,'|                 ,'|              ,'| 
-        		  12 @'  |         14 ,'  |               ,'  |  ___       ,'  | 
-        		   ,'    |16        ,@    |19           ,'    |,'5,'  [0],'    | 
-        	 5   ,'      @      6 ,'      @           ,'      |~~~     ,'      | 
-        	   @'=======@=======@'        |         +'===============+'  ,'|   | 
-        	   |      13 |      |         |         |   ,'|   |      |   |3|   | 
-        	   |         |      |  11     |         |   |2|   |      |   |,'   | 
-        	17 |       0 @- - - | @- - - -@         |   |,'   +- - - | +- - - -+ 
-        	   @       ,'       @       ,' 3        |       ,'       |       ,'  
-        	   |   8 @'      18 |     ,'            |     ,' [1]  ___|     ,'    
-        	   |   ,'           |   ,@ 10           |   ,'      ,'4,'|   ,'      
-        	   | ,'             | ,'                | ,'        ~~~  | ,'        
-        	   @-------@--------@'                  +----------------+'          
-        	 1         9         2
-        """
-    
-        N = zeros(20)
-        rp1=1.0+r; rm1=1.0-r
-        sp1=1.0+s; sm1=1.0-s
-        tp1=1.0+t; tm1=1.0-t
-    
-        N[ 0] = 0.125*rm1*sm1*tm1*(-r-s-t-2)
-        N[ 1] = 0.125*rp1*sm1*tm1*( r-s-t-2)
-        N[ 2] = 0.125*rp1*sp1*tm1*( r+s-t-2)
-        N[ 3] = 0.125*rm1*sp1*tm1*(-r+s-t-2)
-        N[ 4] = 0.125*rm1*sm1*tp1*(-r-s+t-2)
-        N[ 5] = 0.125*rp1*sm1*tp1*( r-s+t-2)
-        N[ 6] = 0.125*rp1*sp1*tp1*( r+s+t-2)
-        N[ 7] = 0.125*rm1*sp1*tp1*(-r+s+t-2)
-        N[ 8] = 0.25*(1-r*r)*sm1*tm1
-        N[ 9] = 0.25*rp1*(1-s*s)*tm1
-        N[10] = 0.25*(1-r*r)*sp1*tm1
-        N[11] = 0.25*rm1*(1-s*s)*tm1
-        N[12] = 0.25*(1-r*r)*sm1*tp1
-        N[13] = 0.25*rp1*(1-s*s)*tp1
-        N[14] = 0.25*(1-r*r)*sp1*tp1
-        N[15] = 0.25*rm1*(1-s*s)*tp1
-        N[16] = 0.25*rm1*sm1*(1-t*t)
-        N[17] = 0.25*rp1*sm1*(1-t*t)
-        N[18] = 0.25*rp1*sp1*(1-t*t)
-        N[19] = 0.25*rm1*sp1*(1-t*t)
-        return N
-    
+
+    #def shape_func(self, r, s, t):
+        #"""
+#
+        #Local IDs
+        				 #Nodes                                   Faces
+        	#z
+        	#|           4                  7
+           #,+--y         @________________@                    +________________+
+         #x'            ,'|              ,'|                  ,'|              ,'|
+        			 #,'  |            ,'  |                ,'  |  ___       ,'  |
+        		   #,'    |          ,'    |              ,'    |,'5,'  [0],'    |
+        	 #5   ,'      |      6 ,'      |            ,'      |~~~     ,'      |
+        	   #@'===============@'        |          +'===============+'  ,'|   |
+        	   #|         |      |         |          |   ,'|   |      |   |3|   |
+        	   #|         |      |         |          |   |2|   |      |   |,'   |
+        	   #|       0 @______|_________@          |   |,'   +______|_________+
+        	   #|       ,'       |       ,' 3         |       ,'       |       ,'
+        	   #|     ,'         |     ,'             |     ,' [1]  ___|     ,'
+        	   #|   ,'           |   ,'               |   ,'      ,'4,'|   ,'
+        	   #| ,'             | ,'                 | ,'        ~~~  | ,'
+        	   #@________________@'                   +________________+'
+        	 #1                   2
+        #"""
+#
+        #N = zeros(8)
+        #N[0] = 0.125*(1.0-r-s+r*s-t+s*t+r*t-r*s*t)
+        #N[1] = 0.125*(1.0+r-s-r*s-t+s*t-r*t+r*s*t)
+        #N[2] = 0.125*(1.0+r+s+r*s-t-s*t-r*t-r*s*t)
+        #N[3] = 0.125*(1.0-r+s-r*s-t-s*t+r*t+r*s*t)
+        #N[4] = 0.125*(1.0-r-s+r*s+t-s*t-r*t+r*s*t)
+        #N[5] = 0.125*(1.0+r-s-r*s+t-s*t+r*t-r*s*t)
+        #N[6] = 0.125*(1.0+r+s+r*s+t+s*t+r*t+r*s*t)
+        #N[7] = 0.125*(1.0-r+s-r*s+t+s*t-r*t-r*s*t)
+        #return N
+#
+#
+    #def shape_func_o2(self, r, s, t):
+        #"""
+        #Local IDs
+        				  #Vertices                               Faces
+        	#t
+        	#|           4        15        7
+           #,+--s         @-------@--------@                   +----------------+
+         #r'            ,'|              ,'|                 ,'|              ,'|
+        		  #12 @'  |         14 ,'  |               ,'  |  ___       ,'  |
+        		   #,'    |16        ,@    |19           ,'    |,'5,'  [0],'    |
+        	 #5   ,'      @      6 ,'      @           ,'      |~~~     ,'      |
+        	   #@'=======@=======@'        |         +'===============+'  ,'|   |
+        	   #|      13 |      |         |         |   ,'|   |      |   |3|   |
+        	   #|         |      |  11     |         |   |2|   |      |   |,'   |
+        	#17 |       0 @- - - | @- - - -@         |   |,'   +- - - | +- - - -+
+        	   #@       ,'       @       ,' 3        |       ,'       |       ,'
+        	   #|   8 @'      18 |     ,'            |     ,' [1]  ___|     ,'
+        	   #|   ,'           |   ,@ 10           |   ,'      ,'4,'|   ,'
+        	   #| ,'             | ,'                | ,'        ~~~  | ,'
+        	   #@-------@--------@'                  +----------------+'
+        	 #1         9         2
+        #"""
+#
+        #N = zeros(20)
+        #rp1=1.0+r; rm1=1.0-r
+        #sp1=1.0+s; sm1=1.0-s
+        #tp1=1.0+t; tm1=1.0-t
+#
+        #N[ 0] = 0.125*rm1*sm1*tm1*(-r-s-t-2)
+        #N[ 1] = 0.125*rp1*sm1*tm1*( r-s-t-2)
+        #N[ 2] = 0.125*rp1*sp1*tm1*( r+s-t-2)
+        #N[ 3] = 0.125*rm1*sp1*tm1*(-r+s-t-2)
+        #N[ 4] = 0.125*rm1*sm1*tp1*(-r-s+t-2)
+        #N[ 5] = 0.125*rp1*sm1*tp1*( r-s+t-2)
+        #N[ 6] = 0.125*rp1*sp1*tp1*( r+s+t-2)
+        #N[ 7] = 0.125*rm1*sp1*tp1*(-r+s+t-2)
+        #N[ 8] = 0.25*(1-r*r)*sm1*tm1
+        #N[ 9] = 0.25*rp1*(1-s*s)*tm1
+        #N[10] = 0.25*(1-r*r)*sp1*tm1
+        #N[11] = 0.25*rm1*(1-s*s)*tm1
+        #N[12] = 0.25*(1-r*r)*sm1*tp1
+        #N[13] = 0.25*rp1*(1-s*s)*tp1
+        #N[14] = 0.25*(1-r*r)*sp1*tp1
+        #N[15] = 0.25*rm1*(1-s*s)*tp1
+        #N[16] = 0.25*rm1*sm1*(1-t*t)
+        #N[17] = 0.25*rp1*sm1*(1-t*t)
+        #N[18] = 0.25*rp1*sp1*(1-t*t)
+        #N[19] = 0.25*rm1*sp1*(1-t*t)
+        #return N
+
     def split(self, points, shapes, faces):
         # Check number of points
         if not len(self.coords) in [8, 20]:
@@ -151,40 +152,42 @@ class Block3D(Block):
             else:
                 self.split_tet_o2(points, shapes, faces)
 
-    
+
     def split_o1(self, points, shapes, faces):
         p_arr = numpy.empty((self.nx+1, self.ny+1, self.nz+1), dtype='object')
-    
+
         # Generating points
         for k in range(self.nz+1):
             for j in range(self.ny+1):
                 for i in range(self.nx+1):
                     r=(2.0/self.nx)*i-1.0
-                    s=(2.0/self.ny)*j-1.0	
+                    s=(2.0/self.ny)*j-1.0
                     t=(2.0/self.nz)*k-1.0
-    
+
                     # calculate shape function values
-                    if self.coords.shape[0]==8: 
-                        N = self.shape_func(r, s, t)
+                    if self.coords.shape[0]==8:
+                        #N = self.shape_func(r, s, t)
+                        N = shape_hex8([r, s, t])
                     else:
-                        N = self.shape_func_o2(r, s, t)
-    
-                    C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                        #N = self.shape_func_o2(r, s, t)
+                        N = shape_hex20([r, s, t])
+
+                    C = mul(N.T, self.coords)      # interpolated coordinates x, y
                     C.round(8)
-    
+
                     P = None
                     tmpP = Point()
                     tmpP.set_coords(C)
                     if i==0 or j==0 or k==0 or i==self.nx or j==self.ny or k==self.nz:  # check if point is on block bry
                         P = tmpP.get_match_from(points)
-                    
+
                     if not P:
                         P = tmpP
                         P.id = len(points)
                         points.add(P);       # adding a point
-    
+
                     p_arr[i,j,k] = P
-    
+
         # Generating shapes and faces
         for k in range(1, self.nz+1):
             for j in range(1, self.ny+1):
@@ -198,20 +201,20 @@ class Block3D(Block):
                     p5 = p_arr[i  , j-1, k  ]
                     p6 = p_arr[i  , j  , k  ]
                     p7 = p_arr[i-1, j  , k  ]
-    
+
                     S = Shape()
                     S.shape_type = HEX8
                     S.tag  = self.tag
-    
+
                     S.points = [p0, p1, p2, p3, p4, p5, p6, p7]
                     S.id = len(shapes)
                     shapes.add(S)
-    
+
                     # Array of faces vertices and tag indexes for face
                     shape_faces_nodes = []
                     tag_idx     = []
-    
-            		# Identifying faces
+
+                    # Identifying faces
                     if i==1:
                         F = [ p0, p4, p7, p3]
                         shape_faces_nodes.append(F)
@@ -236,11 +239,12 @@ class Block3D(Block):
                         F = [ p4, p5, p6, p7]
                         shape_faces_nodes.append(F)
                         tag_idx.append(5)
-            
-            		# Generating faces
+
+                    # Generating faces
                     for i, idx in enumerate(tag_idx):
                         curr_face = shape_faces_nodes[i]
-                        tmpF = FaceShape()
+                        #tmpF = FaceShape()
+                        tmpF = Shape()
                         tmpF.points = curr_face
                         if tmpF not in faces:
                             F = tmpF
@@ -253,7 +257,7 @@ class Block3D(Block):
 
     def split_o2(self, points, shapes, faces): #TODO
         p_arr = numpy.empty((2*self.nx+1, 2*self.ny+1, 2*self.nz+1), dtype='object')
-    
+
         # Generating points
         for k in range(2*self.nz+1):
             for j in range(2*self.ny+1):
@@ -263,31 +267,33 @@ class Block3D(Block):
                     if i%2 and k%2: continue # False point
 
                     r=(1.0/self.nx)*i-1.0
-                    s=(1.0/self.ny)*j-1.0	
+                    s=(1.0/self.ny)*j-1.0
                     t=(1.0/self.nz)*k-1.0
-    
+
                     # calculate shape function values
-                    if self.coords.shape[0]==8: 
-                        N = self.shape_func(r, s, t)
+                    if self.coords.shape[0]==8:
+                        #N = self.shape_func(r, s, t)
+                        N = shape_hex8([r, s, t])
                     else:
-                        N = self.shape_func_o2(r, s, t)
-    
-                    C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                        #N = self.shape_func_o2(r, s, t)
+                        N = shape_hex20([r, s, t])
+
+                    C = mul(N.T, self.coords)      # interpolated coordinates x, y
                     C.round(8)
-    
+
                     P = None
                     tmpP = Point()
                     tmpP.set_coords(C)
                     if i==0 or j==0 or k==0 or i==self.nx or j==self.ny or k==self.nz:  # check if point is on block bry
                         P = tmpP.get_match_from(points)
-                    
+
                     if not P:
                         P = tmpP
                         P.id = len(points)
                         points.add(P);       # adding a point
-    
+
                     p_arr[i,j,k] = P
-    
+
         # Generating shapes and faces
         for k in range(2, 2*self.nz+1, 2):
             for j in range(2, 2*self.ny+1, 2):
@@ -314,20 +320,20 @@ class Block3D(Block):
                     p17 = p_arr[i  ][j-2][k-1]
                     p18 = p_arr[i  ][j  ][k-1]
                     p19 = p_arr[i-2][j  ][k-1]
-    
+
                     S = Shape()
                     S.shape_type = HEX20
                     S.tag      = self.tag
-    
+
                     S.points = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
                     S.id = len(shapes)
                     shapes.add(S)
-    
+
                     # Array of faces vertices and tag indexes for face
                     shape_faces_nodes = []
                     tag_idx     = []
-    
-            		# Identifying faces
+
+                    # Identifying faces
                     if i==2:
                         F = [ p0, p4, p7, p3, p16, p15, p19, p11]
                         shape_faces_nodes.append(F)
@@ -352,8 +358,8 @@ class Block3D(Block):
                         F = [ p4, p5, p6, p7, p12, p13, p14, p15]
                         shape_faces_nodes.append(F)
                         tag_idx.append(5)
-            
-            		# Generating faces
+
+                    # Generating faces
                     for i, idx in enumerate(tag_idx):
                         curr_face = shape_faces_nodes[i]
                         tmpF = FaceShape()

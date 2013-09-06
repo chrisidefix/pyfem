@@ -1,5 +1,5 @@
 import sys
-from  StringIO import StringIO 
+from  StringIO import StringIO
 
 class OManipulator:
     def __init__(self, function=None):
@@ -44,7 +44,7 @@ class Stream:
 
 ###############################################
 
-import inspect    
+import inspect
 def OUT(*args):
     for name in args:
         record = inspect.getouterframes(inspect.currentframe())[1]

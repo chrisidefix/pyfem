@@ -1,26 +1,20 @@
-from node    import *
-from element import *
-from face    import *
-from shape_functions import *
+from node      import *
+from element   import *
+from face      import *
 from mesh.mesh import *
 
 class Domain:
-    def __init__(self, *args):
+    def __init__(self, mesh=None):
         self.thickness = 1.0
         self.analysis_type = ""
         self.ndim  = 0
         self.nodes = CollectionNode()
         self.elems = CollectionElem()
         self.faces = CollectionFace()
-        self.mesh  = None
         self.solver = None
 
-        if len(args)>0:
-            mesh = args[0]
-            if isinstance(mesh, Mesh):
-                self.load_mesh(mesh)
-            else:
-                raise TypeError()
+        if mesh:
+            self.load_mesh(mesh)
 
     def set_thickness(self, value):
         self.thickness = value
@@ -41,7 +35,7 @@ class Domain:
     def load_mesh(self, mesh):
         self.mesh = mesh
         self.ndim = mesh.ndim
-        
+
         # Setting nodes
         self.nodes = CollectionNode()
         for i, point in enumerate(mesh.points):
@@ -57,7 +51,7 @@ class Domain:
             elem = Element()
             elem.id = i
             elem.tag = shape.tag
-            
+
             #Setting connectivities
             for point in shape.points:
                 cnode = self.nodes[point.id]
