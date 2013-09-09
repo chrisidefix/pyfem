@@ -99,6 +99,8 @@ class Block2D(Block):
                 self.split_o3(points, shapes, faces)
 
     def split_o1(self, points, shapes, faces):
+        nx    = self.nx
+        ny    = self.ny
         p_arr = numpy.empty((self.nx+1, self.ny+1), dtype='object')
 
         # Generating points
@@ -115,7 +117,7 @@ class Block2D(Block):
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -129,24 +131,36 @@ class Block2D(Block):
                     P.id = len(points)
                     points.add(P);       # adding a point
 
+                ##
+                #P = None
+                #if i in [0, nx]  or  j in [0, ny]: # check if point is on block bry
+                    #P = point.get_from_border(C)
+                #if P is None:
+                    #P = points.add_new(C)
+                ##
+
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(1, self.ny+1):
             for i in range(1, self.nx+1):
-                # Vertices 
+                # Vertices
                 p0 = p_arr[i-1, j-1,]
                 p1 = p_arr[i  , j-1,]
                 p2 = p_arr[i  , j  ,]
                 p3 = p_arr[i-1, j  ,]
 
-                S = Shape()
+                S = Cell()
                 S.shape_type = QUAD4
                 S.tag        = self.tag
 
                 S.points = [p0, p1, p2, p3]
                 S.id = len(shapes)
-                shapes.add(S)
+                shapes.append(S)
+
+                ##
+                #shapes.add_new(QUAD4, [p0, p1, p2, p3], self.tag)
+                ##
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -169,11 +183,11 @@ class Block2D(Block):
                     F = [ p2, p3 ]
                     shape_faces_nodes.append(F)
                     tag_idx.append(3)
-        
+
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -181,28 +195,34 @@ class Block2D(Block):
                         F.owner_shape = S
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
+
+                ##
+                # Generating faces
+                #for face_conn, idx in zip(shape_faces_nodes, tag_idx):
+                    #faces.add_new(LIN2, face_conn, self.face_tags[idx], S) # can add duplicates
+                ##
 
     def split_o2(self, points, shapes, faces):
         p_arr = numpy.empty((2*self.nx+1, 2*self.ny+1), dtype='object')
-    
+
         # Generating points
         for j in range(2*self.ny+1):
             for i in range(2*self.nx+1):
                 if i%2 and j%2: continue # False point
 
                 r=(1.0/self.nx)*i-1.0
-                s=(1.0/self.ny)*j-1.0	
+                s=(1.0/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     #N = self.shape_func(r, s)
                     N = shape_quad4([r, s])
                 else:
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -210,14 +230,14 @@ class Block2D(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(2, 2*self.ny+1, 2):
             for i in range(2, 2*self.nx+1, 2):
@@ -231,13 +251,13 @@ class Block2D(Block):
                 p6 = p_arr[i-1][j  ]
                 p7 = p_arr[i-2][j-1]
 
-                S = Shape()
+                S = Cell()
                 S.shape_type = QUAD8
                 S.tag      = self.tag
 
                 S.points = [p0, p1, p2, p3, p4, p5, p6, p7]
                 S.id = len(shapes)
-                shapes.add(S)
+                shapes.append(S)
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -260,11 +280,11 @@ class Block2D(Block):
                     F = [ p2, p3, p6 ]
                     shape_faces_nodes.append(F)
                     tag_idx.append(3)
-        
+
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -272,28 +292,28 @@ class Block2D(Block):
                         F.owner_shape = S
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
 
     def split_o3(self, points, shapes, faces): #TODO
         p_arr = numpy.empty((3*self.nx+1, 3*self.ny+1), dtype='object')
-    
+
         # Generating points
         for j in range(3*self.ny+1):
             for i in range(3*self.nx+1):
                 if i%3 and j%3: continue # False point
 
                 r=((2.0/3.0)/self.nx)*i-1.0
-                s=((2.0/3.0)/self.ny)*j-1.0	
+                s=((2.0/3.0)/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     #N = self.shape_func(r, s)
                     N = shape_quad4([r, s])
                 else:
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -301,7 +321,7 @@ class Block2D(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
@@ -326,13 +346,13 @@ class Block2D(Block):
                 p10 = p_arr[i-2][j  ]
                 p11 = p_arr[i-3][j-2]
 
-                S = Shape()
+                S = Cell()
                 S.shape_type = QUAD12
                 S.tag      = self.tag
 
                 S.points = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11]
                 S.id = len(shapes)
-                shapes.add(S)
+                shapes.append(S)
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -355,11 +375,11 @@ class Block2D(Block):
                     F = [ p2, p3, p6 , p10 ]
                     shape_faces_nodes.append(F)
                     tag_idx.append(3)
-        
+
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -367,7 +387,7 @@ class Block2D(Block):
                         F.owner_shape = S
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
 
     def split_tri_o1(self, points, shapes, faces):
         """
@@ -377,7 +397,7 @@ class Block2D(Block):
 	          |                /   |
 	          |             /      |
 	          |           /        |
-	          |         /          |  
+	          |         /          |
 	          |       /            |
 	          |    /               |
 	          |  /                 |
@@ -386,22 +406,22 @@ class Block2D(Block):
 	        0                        1
         """
         p_arr = numpy.empty((self.nx+1, self.ny+1), dtype='object')
-    
+
         # Generating points
         for j in range(self.ny+1):
             for i in range(self.nx+1):
                 r=(2.0/self.nx)*i-1.0
-                s=(2.0/self.ny)*j-1.0	
+                s=(2.0/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     #N = self.shape_func(r, s)
                     N = shape_quad4([r, s])
                 else:
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -409,14 +429,14 @@ class Block2D(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(1, self.ny+1):
             for i in range(1, self.nx+1):
@@ -426,7 +446,7 @@ class Block2D(Block):
                 p2 = p_arr[i  , j  ,]
                 p3 = p_arr[i-1, j  ,]
 
-                SS = [Shape(), Shape()]
+                SS = [Cell(), Cell()]
                 for S in SS:
                     S.shape_type = TRI3
                     S.tag        = self.tag
@@ -438,8 +458,8 @@ class Block2D(Block):
                 S1.points = [p3, p0, p2]
                 S0.id = len(shapes)
                 S1.id = S0.id + 1
-                shapes.add(S0)
-                shapes.add(S1)
+                shapes.append(S0)
+                shapes.append(S1)
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -467,11 +487,11 @@ class Block2D(Block):
                     shape_faces_nodes.append(F)
                     tag_idx.append(3)
                     owner_shapes.append(S1)
-        
+
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -479,7 +499,7 @@ class Block2D(Block):
                         F.owner_shape = owner_shapes[i]
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
 
     def split_tri_o2(self, points, shapes, faces):
         """
@@ -504,17 +524,17 @@ class Block2D(Block):
             for i in range(2*self.nx+1):
 
                 r=(1.0/self.nx)*i-1.0
-                s=(1.0/self.ny)*j-1.0	
+                s=(1.0/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     #N = self.shape_func(r, s)
                     N = shape_quad4([r, s])
                 else:
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -544,7 +564,7 @@ class Block2D(Block):
                 p7 = p_arr[i-2][j-1]
                 p8 = p_arr[i-1][j-1]
 
-                SS = [Shape(), Shape()]
+                SS = [Cell(), Cell()]
                 for S in SS:
                     S.shape_type = TRI6
                     S.tag        = self.tag
@@ -555,8 +575,8 @@ class Block2D(Block):
                 S1.points = [p3, p0, p2, p7, p8, p6]
                 S0.id = len(shapes)
                 S1.id = S0.id + 1
-                shapes.add(S0)
-                shapes.add(S1)
+                shapes.append(S0)
+                shapes.append(S1)
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -588,7 +608,7 @@ class Block2D(Block):
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -596,7 +616,7 @@ class Block2D(Block):
                         F.owner_shape = owner_shapes[i]
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
 
     def split_tri_o3(self, points, shapes, faces): #TODO
         """
@@ -606,7 +626,7 @@ class Block2D(Block):
 	          |          13    /   |
 	        7 @     x       @      @ 9
 	          |           /        |
-	          |         /          |  
+	          |         /          |
 	          |       /            |
 	       11 @     @       x      @ 5
 	          |   /   12           |
@@ -625,17 +645,17 @@ class Block2D(Block):
                     continue # False point
 
                 r=((2.0/3.0)/self.nx)*i-1.0
-                s=((2.0/3.0)/self.ny)*j-1.0	
+                s=((2.0/3.0)/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     #N = self.shape_func(r, s)
                     N = shape_quad4([r, s])
                 else:
                     #N = self.shape_func_o2(r, s)
                     N = shape_quad8([r, s])
 
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -650,7 +670,7 @@ class Block2D(Block):
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(3, 3*self.ny+1, 3):
             for i in range(3, 3*self.nx+1, 3):
@@ -670,7 +690,7 @@ class Block2D(Block):
                 p12 = p_arr[i-2][j-2]
                 p13 = p_arr[i-1][j-1]
 
-                SS = [Shape(), Shape()]
+                SS = [Cell(), Cell()]
                 for S in SS:
                     S.shape_type = TRI9
                     S.tag        = self.tag
@@ -681,8 +701,8 @@ class Block2D(Block):
                 S1.points = [p3, p0, p2, p7, p12, p6, p11, p13, p10]
                 S0.id = len(shapes)
                 S1.id = S0.id + 1
-                shapes.add(S0)
-                shapes.add(S1)
+                shapes.append(S0)
+                shapes.append(S1)
 
                 # Array of faces vertices and tag indexes for face
                 shape_faces_nodes = []
@@ -710,11 +730,11 @@ class Block2D(Block):
                     shape_faces_nodes.append(F)
                     tag_idx.append(3)
                     owner_shapes.append(S1)
-        
+
                 # Generating faces
                 for i, idx in enumerate(tag_idx):
                     curr_face = shape_faces_nodes[i]
-                    tmpF = Shape()
+                    tmpF = Cell()
                     tmpF.points = curr_face
                     if tmpF not in faces:
                         F = tmpF
@@ -722,7 +742,7 @@ class Block2D(Block):
                         F.owner_shape = owner_shapes[i]
                         F.tag = self.face_tags[idx]
                         F.id = len(faces)
-                        faces.add(F)
+                        faces.append(F)
 
     def split_as_truss(self, points, shapes):
         """
@@ -761,7 +781,7 @@ class Block2D(Block):
                     N = shape_quad8([r, s])
 
                 #  Coordinates
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y 
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
                 C.round(8)
 
                 P = None
@@ -780,7 +800,7 @@ class Block2D(Block):
         # Generating shapes and faces
         for j in range(1, self.ny+1):
             for i in range(1, self.nx+1):
-                # Vertices 
+                # Vertices
                 p0 = p_arr[i-1, j-1,]
                 p1 = p_arr[i  , j-1,]
                 p2 = p_arr[i  , j  ,]
@@ -790,10 +810,11 @@ class Block2D(Block):
                 all_tag  = [ self.htag, self.vtag, self.htag, self.vtag, self.dtag, self.dtag ]
 
                 for conn, tag in zip(all_conn, all_tag):
-                    S = Shape()
+                    #shapes.append(LIN2, conn, tag)
+                    S = Cell()
                     S.shape_type = LIN2
                     S.points     = conn
                     S.id         = len(shapes)
                     S.tag        = tag
-                    shapes.add(S)
+                    shapes.append(S)
 

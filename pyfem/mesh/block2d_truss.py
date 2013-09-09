@@ -29,7 +29,7 @@ class Block2DTruss(Block):
 
     #    if not (coord_size==8 or coord_size==16):
     #        raise Exception("Block2DTruss.set_coords: Coords list size does not match 8 or 16")
-    #    
+    #
     #    self.coords = zeros(coord_size/2, 3)
     #    for i, R in enumerate(self.coords):
     #        R[0] = C[i*2]
@@ -54,12 +54,12 @@ class Block2DTruss(Block):
     #    y0 = float(C1[1])
     #    lx = C2[0] - C1[0]
     #    ly = C2[1] - C1[1]
-    #    
+    #
     #    self.coords[0, 0] = x0;    self.coords[0, 1] = y0;    self.coords[0, 2] = 0.0
     #    self.coords[1, 0] = x0+lx; self.coords[1, 1] = y0;    self.coords[1, 2] = 0.0
     #    self.coords[2, 0] = x0+lx; self.coords[2, 1] = y0+ly; self.coords[2, 2] = 0.0
     #    self.coords[3, 0] = x0;    self.coords[3, 1] = y0+ly; self.coords[3, 2] = 0.0
-    
+
     def shape_func(self, r, s):
         """
 	          3                        2
@@ -83,8 +83,8 @@ class Block2DTruss(Block):
         N[2] = 0.25*(1.0+r+s+r*s)
         N[3] = 0.25*(1.0-r+s-r*s)
         return N
-    
-    
+
+
     def shape_func_o2(self, r, s):
         """
 	        3                        2
@@ -93,7 +93,7 @@ class Block2DTruss(Block):
 	          |                    |
 	          |                    |
 	          |                    |
-	          |                    |  
+	          |                    |
 	          |                    |
 	          |                    |
 	          |                    |
@@ -125,7 +125,7 @@ class Block2DTruss(Block):
 	          |   \            /   |
 	          |     \        /     |
 	          |       \    /       |
-	          |         /          |  
+	          |         /          |
 	          |       /    \       |
 	          |     /        \     |
 	          |   /            \   |
@@ -143,12 +143,12 @@ class Block2DTruss(Block):
         s  = sin(th)
         c  = sin(th)
         thk= self.thk
-    
+
         # Generating points
         for j in range(self.ny+1):
             for i in range(self.nx+1):
                 r=(2.0/self.nx)*i-1.0
-                s=(2.0/self.ny)*j-1.0	
+                s=(2.0/self.ny)*j-1.0
 
                 #  Coordinates
                 C = zeros(3)
@@ -161,14 +161,14 @@ class Block2DTruss(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(1, self.ny+1):
             for i in range(1, self.nx+1):
@@ -188,14 +188,14 @@ class Block2DTruss(Block):
                 all_tags = [ 'horizontal', 'vertical', 'horizontal', 'vertical', 'diagonal', 'diagonal' ]
 
                 for i in range(len(all_conn)):
-                    S = Shape()
+                    S = Cell()
                     S.shape_type = LIN2
                     S.tag        = all_tags[i]
                     S.points     = all_conn[i]
                     S.data['A']  = all_A[i]
                     S.id         = len(shapes)
                     shapes.add(S)
-    
+
 
     def split_with_middle_node(self, points, shapes, faces):
         """
@@ -205,7 +205,7 @@ class Block2DTruss(Block):
 	          |   \            /   |
 	          |     \        /     |
 	          |       \ 4  /       |
-	          |         @          |  
+	          |         @          |
 	          |       /    \       |
 	          |     /        \     |
 	          |   /            \   |
@@ -215,7 +215,7 @@ class Block2DTruss(Block):
         """
         p_arr = numpy.empty((2*self.nx+1, 2*self.ny+1), dtype='object')
 
-    
+
         # Generating points
         for j in range(2*self.ny+1):
             for i in range(2*self.nx+1):
@@ -223,10 +223,10 @@ class Block2DTruss(Block):
                 if j%2 and i%2==0: continue # False point
 
                 r=(1.0/self.nx)*i-1.0
-                s=(1.0/self.ny)*j-1.0	
+                s=(1.0/self.ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4: 
+                if self.coords.shape[0]==4:
                     N = self.shape_func(r, s)
                 else:
                     N = self.shape_func_o2(r, s)
@@ -241,14 +241,14 @@ class Block2DTruss(Block):
                 tmpP.set_coords(C)
                 if i==0 or j==0 or i==self.nx or j==self.ny:  # check if point is on block bry
                     P = tmpP.get_match_from(points)
-                
+
                 if not P:
                     P = tmpP
                     P.id = len(points)
                     points.add(P);       # adding a point
 
                 p_arr[i,j] = P
-    
+
         # Generating shapes and faces
         for j in range(2, 2*self.ny+1, 2):
             for i in range(2, 2*self.nx+1, 2):
@@ -267,21 +267,21 @@ class Block2DTruss(Block):
                 all_A    = [ Ah, Av, Ah, Av, Ad, Ad, Ad, Ad ]
 
                 for conn, A in zip(all_conn, all_A):
-                    S = Shape()
+                    S = Cell()
                     S.shape_type = LIN2
                     S.tag        = self.tag
                     S.points = conn
                     S.data['A'] = A
                     S.id = len(shapes)
-                    shapes.add(S)
+                    shapes.append(S)
 
 
 def add_shape(shapes, sh_type, points, tag, owner_sh=None, edata = {}):
-    S = Shape()
+    S = Cell()
     S.shape_type = LIN2
     S.tag        = self.tag
     S.points     = points
     S.data       = edata
     S.id         = len(shapes)
-    shapes.add(S)
+    shapes.append(S)
 

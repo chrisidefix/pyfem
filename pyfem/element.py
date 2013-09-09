@@ -6,10 +6,7 @@ from tools.stream import *
 from tools.real_list import *
 
 class Element:
-    """ Defines a class Element
-    """
     def __init__(self):
-        """ docstring for function __init__ """
         self.id    = -1
         self.ndim  = 0
         self.tag   = ""
@@ -21,7 +18,6 @@ class Element:
         self.data_table = Table()
 
     def set_elem_model(self, model):
-        """ docstring for function set_elem_model"""
         if self.shape_type==0: raise Exception("Error")
         if self.ndim==0: raise Exception("Error")
         if not model.is_applicable(self.shape_type): raise Exception("Error")
@@ -99,6 +95,8 @@ class Element:
         os << " )"
 
         return str(os)
+
+
 
 class CollectionElem(list):
 
@@ -236,7 +234,7 @@ class CollectionElem(list):
     def set_body_force(self, brys):
         for e in self:
             e.elem_model.set_body_force(brys)
-    
+
     def activate(self):
         for e in self:
             e.elem_model.activate()

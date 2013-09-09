@@ -51,7 +51,33 @@ class Point:
         return str(os)
 
 
-class Shape:
+class CollectionPoint(set):
+    def __init__(self, *args):
+        list.__init__(self, *args)
+        self.border_points = set()
+
+    def add_new(self, X, border=False):
+        P    = Point()
+        P.id = len(self)
+        P.set_coords(X)
+        self.add(P)
+
+        if border:
+            self.border_points.add(P)
+
+        return P
+
+    def in_border(P):
+        return True if P in self.border_points else False
+
+    def get_from_border(X):
+        tmpP = Point(X)
+        if tmpP in self.border_points:
+            return tmpP._match  # a bit of black magic
+        else:
+            return None
+
+class Cell:
     def __init__(self):
         self.id   = -1
         self.tag  = ""
@@ -79,6 +105,78 @@ class Shape:
             tmp += hash(point)
 
         return tmp
+
+
+class CollectionCell(set):
+    def __init__(self, *args):
+        list.__init__(self, *args)
+        regions = []
+
+    def add_new(self, typ, conn, tag='', owner_shape=None):
+        cell             = Cell()
+        cell.id          = len(self)
+        cell.tag         = tag
+        cell.points      = conn
+        cell.shape_type  = typ
+        cell.owner_shape = None
+        self.add(cell)
+        return cell
+
+    def unique(self):
+        # Get unique cells
+        cells_set = Counter(self)
+        unq_cells = [cell for cell, count in cells_set.iteritems() if count==1]
+
+        # Substitute with unique cells
+        self.clear()
+        self.update(unq_cells)
+
+        # Renumerate cells
+        for i, cell in enumerate(self):
+            cell.id = i
+
+    def find_neighbors(self):
+        # could be inneficient in large collections
+        n = len(self)
+        for c in self[0:n]:
+            c.neighbors = []
+
+        for a in self[0:n-1]:
+            for b in self[i+1, n]:
+                if any(c in a for c in b):
+                    a.neighbors.append(b)
+                    b.neighbors.append(a)
+
+    def set_regions():
+        # get max length
+        minx = 0
+        miny = 0
+        minz = 0
+        maxx = 0
+        maxy = 0
+        maxz = 0
+        l = 0
+        # calc ndim
+        ndim = 0
+        # calc number of regions in each direction 
+        nx = 1
+        ny = 1
+        nz = 1
+        if ndim==3:
+            nz = 1
+
+        self.regions = numpy.empty((nx, ny, nz), dtype='object')
+        for o in nditer(self.regions):
+            o = CollectionCell()
+
+        for c in self:
+            x  = centercell
+            y  = centercell
+            z  = centercell
+            ix = int((x - minx)/(maxx - minx))
+            iy = int((y - miny)/(maxy - miny))
+            iz = int((z - minz)/(maxz - minz))
+            self.regions[ix,iy,iz].append(c)
 
 
 def generate_faces(shape):

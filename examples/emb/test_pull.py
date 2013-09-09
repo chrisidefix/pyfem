@@ -76,7 +76,7 @@ elem_model = EqElasticSolid(E=1.E4, nu=0.0)
 domain.elems.solids.set_elem_model(elem_model)
 domain.elems.solids.set_state(sxx=-100.0, syy=-100.0, szz=-100.0)
 
-domain.elems.lines.set_elem_model(EqElasticBar(E=Es, A=0.005))
+domain.elems.lines.set_elem_model(EqElasticTruss(E=Es, A=0.005))
 
 if punctual_model:
     domain.elems.joints.set_elem_model(EqMCPunctualJoint(Ks=100.0E3, Kn=100.0E3, Dm=Dm, C=C, phi=phi))

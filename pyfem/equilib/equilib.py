@@ -5,8 +5,8 @@ from elem_model_line_joint import *
 
 # Material models
 from mat_model_elastic import *
-from mat_model_elastic_bar     import *
-from mat_model_plastic_bar     import *
+from mat_model_elastic_truss      import *
+from mat_model_pp_truss           import *
 from mat_model_drucker_prager     import *
 from mat_model_mohr_coulomb       import *
 from mat_model_mohr_coulomb_joint import *
@@ -40,19 +40,19 @@ class EqMohrCoulombSolid(ElemModelEq):
 ############################################################################## Line elements
 
 
-#class EqElasticBar(ElemModelTruss):
-class EqElasticBar(ElemModelEq):
+#class EqElasticTruss(ElemModelTruss):
+class EqElasticTruss(ElemModelEq):
     def __init__(self, *args, **kwargs):
         ElemModelEq.__init__(self, *args, **kwargs)
-        mat_model = ModelElasticBar(*args, **kwargs)
+        mat_model = ModelElasticTruss(*args, **kwargs)
         self.set_mat_model(mat_model)
         self.is_truss = True
 
-#class EqPlasticBar(ElemModelTruss):
-class EqPlasticBar(ElemModelEq):
+#class EqPlasticTruss(ElemModelTruss):
+class EqPlasticTruss(ElemModelEq):
     def __init__(self, *args, **kwargs):
         ElemModelEq.__init__(self, *args, **kwargs)
-        mat_model = ModelPlasticBar(*args, **kwargs)
+        mat_model = ModelPPTruss(*args, **kwargs)
         self.set_mat_model(mat_model)
         self.is_truss = True
 

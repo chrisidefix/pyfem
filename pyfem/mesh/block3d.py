@@ -202,13 +202,13 @@ class Block3D(Block):
                     p6 = p_arr[i  , j  , k  ]
                     p7 = p_arr[i-1, j  , k  ]
 
-                    S = Shape()
+                    S = Cell()
                     S.shape_type = HEX8
                     S.tag  = self.tag
 
                     S.points = [p0, p1, p2, p3, p4, p5, p6, p7]
                     S.id = len(shapes)
-                    shapes.add(S)
+                    shapes.append(S)
 
                     # Array of faces vertices and tag indexes for face
                     shape_faces_nodes = []
@@ -243,8 +243,7 @@ class Block3D(Block):
                     # Generating faces
                     for i, idx in enumerate(tag_idx):
                         curr_face = shape_faces_nodes[i]
-                        #tmpF = FaceShape()
-                        tmpF = Shape()
+                        tmpF = Cell()
                         tmpF.points = curr_face
                         if tmpF not in faces:
                             F = tmpF
@@ -253,7 +252,7 @@ class Block3D(Block):
                             F.tag = self.face_tags[idx]
                             if F.tag == "": F.tag = "no_tag"
                             F.id = len(faces)
-                            faces.add(F)
+                            faces.append(F)
 
     def split_o2(self, points, shapes, faces): #TODO
         p_arr = numpy.empty((2*self.nx+1, 2*self.ny+1, 2*self.nz+1), dtype='object')
@@ -321,13 +320,13 @@ class Block3D(Block):
                     p18 = p_arr[i  ][j  ][k-1]
                     p19 = p_arr[i-2][j  ][k-1]
 
-                    S = Shape()
+                    S = Cell()
                     S.shape_type = HEX20
                     S.tag      = self.tag
 
                     S.points = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
                     S.id = len(shapes)
-                    shapes.add(S)
+                    shapes.append(S)
 
                     # Array of faces vertices and tag indexes for face
                     shape_faces_nodes = []
@@ -362,7 +361,7 @@ class Block3D(Block):
                     # Generating faces
                     for i, idx in enumerate(tag_idx):
                         curr_face = shape_faces_nodes[i]
-                        tmpF = FaceShape()
+                        tmpF = Cell()
                         tmpF.points = curr_face
                         if tmpF not in faces:
                             F = tmpF
@@ -371,4 +370,4 @@ class Block3D(Block):
                             F.tag = self.face_tags[idx]
                             if F.tag == "": F.tag = "no_tag"
                             F.id = len(faces)
-                            faces.add(F)
+                            faces.append(F)

@@ -152,10 +152,11 @@ class SolverEq(Solver):
                     DFi       = DFi - DFint
                     DFint_ac += DFint
 
+                    #self.residue = sum( abs(DF[dof.eq_id] - DFint_ac[dof.eq_idi]) for dof in self.udofs)/force
                     self.residue = 0.0
+
                     for dof in self.udofs:
                         self.residue += abs(DF[dof.eq_id] - DFint_ac[dof.eq_id])/force
-                        #print dof.owner_id, DF[dof.eq_id], DFint_ac[dof.eq_id]
 
                     if self.verbose: print "    it", it+1, " error =", self.residue
 
@@ -226,8 +227,8 @@ class SolverEq(Solver):
         for i, dof in enumerate(self.pdofs): DF[dof.eq_id] = F2[i]
 
         if self.verbose and nu>2000: print "updating..." ; sys.stdout.flush()
+        from numpy import linalg
         DFint = self.update_elems_and_nodes(DU) # Also calculates DFint
-        #if self.verbose: print "    done."
 
         R = DF - DFint
         return DFint, R

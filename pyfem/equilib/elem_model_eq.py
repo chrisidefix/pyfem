@@ -59,10 +59,11 @@ class ElemModelEq(ElemModel):
         K = zeros(nnodes*ndim, nnodes*ndim)
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, C)
-            M    = ip.mat_model
-            Dep  = M.stiff()
+            mdl     = ip.mat_model
+            Dep  = mdl.stiff()
             thk  = self.thickness
-            coef = detJ*ip.w*thk*M.stiff_coef()
+            coef = detJ*ip.w*thk
+            if self.is_truss: coef *= mdl.A
             K += mul(B.T, Dep, B)*coef
 
         return K
@@ -72,11 +73,6 @@ class ElemModelEq(ElemModel):
         ndim   = self.ndim
         D = deriv_func(self.shape_type, R)
         J = mul(D, C)
-        #print
-        #print "C", C
-        #print "D", D
-        #print "Jvec =", J, pdet(J)
-        #print
 
         # B matrix for truss elements
         if self.is_truss:
@@ -131,17 +127,18 @@ class ElemModelEq(ElemModel):
                 loc.append(n.keys["uz"].eq_id)
         return loc
 
-    def internal_force(self):
-        C = self.coords()
-        F = zeros(nnodes*ndim)
-
-        for ip in self.ips:
-            B, detJ = self.calcB(ip.R, C)
-            mcoef   = M.stiff_coef()
-            coef    = detJ*ip.w*mcoef
-            F += mul(B.T, M.sigma())*coef
-
-        return F
+    #def internal_force(self):
+        #C = self.coords()
+        #F = zeros(nnodes*ndim)
+#
+        #for ip in self.ips:
+            #B, detJ = self.calcB(ip.R, C)
+            #mdl     = ip.mat_model
+            #coef    = detJ*ip.w
+            #if self.is_truss: coef *= mdl.A
+            #F += mul(B.T, M.sigma())*coef
+#
+        #return F
 
     def U(self):
         # Mount displacement vector
@@ -150,7 +147,7 @@ class ElemModelEq(ElemModel):
         keys = ["ux", "uy", "uz"][:ndim]
 
         U_ = zeros(nnodes* ndim)
- 
+
         i = 0
         for n in self.nodes:
             for key in keys:
@@ -174,10 +171,10 @@ class ElemModelEq(ElemModel):
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, C)
             deps = mul(B,dU)
-            M    = ip.mat_model
-            dsig = M.stress_update(deps)
-            mcoef= M.stiff_coef()
-            coef = detJ*ip.w*mcoef
+            mdl  = ip.mat_model
+            dsig = mdl.stress_update(deps)
+            coef = detJ*ip.w
+            if self.is_truss: coef *= mdl.A
             dF += mul(B.T, dsig)*coef
 
         for i in range(ndim*nnodes):
@@ -282,12 +279,12 @@ class ElemModelEq(ElemModel):
             S = shape_func(self.shape_type, ip.R)
             D = deriv_func(self.shape_type, ip.R)
             detJ = pdet(mul(D,C))
-            coef = detJ*ip.mat_model.stiff_coef()*ip.w
+            coef = detJ*ip.w
+            if self.is_truss: coef *= ip.mat_model.A
 
             F += mul(as_col(S), as_row(MF))*coef; # Calculate the nodal body forces matrix
 
         self.nodes.set_brys_from_mat(["fx", "fy", "fz"][0:ndim], F)
-
 
     def get_nodal_and_elem_vals(self):
         """

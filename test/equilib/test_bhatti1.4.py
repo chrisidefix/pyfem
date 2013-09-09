@@ -20,9 +20,9 @@ mesh.from_data(verts=Verts, cells=Cells)
 
 dom = Domain(mesh)
 
-dom.elems.sub(tag="-1").set_elem_model(EqElasticBar(E=200000.0, A=0.004))
-dom.elems.sub(tag="-2").set_elem_model(EqElasticBar(E=200000.0, A=0.003))
-dom.elems.sub(tag="-3").set_elem_model(EqElasticBar(E= 70000.0, A=0.002))
+dom.elems.sub(tag="-1").set_elem_model(EqElasticTruss(E=200000.0, A=0.004))
+dom.elems.sub(tag="-2").set_elem_model(EqElasticTruss(E=200000.0, A=0.003))
+dom.elems.sub(tag="-3").set_elem_model(EqElasticTruss(E= 70000.0, A=0.002))
 
 dom.nodes.sub(x=0).sub(y=0).set_bc(ux=0, uy=0)
 dom.nodes.sub(x=5).sub(y=5).set_bc(ux=0, uy=0)

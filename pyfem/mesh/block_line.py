@@ -122,13 +122,13 @@ class BlockLine(Block):
             p0 = p_arr[i-1]
             p1 = p_arr[i  ]
 
-            S = Shape()
+            S = Cell()
             S.shape_type = LIN2
             S.tag  = self.tag
 
             S.points = [p0, p1]
             S.id = len(shapes)
-            shapes.add(S)
+            shapes.append(S)
 
     def split_o2(self, points, shapes, faces):
         p_arr = numpy.empty((2*self.n+1), dtype='object')
@@ -165,13 +165,13 @@ class BlockLine(Block):
             p1 = p_arr[i  ]
             p2 = p_arr[i-1]
 
-            S = Shape()
+            S = Cell()
             S.shape_type = LIN3
             S.tag        = self.tag
 
             S.points = [p0, p1, p2]
             S.id = len(shapes)
-            shapes.add(S)
+            shapes.append(S)
 
     def gui_get_default_data(self):
         data = OrderedDict()

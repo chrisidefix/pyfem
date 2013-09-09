@@ -3,7 +3,7 @@ from math import log
 
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
-from shape_types import *
+from shape_functions    import *
 from block import *
 
 class BlockInset(Block):
@@ -53,251 +53,13 @@ class BlockInset(Block):
         self.coords = zeros(nrows, 3)
         self.coords[:,:ncols] = array(C)[:,:ncols]
 
-    def shape_func(self, shape, R):
-        """
-        Returns the shape function values for conventional solid shapes
-        ===============================================================
-
-        INPUT:
-            shape: An integer that represent the shape type
-            R:     A list containing natural coordinates of the point
-                   where the shape functions are evaluated
-        RETURNS:
-            N:     A list with all shape functions
-        """
-
-        shape_type = shape.shape_type
-        r, s, t = R[0], R[1], R[2]
-
-        if shape_type == LIN2:
-            N = empty(2)
-            N[0] = 0.5*(1-r)
-            N[1] = 0.5*(1+r)
-        elif shape_type == LIN3:
-            N = empty(3)
-            N[0] = 0.5*(r*r - r)
-            N[1] = 0.5*(r*r + r)
-            N[2] = 1.0 - r*r
-        elif shape_type == QUAD4:
-            N = empty(4)
-            N[0] = 0.25*(1.0-r-s+r*s)
-            N[1] = 0.25*(1.0+r-s-r*s)
-            N[2] = 0.25*(1.0+r+s+r*s)
-            N[3] = 0.25*(1.0-r+s-r*s)
-
-        elif shape_type == QUAD8:
-            N = empty(8)
-            rp1=1.0+r; rm1=1.0-r
-            sp1=1.0+s; sm1=1.0-s
-            N[0] = 0.25*rm1*sm1*(rm1+sm1-3.0)
-            N[1] = 0.25*rp1*sm1*(rp1+sm1-3.0)
-            N[2] = 0.25*rp1*sp1*(rp1+sp1-3.0)
-            N[3] = 0.25*rm1*sp1*(rm1+sp1-3.0)
-            N[4] = 0.50*sm1*(1.0-r*r)
-            N[5] = 0.50*rp1*(1.0-s*s)
-            N[6] = 0.50*sp1*(1.0-r*r)
-            N[7] = 0.50*rm1*(1.0-s*s)
-
-        elif shape_type == TET4:
-            N = empty(4)
-            N[0] = 1.0-r-s-t
-            N[1] = r
-            N[2] = s
-            N[3] = t
-
-        elif shape_type == HEX8:
-            N = empty(8)
-            N[0] = 0.125*(1.0-r-s+r*s-t+s*t+r*t-r*s*t)
-            N[1] = 0.125*(1.0+r-s-r*s-t+s*t-r*t+r*s*t)
-            N[2] = 0.125*(1.0+r+s+r*s-t-s*t-r*t-r*s*t)
-            N[3] = 0.125*(1.0-r+s-r*s-t-s*t+r*t+r*s*t)
-            N[4] = 0.125*(1.0-r-s+r*s+t-s*t-r*t+r*s*t)
-            N[5] = 0.125*(1.0+r-s-r*s+t-s*t+r*t-r*s*t)
-            N[6] = 0.125*(1.0+r+s+r*s+t+s*t+r*t+r*s*t)
-            N[7] = 0.125*(1.0-r+s-r*s+t+s*t-r*t-r*s*t)
-
-        elif shape_type == HEX20:
-            N = empty(20)
-            rp1=1.0+r; rm1=1.0-r
-            sp1=1.0+s; sm1=1.0-s
-            tp1=1.0+t; tm1=1.0-t
-
-            N[ 0] = 0.125*rm1*sm1*tm1*(-r-s-t-2)
-            N[ 1] = 0.125*rp1*sm1*tm1*( r-s-t-2)
-            N[ 2] = 0.125*rp1*sp1*tm1*( r+s-t-2)
-            N[ 3] = 0.125*rm1*sp1*tm1*(-r+s-t-2)
-            N[ 4] = 0.125*rm1*sm1*tp1*(-r-s+t-2)
-            N[ 5] = 0.125*rp1*sm1*tp1*( r-s+t-2)
-            N[ 6] = 0.125*rp1*sp1*tp1*( r+s+t-2)
-            N[ 7] = 0.125*rm1*sp1*tp1*(-r+s+t-2)
-            N[ 8] = 0.25*(1-r*r)*sm1*tm1
-            N[ 9] = 0.25*rp1*(1-s*s)*tm1
-            N[10] = 0.25*(1-r*r)*sp1*tm1
-            N[11] = 0.25*rm1*(1-s*s)*tm1
-            N[12] = 0.25*(1-r*r)*sm1*tp1
-            N[13] = 0.25*rp1*(1-s*s)*tp1
-            N[14] = 0.25*(1-r*r)*sp1*tp1
-            N[15] = 0.25*rm1*(1-s*s)*tp1
-            N[16] = 0.25*rm1*sm1*(1-t*t)
-            N[17] = 0.25*rp1*sm1*(1-t*t)
-            N[18] = 0.25*rp1*sp1*(1-t*t)
-            N[19] = 0.25*rm1*sp1*(1-t*t)
-
-        else:
-            raise Exception("Block_inset::shape_func: Could not find shape type.")
-
-        return N
-
-    def deriv_func(self, shape, R):
-        """
-        Returns the shape function derivatives for conventional solid shapes
-        ====================================================================
-
-        INPUT:
-            shape: An integer that represent the shape type
-            R:     A list containing natural coordinates of the point
-                   where the shape functions are evaluated
-
-        RETURNS:
-            D:     A list with all shape functions
-
-        """
-
-        r, s, t = R[0], R[1], R[2]
-
-        shape_type = shape.shape_type
-
-        if shape_type == QUAD4:
-            D = empty(2,4)
-            D[0,0] = 0.25*(-1.0+s);   D[1,0] = 0.25*(-1.0+r)
-            D[0,1] = 0.25*(+1.0-s);   D[1,1] = 0.25*(-1.0-r)
-            D[0,2] = 0.25*(+1.0+s);   D[1,2] = 0.25*(+1.0+r)
-            D[0,3] = 0.25*(-1.0-s);   D[1,3] = 0.25*(+1.0-r)
-
-        elif shape_type == QUAD8:
-            D = empty(2,8)
-            rp1=1.0+r; rm1=1.0-r
-            sp1=1.0+s; sm1=1.0-s
-
-            D[0,0] = - 0.25 * sm1 * (rm1 + rm1 + sm1 - 3.0)
-            D[0,1] =   0.25 * sm1 * (rp1 + rp1 + sm1 - 3.0)
-            D[0,2] =   0.25 * sp1 * (rp1 + rp1 + sp1 - 3.0)
-            D[0,3] = - 0.25 * sp1 * (rm1 + rm1 + sp1 - 3.0)
-            D[0,4] = - r * sm1
-            D[0,5] =   0.50 * (1.0 - s * s)
-            D[0,6] = - r * sp1
-            D[0,7] = - 0.5 * (1.0 - s * s)
-
-            D[1,0] = - 0.25 * rm1 * (sm1 + rm1 + sm1 - 3.0)
-            D[1,1] = - 0.25 * rp1 * (sm1 + rp1 + sm1 - 3.0)
-            D[1,2] =   0.25 * rp1 * (sp1 + rp1 + sp1 - 3.0)
-            D[1,3] =   0.25 * rm1 * (sp1 + rm1 + sp1 - 3.0)
-            D[1,4] = - 0.50 * (1.0 - r * r)
-            D[1,5] = - s * rp1
-            D[1,6] =   0.50 * (1.0 - r * r)
-            D[1,7] = - s * rm1
-
-        elif shape_type == TET4:
-            D = empty(3,4)
-            D[0,0] = -1;   D[1,0] =-1;   D[2,0] =-1
-            D[0,1] =  1;   D[1,1] = 0;   D[2,1] = 0
-            D[0,2] =  0;   D[1,2] = 1;   D[2,2] = 0
-            D[0,3] =  0;   D[1,3] = 0;   D[2,3] = 1
-
-        elif shape_type == HEX8:
-            D = empty(3,8)
-            D[0,0] = 0.125*(-1.0+s+t-s*t);   D[1,0] =0.125*(-1.0+r+t-r*t);   D[2,0] =0.125*(-1.0+r+s-r*s)
-            D[0,1] = 0.125*(+1.0-s-t+s*t);   D[1,1] =0.125*(-1.0-r+t+r*t);   D[2,1] =0.125*(-1.0-r+s+r*s)
-            D[0,2] = 0.125*(+1.0+s-t-s*t);   D[1,2] =0.125*(+1.0+r-t-r*t);   D[2,2] =0.125*(-1.0-r-s-r*s)
-            D[0,3] = 0.125*(-1.0-s+t+s*t);   D[1,3] =0.125*(+1.0-r-t+r*t);   D[2,3] =0.125*(-1.0+r-s+r*s)
-            D[0,4] = 0.125*(-1.0+s-t+s*t);   D[1,4] =0.125*(-1.0+r-t+r*t);   D[2,4] =0.125*(+1.0-r-s+r*s)
-            D[0,5] = 0.125*(+1.0-s+t-s*t);   D[1,5] =0.125*(-1.0-r-t-r*t);   D[2,5] =0.125*(+1.0+r-s-r*s)
-            D[0,6] = 0.125*(+1.0+s+t+s*t);   D[1,6] =0.125*(+1.0+r+t+r*t);   D[2,6] =0.125*(+1.0+r+s+r*s)
-            D[0,7] = 0.125*(-1.0-s-t-s*t);   D[1,7] =0.125*(+1.0-r+t-r*t);   D[2,7] =0.125*(+1.0-r+s-r*s)
-
-        elif shape_type == HEX20:
-            D = empty(3,20)
-            rp1=1.0+r; rm1=1.0-r
-            sp1=1.0+s; sm1=1.0-s
-            tp1=1.0+t; tm1=1.0-t
-
-            # Derivatives with respect to r
-            D[0, 0] = -0.125*sm1*tm1*(-r-s-t-2)-0.125*rm1*sm1*tm1
-            D[0, 1] =  0.125*sm1*tm1*( r-s-t-2)+0.125*rp1*sm1*tm1
-            D[0, 2] =  0.125*sp1*tm1*( r+s-t-2)+0.125*rp1*sp1*tm1
-            D[0, 3] = -0.125*sp1*tm1*(-r+s-t-2)-0.125*rm1*sp1*tm1
-            D[0, 4] = -0.125*sm1*tp1*(-r-s+t-2)-0.125*rm1*sm1*tp1
-            D[0, 5] =  0.125*sm1*tp1*( r-s+t-2)+0.125*rp1*sm1*tp1
-            D[0, 6] =  0.125*sp1*tp1*( r+s+t-2)+0.125*rp1*sp1*tp1
-            D[0, 7] = -0.125*sp1*tp1*(-r+s+t-2)-0.125*rm1*sp1*tp1
-            D[0, 8] = -0.5*r*sm1*tm1
-            D[0, 9] =  0.25*(1-s*s)*tm1
-            D[0,10] = -0.5*r*sp1*tm1
-            D[0,11] = -0.25*(1-s*s)*tm1
-            D[0,12] = -0.5*r*sm1*tp1
-            D[0,13] =  0.25*(1-s*s)*tp1
-            D[0,14] = -0.5*r*sp1  *tp1
-            D[0,15] = -0.25*(1-s*s)*tp1
-            D[0,16] = -0.25*sm1*(1-t*t)
-            D[0,17] =  0.25*sm1*(1-t*t)
-            D[0,18] =  0.25*sp1*(1-t*t)
-            D[0,19] = -0.25*sp1*(1-t*t)
-
-            # Derivatives with respect to s
-            D[1, 0] = -0.125*rm1*tm1*(-r-s-t-2)-0.125*rm1*sm1*tm1
-            D[1, 1] = -0.125*rp1*tm1*( r-s-t-2)-0.125*rp1*sm1*tm1
-            D[1, 2] =  0.125*rp1*tm1*( r+s-t-2)+0.125*rp1*sp1*tm1
-            D[1, 3] =  0.125*rm1*tm1*(-r+s-t-2)+0.125*rm1*sp1*tm1
-            D[1, 4] = -0.125*rm1*tp1*(-r-s+t-2)-0.125*rm1*sm1*tp1
-            D[1, 5] = -0.125*rp1*tp1*( r-s+t-2)-0.125*rp1*sm1*tp1
-            D[1, 6] =  0.125*rp1*tp1*( r+s+t-2)+0.125*rp1*sp1*tp1
-            D[1, 7] =  0.125*rm1*tp1*(-r+s+t-2)+0.125*rm1*sp1*tp1
-            D[1, 8] = -0.25*(1-r*r)*tm1
-            D[1, 9] = -0.5*s*rp1*tm1
-            D[1,10] =  0.25*(1-r*r)*tm1
-            D[1,11] = -0.5*s*rm1*tm1
-            D[1,12] = -0.25*(1-r*r)*tp1
-            D[1,13] = -0.5*s*rp1*tp1
-            D[1,14] =  0.25*(1-r*r)*tp1
-            D[1,15] = -0.5*s*rm1*tp1
-            D[1,16] = -0.25*rm1*(1-t*t)
-            D[1,17] = -0.25*rp1*(1-t*t)
-            D[1,18] =  0.25*rp1*(1-t*t)
-            D[1,19] =  0.25*rm1*(1-t*t)
-
-            # Derivatives with respect to t
-            D[2, 0] = -0.125*rm1*sm1*(-r-s-t-2)-0.125*rm1*sm1*tm1
-            D[2, 1] = -0.125*rp1*sm1*( r-s-t-2)-0.125*rp1*sm1*tm1
-            D[2, 2] = -0.125*rp1*sp1*( r+s-t-2)-0.125*rp1*sp1*tm1
-            D[2, 3] = -0.125*rm1*sp1*(-r+s-t-2)-0.125*rm1*sp1*tm1
-            D[2, 4] =  0.125*rm1*sm1*(-r-s+t-2)+0.125*rm1*sm1*tp1
-            D[2, 5] =  0.125*rp1*sm1*( r-s+t-2)+0.125*rp1*sm1*tp1
-            D[2, 6] =  0.125*rp1*sp1*( r+s+t-2)+0.125*rp1*sp1*tp1
-            D[2, 7] =  0.125*rm1*sp1*(-r+s+t-2)+0.125*rm1*sp1*tp1
-            D[2, 8] = -0.25*(1-r*r)*sm1
-            D[2, 9] = -0.25*rp1*(1-s*s)
-            D[2,10] = -0.25*(1-r*r)*sp1
-            D[2,11] = -0.25*rm1*(1-s*s)
-            D[2,12] =  0.25*(1-r*r)*sm1
-            D[2,13] =  0.25*rp1*(1-s*s)
-            D[2,14] =  0.25*(1-r*r)*sp1
-            D[2,15] =  0.25*rm1*(1-s*s)
-            D[2,16] = -0.5*t*rm1*sm1
-            D[2,17] = -0.5*t*rp1*sm1
-            D[2,18] = -0.5*t*rp1*sp1
-            D[2,19] = -0.5*t*rm1*sp1
-
-        else:
-            raise Exception("Block_inset::deriv_func: Could not find shape type.")
-        return D
-
-    def get_shape_coords(self, S):
+    def get_cell_coords(self, S):
         """
         Constructs a matrix with shape coordinates
         ==========================================
 
         INPUT:
-            S: Shape object
+            S:  Cell object
         RETURNS:
             C: A matrix with the coordinates of a shape object
         """
@@ -325,7 +87,7 @@ class BlockInset(Block):
         =====================================================================
 
         INPUT:
-            S: Shape object
+            S: Cell object
             X: List of global coordinates of a point
         RETURNS:
             R: List of natural coordinates of the given point
@@ -335,14 +97,14 @@ class BlockInset(Block):
         MAXIT = 25
         R = zeros(3)
 
-        C = self.get_shape_coords(S)
+        C = self.get_cell_coords(S)
         for k in range(MAXIT):
             # calculate Jacobian
-            D = self.deriv_func(S, R)
+            D = deriv_func(S.shape_type, R)
             J = mul(D, C)
 
             # calculate trial of real coordinates
-            N = self.shape_func(S, R)
+            N  = shape_func(S.shape_type, R)
             Xt = mul(N.T, C).T # interpolating
 
             # calculate the error
@@ -361,7 +123,7 @@ class BlockInset(Block):
         ==========================================================================
 
         INPUT:
-            S:     Shape object
+            S:     Cell object
             R:     A list containing natural coordinates of the point
                    where the shape functions are evaluated
         RETURNS:
@@ -395,7 +157,7 @@ class BlockInset(Block):
         =======================================
 
         INPUT:
-            S:     Shape object
+            S:      Cell object
             X:     List of global coordinates of a point
         RETURNS:
             value: True if the point is inside the shape
@@ -560,11 +322,11 @@ class BlockInset(Block):
                     points.add(P) # Warning with points that match background mesh points
 
             # Saving segment and related nodal points
-            S             = Shape()
+            S             = Cell()
             S.tag         = self.tag
             S.shape_type  = LIN3 if self.quadratic else LIN2
             S.id          = len(shapes)
-            shapes.add(S)
+            shapes.append(S)
             for P in Ps:
                 S.points.append(P)
 
@@ -572,19 +334,19 @@ class BlockInset(Block):
             if self.punctual:
                 # Creates discrete joint elements
                 for P in Ps:
-                    Sj = Shape()
+                    Sj = Cell()
                     Sj.shape_type = LINK1
                     Sj.tag = self.tag
                     Sj.points.extend(curr_sh.points)
                     Sj.points.append(P)
                     Sj.lnk_shapes = [S, curr_sh]
                     Sj.id = len(shapes3)
-                    shapes.add(Sj)
+                    shapes.append(Sj)
                     #cells.add_cell(type,points, tag=tag)
                     #add_cell(cells, type,points, tag=tag)
             else:
                 # Create a continuous joint element
-                Sj = Shape()
+                Sj = Cell()
                 if not self.quadratic:
                     Sj.shape_type = LINK2
                 else:
@@ -595,7 +357,7 @@ class BlockInset(Block):
                 Sj.points.extend(S.points)       # adds bar points
                 Sj.lnk_shapes = [S, curr_sh]
                 Sj.id = len(shapes)
-                shapes.add(Sj)
+                shapes.append(Sj)
 
             curr_len = norm(X-X0)
             if abs(curr_len - length) < TOL or curr_len > length: # Final segment
@@ -615,14 +377,14 @@ class BlockInset(Block):
         ===============================================
 
         This function modifies a mesh (given as sets of points and shapes)
-        in order to add new shapes and points corresponding to the 
+        in order to add new shapes and points corresponding to the
         discretization of a crossing entity.
 
         INPUT:
             points: A set of points of an existing mesh
             shapes: A set of shapes of an existing mesh
             faces : A set of faces. Not being used in this function but
-                    included to math the function definition as in the 
+                    included to math the function definition as in the
                     base class.
         RETURNS:
             None
@@ -682,7 +444,7 @@ class BlockInset(Block):
                     curr_sh = prev_sh
                 else:
                     curr_sh = self.find_shape(X, shapes, near_shapes)
-                    near_shapes.add(curr_sh)
+                    near_shapes.append(curr_sh)
 
             if curr_sh == prev_sh:
                 if final_segment:
@@ -693,7 +455,7 @@ class BlockInset(Block):
 
                 if bdist <= TOL:  # intersection is reached!!
                     # Saving segment and related nodal points
-                    S = Shape()
+                    S = Cell()
                     S.tag = self.tag
 
                     S.shape_type = LIN3 if self.quadratic else LIN2
@@ -735,7 +497,7 @@ class BlockInset(Block):
 
                     first_segment = False
                     S.id = len(shapes)
-                    shapes.add(S)
+                    shapes.append(S)
 
                     # Saving link shape
                     if self.punctual:
@@ -745,17 +507,17 @@ class BlockInset(Block):
                         Ps = [P0, P1, P2] if self.quadratic else [P0, P1]
 
                         for P in Ps:
-                            Sj = Shape()
+                            Sj = Cell()
                             Sj.shape_type = LINK1
                             Sj.tag = self.tag
                             Sj.points.extend(curr_sh.points)
                             Sj.points.append(P)
                             Sj.lnk_shapes = [S, curr_sh]
                             Sj.id = len(shapes)
-                            shapes.add(Sj)
+                            shapes.append(Sj)
                     else:
                         # Create a continuous joint element
-                        Sj = Shape()
+                        Sj = Cell()
                         if not self.quadratic:
                             Sj.shape_type = LINK2
                         else:
@@ -766,7 +528,7 @@ class BlockInset(Block):
                         Sj.points.extend(S.points)       # adds bar points
                         Sj.lnk_shapes = [S, curr_sh]
                         Sj.id = len(shapes)
-                        shapes.add(Sj)
+                        shapes.append(Sj)
 
                     if final_segment: return
 

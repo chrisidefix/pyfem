@@ -83,7 +83,7 @@ class Block:
     def rotate_z(self, P, angle):
         return self.rotate__(P, [0.,0.,1.], angle)
 
-    def split(self, Points, Shapes, Faces):
+    def split(self, Points, Cells, Faces):
         pass
         return self
 

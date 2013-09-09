@@ -1,4 +1,6 @@
 from math import copysign
+from math import pi
+
 from pyfem.tools.matvec import *
 from elem_model_eq import *
 
@@ -7,7 +9,6 @@ class ElemModelLineJoint(ElemModelEq):
         ElemModel.__init__(self);
         self.truss = None
         self.hook  = None
-        self.B_store = {}
 
     def copy(self):
         cp = ElemModel.copy(self)
@@ -38,7 +39,8 @@ class ElemModelLineJoint(ElemModelEq):
             M    = ip.mat_model
             M.attr["sign"] = self.calc_sign(ip.R, Ch, Ct)
             Dep  = M.stiff()
-            coef = detJ*ip.w*M.stiff_coef()
+            #coef = detJ*ip.w*M.stiff_coef()
+            coef = detJ*ip.w
             ###
             Dep[0,0] *= M.h
             K += mul(B.T, Dep, B)*coef
@@ -209,10 +211,9 @@ class ElemModelLineJoint(ElemModelEq):
             deps = mul(B, dU)
             M    = ip.mat_model
             dsig = M.stress_update(deps)
-            mcoef= M.stiff_coef()
-            coef = detJ*ip.w*mcoef
-            ###
-            dsig[0] *= M.h
+            coef = detJ*ip.w
+
+            dsig[0] *= M.h  # h is the perimeter
             dF += mul(B.T, dsig)*coef
 
         for i in range(ndim*nnodes):

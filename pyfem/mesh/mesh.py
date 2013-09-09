@@ -11,16 +11,14 @@ def get_line(file_obj):
 
 class Mesh:
     def __init__(self, *args):
-        self.ndim = 0
-        self.verbose = True
-        self.blocks  = CollectionBlock()
-        self.points  = []
-        self.shapes  = []
-        self.faces   = []
+        self.ndim       = 0
+        self.verbose    = True
+        self.blocks     = CollectionBlock()
+        self.points     = []
+        self.shapes     = []
+        self.faces      = []
         self.points_set = set()
-        self.shapes_set = set()
-        self.faces_set  = set()
-        #self.faces_set  = Counter() ?
+
         if len(args)>0:
             first = args[0]
             if isinstance(first, list):
@@ -50,7 +48,7 @@ class Mesh:
 
         # Loading shapes
         for i, con in enumerate(Cs):
-            S = Shape()
+            S = Cell()
             S.id = i
             for idx in con:
                 S.points.append(self.points[idx])
@@ -78,7 +76,7 @@ class Mesh:
 
         # Loading shapes
         for i, cell_data in enumerate(cells):
-            S = Shape()
+            S = Cell()
             S.id = i
             con = cell_data['con']
             for idx in con:
@@ -128,7 +126,7 @@ class Mesh:
         for i in range(nshapes):
             seq = get_line(file).split()
             npoints = int(seq[0])
-            S = Shape()
+            S = Cell()
             S.id = i
             for j in range(1, npoints+1):
                 S.points.append(self.points[int(seq[j])])
@@ -144,7 +142,7 @@ class Mesh:
             self.shapes[i].shape_type = get_shape_type(vtk_type, len(self.shapes[i].points))
 
         # Check for extra tags data
-        if "tags:" in extra_data:
+        if 'tags:' in extra_data:
             seq = extra_data.split(":")
             tags = seq[1].split(";")
 
@@ -163,19 +161,15 @@ class Mesh:
         all_faces = Counter()
         for S in self.shapes:
             faces = generate_faces(S)
-            pp = [p.id for p in S.points]
+            #pp = [p.id for p in S.points]
             for F in faces:
-                pp = [p.id for p in F.points]
+                #pp = [p.id for p in F.points]
                 all_faces[F] += 1 # Counting faces
 
         # Discarding repeated faces
         self.faces = [F for F, count in all_faces.iteritems() if count==1]
 
         # Find dimension
-        #x0 = all(P.x == 0.0 for P in self.points) # check if all x coords are zero
-        #y0 = all(P.y == 0.0 for P in self.points)
-        #z0 = all(P.z == 0.0 for P in self.points)
-        #self.ndim = 3 - x0 - y0 - z0
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
 
     def add_blocks(self, *args):
@@ -194,35 +188,36 @@ class Mesh:
 		# Spliting blocks
         for i, block in enumerate(self.blocks):
             if self.verbose: print "  spliting block", i, "..."
-            block.split(self.points_set, self.shapes_set, self.faces_set)
+            block.split(self.points_set, self.shapes, self.faces)
 
         # Checking all ids were set
         assert all([point.id != -1 for point in self.points_set])
-        assert all([shape.id != -1 for shape in self.shapes_set])
-        assert all([face .id != -1 for face  in self.faces_set ])
+        assert all([shape.id != -1 for shape in self.shapes])
+        assert all([face .id != -1 for face  in self.faces ])
 
         # Setting up nodes, faces and shapes
         self.points = sorted(self.points_set, key=lambda n: n.id)
-        self.shapes = sorted(self.shapes_set, key=lambda s: s.id)
-        self.faces  = sorted(self.faces_set , key=lambda f: f.id)
+
+        # Selecting unique faces
+        faces_set  = Counter(self.faces)
+        self.faces = [F for F, count in faces_set.iteritems() if count==1]
+
+        # Renumerating faces
+        for i, F in enumerate(self.faces):
+            F.id = i
 
         # Getting ndim
         given_ndim = True if self.ndim > 1 else False
 
         if self.ndim == 0:
             self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
-            #self.ndim = 2
-            #for shape in self.shapes_set:
-            #    if shape.shape_type in [HEX8, HEX20, TET4, TET10]:
-            #        self.ndim = 3
-            #        break
 
         if self.verbose:
             if not given_ndim:
                 print " ", str(self.ndim, ) + "d found"
-            print " ", len(self.points), "  points obtained"
-            print " ", len(self.shapes), "  shapes obtained"
-            print " ", len(self.faces ), "  faces  obtained"
+            print " ", len(self.points), "  vertices obtained"
+            print " ", len(self.shapes), "  cells obtained"
+            print " ", len(self.faces ), "  faces obtained"
 
     def write_file(self, filename, fmt = "vtk"):
         name, ext = os.path.splitext(filename)

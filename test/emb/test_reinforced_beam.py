@@ -3,7 +3,7 @@ from pyfem import *
 block0 = Block3D()
 block0.make_box([0,0,0], [6,1,1])
 
-block0.set_divisions(6,2,2)
+block0.set_divisions(4,1,1)
 
 block1 = BlockInset()
 block2 = BlockInset()
@@ -17,7 +17,7 @@ mesh.generate()
 
 dom = Domain(mesh)
 mat0 = EqElasticSolid(E=1e4, nu=0)
-mat1 = EqElasticBar(E=1E7, A=0.005)
+mat1 = EqElasticTruss(E=1E7, A=0.005)
 mat2 = EqMohrCoulombJoint(Ks=100E3, Kn=100E6, Dm=0.08, C=20., phi=30*3.14/180)
 
 dom.elems.solids.set_elem_model(mat0)

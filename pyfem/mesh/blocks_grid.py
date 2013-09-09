@@ -14,14 +14,14 @@ class BlocksGrid(CollectionBlock):
         assert(len(dY)==len(nY))
 
         self.ndim = 2
-        
+
         nX = map(int, nX)
         nY = map(int, nY)
 
         # number of divisions in x and y
         nx = len(nX)
         ny = len(nY)
-        
+
         # referencial coordinates (bottom left of each block)
         refx = 0.0
 
@@ -65,14 +65,7 @@ class BlocksGrid(CollectionBlock):
         for B in self:
             B.set_cubic()
 
-    def split(self, Points, Shapes, Faces):
+    def split(self, Points, Cells, Faces):
         for B in self:
-            B.split(Points, Shapes, Faces)
+            B.split(Points, Cells, Faces)
         return self
-            
-
-
- 
-
-
-

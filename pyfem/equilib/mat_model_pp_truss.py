@@ -2,8 +2,8 @@ from pyfem.model import *
 from math import tan
 from math import copysign
 
-class ModelPlasticBar(Model):
-    name = "ModelPlasticBar"
+class ModelPPTruss(Model):
+    name = "ModelPPTruss"
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
@@ -26,11 +26,11 @@ class ModelPlasticBar(Model):
         cp = self.__class__()
         cp.sig  = self.sig.copy()
         cp.eps  = self.eps.copy()
-        cp.E    = self.E  
-        cp.A    = self.A  
+        cp.E    = self.E
+        cp.A    = self.A
         cp.ndim = self.ndim
-        cp.z    = self.z  
-        cp.H    = self.H  
+        cp.z    = self.z
+        cp.H    = self.H
         cp.sig_max = self.sig_max
         cp.attr    = self.attr.copy()
         return cp
@@ -49,6 +49,8 @@ class ModelPlasticBar(Model):
 
     def yield_func(self, sig):
         s = sig[0]
+        #print self.z, self.sig, self.sig_max
+        smax = self.sig_max + self.z
         return abs(s) - self.sig_max + self.z
 
     def calcDe(self):
@@ -64,9 +66,6 @@ class ModelPlasticBar(Model):
             Eep = (E - (E**2.0)/(E+H*abs(self.sig)))[0]
             return Eep
 
-    def stiff_coef(self):
-        return self.A
-
     def stress_update(self, deps):
         dsig   = self.E*deps
         sig_tr = self.sig + dsig
@@ -77,7 +76,6 @@ class ModelPlasticBar(Model):
             self.eps += deps
             return dsig
 
-
         # Finding intersection and elastic integration
         sig_ini = self.sig
         aint    = 0.0
@@ -85,7 +83,9 @@ class ModelPlasticBar(Model):
 
         if F<0:
             # Calculate intersection
+            smax = self.sig + self.z
             aint = (self.sig_max - abs(self.sig))/(abs(sig_tr)-abs(self.sig))
+            #aint = (smax - abs(self.sig))/(abs(sig_tr)-abs(self.sig))
 
             # Elastic integration
             self.sig = sig_ini + aint*dsig
@@ -98,6 +98,7 @@ class ModelPlasticBar(Model):
         sig = self.sig
 
         D = E - (E**2.0)/(E+H*abs(self.sig)) # Elastic plastic stiffness
+        #print D
         deps = (1.0 - aint)*deps # plastic strain
         dsig = D*deps
         dz   = ((E*H*self.sig*deps) / (E - H*abs(self.sig)))[0]
@@ -105,10 +106,11 @@ class ModelPlasticBar(Model):
         self.eps += deps
         self.sig += dsig
         self.z   += dz
+        #print self.z, self.sig
 
         dsig = self.sig - sig_ini # total stress increment
         return dsig
-    
+
     def get_vals(self):
         vals = {}
         vals["sa"] = self.sig

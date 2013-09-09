@@ -79,16 +79,16 @@ class ModelLinElastic(Model):
                 [  0.0 ,        0.0 ,       0.0 , c*(1.0-2.0*nu),            0.0,            0.0 ], \
                 [  0.0 ,        0.0 ,       0.0 ,            0.0, c*(1.0-2.0*nu),            0.0 ], \
                 [  0.0 ,        0.0 ,       0.0 ,            0.0,            0.0, c*(1.0-2.0*nu) ] ] )
-            
-    def stiff_coef(self):
-        return 1.0;
+
+    #def stiff_coef(self):
+        #return 1.0;
 
     def stress_update(self, deps):
         dsig = mul(self.stiff(), deps)
         self.eps += deps;
         self.sig += dsig;
         return dsig
-    
+
     def get_vals(self):
         sig = self.sig
         eps = self.eps
@@ -106,7 +106,7 @@ class ModelLinElastic(Model):
 			vals["ezz"] = eps[2]
 			vals["exy"] = eps[3]/sqrt2
 			vals["sig_m"] = sig[0]+sig[1]+sig[2]
-        
+
         if self.ndim==3:
             #vec p = eps.principal();
 			sqrt2 = 2.0**0.5

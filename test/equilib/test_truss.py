@@ -25,7 +25,7 @@ dom = Domain()  # Criação do domínio de elementos finitos
 dom.load_mesh(malha)
 
 # definição dos tipos de elementos e suas propriedades
-tipo_elem = EqElasticBar(E=1000.0, A=1.0)   # E em kN/m2=kPa    e     A em m2
+tipo_elem = EqElasticTruss(E=1000.0, A=1.0)   # E em kN/m2=kPa    e     A em m2
 dom.elems.set_elem_model(tipo_elem)
 
 # condições de contorno de deslocamento

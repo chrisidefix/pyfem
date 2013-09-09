@@ -88,11 +88,6 @@ class MatModelMohrCoulombJoint(Model):
             Ksep = Ks
         else:
             Ksep = Ks - (Ks**2.0)/(Ks - H*abs(tau))
-        #print "Ks", Ks
-        #print "self.H", self.H
-        #print "H", H
-        #print "Ksep", Ksep
-        #exit()
 
         if self.ndim==2:
             return  array([\
@@ -103,11 +98,6 @@ class MatModelMohrCoulombJoint(Model):
                     [ Ksep, 0.0, 0.0 ], \
                     [  0.0,  Kn, 0.0 ], \
                     [  0.0, 0.0,  Kn ]])
-
-    def stiff_coef(self):
-        P = 3.14159265*self.Dm;
-        P = 1.0;
-        return P
 
     def stress_update(self, deps):
         De   = self.calcDe()
