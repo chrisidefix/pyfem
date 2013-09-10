@@ -1,4 +1,5 @@
 import os,sys
+from collections import Counter
 
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
@@ -51,7 +52,7 @@ class Point:
         return str(os)
 
 
-class CollectionPoint(set):
+class CollectionPoint(list):
     def __init__(self, *args):
         list.__init__(self, *args)
         self.border_points = set()
@@ -60,17 +61,17 @@ class CollectionPoint(set):
         P    = Point()
         P.id = len(self)
         P.set_coords(X)
-        self.add(P)
+        self.append(P)
 
         if border:
             self.border_points.add(P)
 
         return P
 
-    def in_border(P):
+    def in_border(self, P):
         return True if P in self.border_points else False
 
-    def get_from_border(X):
+    def get_from_border(self, X):
         tmpP = Point(X)
         if tmpP in self.border_points:
             return tmpP._match  # a bit of black magic
@@ -83,7 +84,7 @@ class Cell:
         self.tag  = ""
         self.shape_type  = 0
         self.points      = []
-        self.lnk_shapes  = []    # linked shapes
+        self.lnk_cells   = []    # linked shapes
         self.owner_shape = None  # If the shape represents a face
         self.data        = {}    # Extra data
 
@@ -107,7 +108,7 @@ class Cell:
         return tmp
 
 
-class CollectionCell(set):
+class CollectionCell(list):
     def __init__(self, *args):
         list.__init__(self, *args)
         regions = []
@@ -118,18 +119,14 @@ class CollectionCell(set):
         cell.tag         = tag
         cell.points      = conn
         cell.shape_type  = typ
-        cell.owner_shape = None
-        self.add(cell)
+        cell.owner_shape = owner_shape
+        self.append(cell)
         return cell
 
     def unique(self):
         # Get unique cells
         cells_set = Counter(self)
-        unq_cells = [cell for cell, count in cells_set.iteritems() if count==1]
-
-        # Substitute with unique cells
-        self.clear()
-        self.update(unq_cells)
+        self[:] = [cell for cell, count in cells_set.iteritems() if count==1]
 
         # Renumerate cells
         for i, cell in enumerate(self):

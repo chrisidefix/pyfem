@@ -1,8 +1,4 @@
 # Include PyFEM libraries
-try: import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-except: pass
-
-# Include PyFEM libraries
 from pyfem import *
 
 mesh = Mesh()
@@ -10,16 +6,16 @@ mesh.set_ndim(3)
 
 block = Block3D()
 block.set_coords([
-    0.0, 0.0, 0.0,
-    1.0, 0.0, 0.0,
-    1.0, 1.0, 0.0,
-    0.0, 1.0, 0.0,
-    0.0, 0.0, 2.0,
-    1.0, 0.0, 2.0,
-    1.0, 1.0, 3.0,
-    0.0, 1.0, 3.0 ])
+    (0.0, 0.0, 0.0),
+    (1.0, 0.0, 0.0),
+    (1.0, 1.0, 0.0),
+    (0.0, 1.0, 0.0),
+    (0.0, 0.0, 2.0),
+    (1.0, 0.0, 2.0),
+    (1.0, 1.0, 3.0),
+    (0.0, 1.0, 3.0) ])
 
-block.set_divisions(1,4,3)
+block.set_divisions(1,4,300)
 #block.set_quadratic()
 
 mesh.blocks.append(block)
@@ -39,7 +35,7 @@ max_z = domain.nodes.max_z
 #lat_nodes   = domain.nodes.filter(lambda n: n.x==0 or n.x==max_x or n.y==0 or n.y==max_y)
 
 # Boundary conditions
-domain.nodes.with_z(0.0).set_bc({"ux": 0.0, "uy": 0.0, "uz": 0.0})
+domain.nodes.sub(z=0.0).set_bc({"ux": 0.0, "uy": 0.0, "uz": 0.0})
 domain.nodes.sub(x=[0.0, 1.0]).set_bc({"ux": 0.0, "uy": 0.0})
 domain.nodes.sub(x=[0.0, 1.0]).set_bc({"ux": 0.0, "uy": 0.0})
 domain.elems.set_body_force({"gz": -20.0})

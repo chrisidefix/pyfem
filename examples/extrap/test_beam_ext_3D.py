@@ -1,8 +1,4 @@
 # Include PyFEM libraries
-try: import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-except: pass
-
-# Include PyFEM libraries
 from pyfem import *
 
 # Define mesh
@@ -28,9 +24,10 @@ elem_model = EqElasticSolid(E=20.0E6, nu=0.0)
 domain.elems.solids.set_elem_model(elem_model)
 
 # ... Setting boundary conditions
-domain.faces.with_x(0.0, 1.0).set_brys(ux=0)
-domain.faces.with_y(0.0).set_brys(ux=0, uy=0, uz=0)
-domain.faces.with_z(2.0).set_brys(tz=-0.24)
+domain.faces.sub(x=0.0).set_bc(ux=0)
+domain.faces.sub(x=1.0).set_bc(ux=0)
+domain.faces.sub(y=0.0).set_bc(ux=0, uy=0, uz=0)
+domain.faces.sub(z=2.0).set_bc(tz=-0.24)
 
 # Setting solver and solving
 domain.set_solver(SolverEq())

@@ -47,7 +47,7 @@ class Domain:
 
         # Setting elements
         self.elems = CollectionElem()
-        for i, shape in enumerate(mesh.shapes):
+        for i, shape in enumerate(mesh.cells):
             elem = Element()
             elem.id = i
             elem.tag = shape.tag
@@ -64,10 +64,10 @@ class Domain:
             self.elems.append(elem)
 
         # Setting extra data in elems
-        for shape, elem in zip(mesh.shapes, self.elems):
+        for shape, elem in zip(mesh.cells, self.elems):
             #if elem.is_line_joint:
-            for lnk_shape in shape.lnk_shapes:
-                elem.lnk_elems.append(self.elems[lnk_shape.id])
+            for lnk_cell in shape.lnk_cells:
+                elem.lnk_elems.append(self.elems[lnk_cell.id])
 
         # Setting faces
         self.faces = CollectionFace()

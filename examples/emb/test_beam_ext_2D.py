@@ -7,7 +7,7 @@ from pyfem import *
 block = Block2D()
 block.make_box([0,0], [40, 2])
 block.set_divisions(4,3)
-block.set_quadratic(True)
+block.set_quadratic()
 
 # ... Generating the mesh
 mesh = Mesh([block])
@@ -22,29 +22,22 @@ domain.load_mesh(mesh)
 domain.elems.solids.set_elem_model(EqElasticSolid({"E": 10.0E6, "nu": 0.0}))
 
 # Setting boundary conditions
-#domain.faces.with_x(0.0).set_brys({"ux": 0})
-#domain.nodes.with_x(0.0).with_y(1.0).set_brys({"ux": 0, "uy": 0})
-domain.faces.with_x(0.0).set_brys({"ux": 0, "uy": 0})
-domain.faces.with_y(2.0).set_brys({"ty": -0.24})
+domain.faces.sub(x=0.0).set_bc({"ux": 0, "uy": 0})
+domain.faces.sub(y=2.0).set_bc({"ty": -0.24})
 
 # Setting solver and solving
 domain.set_solver(SolverEq())
 domain.solver.set_incs(1)
 domain.solver.set_scheme("NR")
-domain.solver.set_precision(1E-3)
 domain.solver.set_plane_stress(True)
 domain.solver.set_precision(1E-3)
-tnodes = domain.elems.nodes.with_y(1.0)
+tnodes = domain.elems.nodes.sub(y=1.0)
 tnodes.sort_in_x()
 domain.solver.track(tnodes, "tnodes")
 domain.solver.solve()
 
 # Write output file
 domain.solver.write_output()
-
-
-#for ip in domain.elems[0].ips:
-#    print ip
 
 data = []
 for i, e in enumerate(domain.elems):
@@ -71,8 +64,8 @@ for D in DD:
     tau = 1.5*0.24*(40-D)/2.0
     an_data.append(tau)
 
+# Ploting
 
-from plot import *
 import pylab
 
 pylab.subplot(111)

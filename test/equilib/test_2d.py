@@ -8,10 +8,10 @@ bl0 = Block2D()
 bl1 = Block2D()
 
 bl0.set_coords( [[0,0], [1,0], [1,1], [0,1]] )
-bl0.set_divisions(4,4)
+bl0.set_divisions(1,1)
 
 bl1.set_coords( [[1,0], [2,0], [2,1], [1,1]] )
-bl1.set_divisions(8,4)
+bl1.set_divisions(1,1)
 
 mesh.add_blocks(bl0, bl1)
 mesh.generate()

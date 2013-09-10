@@ -28,7 +28,7 @@ alp = atan((0.8-0.2)/(6.0-2.05))
 
 # Mesh generation
 mesh.generate  ()
-mesh.write_file("tmesh.vtk")
+#mesh.write_file("tmesh.vtk")
 
 
 # Setting domain

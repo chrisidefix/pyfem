@@ -38,9 +38,6 @@ z = depth
 
 """
 
-try: import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-except: pass
-
 # Include PyFEM libraries
 from pyfem import *
 
@@ -52,7 +49,6 @@ p = 100.0
 
 # Create a mesh
 mesh = Mesh()
-mesh.set_ndim(2)
 
 blocks0 = BlocksGrid(
         refP = [0., min_y],
@@ -68,6 +64,9 @@ blocks = BlocksGrid(
         dY = [25., 4., 1.],
         nY = [5  , 1 , 1])
 
+#blocks.set_quadratic()
+blocks.set_cubic()
+blocks.set_triangles()
 mesh.blocks.append(blocks)
 mesh.generate()
 
@@ -80,16 +79,15 @@ elem_model = EqElasticSolid(E=1.0e5, nu=0.0, gamma=20.0)
 domain.elems.set_elem_model(elem_model)
 
 # Boundary conditions
-domain.faces.with_y(min_y).set_bc(ux=0.0, uy=0.0)
-domain.faces.with_x(0.0)  .set_bc(ux=0.0)
-domain.faces.with_x(max_x).set_bc(ux=0.0, uy=0.0)
-domain.faces.with_y(0.0)  .with_x_in_interval(0.0, a).set_bc(ty=-p)
-#domain.faces.sub(y=0).sub(x=[0.0, a]).set_bc(ty=-p)
+domain.faces.sub(y=min_y).set_bc(ux=0.0, uy=0.0)
+domain.faces.sub(x=0.0)  .set_bc(ux=0.0)
+domain.faces.sub(x=max_x).set_bc(ux=0.0, uy=0.0)
+domain.faces.sub(y=0.0)  .sub(lambda f: f.max_x<=a).set_bc(ty=-p)
 
 #Setting solver and solving
 domain.set_solver(SolverEq())
 domain.solver.set_incs(1)
-tnodes = domain.nodes.with_x(0.0)
+tnodes = domain.nodes.sub(x=0.0)
 tnodes.sort_in_y()
 tnodes.reverse()
 domain.solver.track(tnodes)
@@ -135,7 +133,7 @@ pylab.plot(N_ssy, N_Y, 'ks', markerfacecolor='k', label='nodal points')
 from matplotlib import rc
 rc('text', usetex=True)
 rc('text', usetex=False)
-rc('font', family='serif') 
+rc('font', family='serif')
 
 pylab.legend(loc=7)
 pylab.xlabel(r'Normalized stress $\sigma_z$', fontsize=16)

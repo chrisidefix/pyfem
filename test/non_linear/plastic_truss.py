@@ -13,7 +13,7 @@ block.make_truss(True)
 
 mesh.add_blocks(block)
 mesh.generate()
-mesh.write_file("tmesh.vtk")
+#mesh.write_file("tmesh.vtk")
 
 # Setting the domain and loading the mesh
 domain = Domain()

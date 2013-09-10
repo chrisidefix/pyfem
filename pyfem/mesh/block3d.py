@@ -50,148 +50,58 @@ class Block3D(Block):
         self.coords[6, 0] = x0+lx; self.coords[6, 1] = y0+ly; self.coords[6, 2] = z0+lz;
         self.coords[7, 0] = x0;    self.coords[7, 1] = y0+ly; self.coords[7, 2] = z0+lz;
 
-    #def shape_func(self, r, s, t):
-        #"""
-#
-        #Local IDs
-        				 #Nodes                                   Faces
-        	#z
-        	#|           4                  7
-           #,+--y         @________________@                    +________________+
-         #x'            ,'|              ,'|                  ,'|              ,'|
-        			 #,'  |            ,'  |                ,'  |  ___       ,'  |
-        		   #,'    |          ,'    |              ,'    |,'5,'  [0],'    |
-        	 #5   ,'      |      6 ,'      |            ,'      |~~~     ,'      |
-        	   #@'===============@'        |          +'===============+'  ,'|   |
-        	   #|         |      |         |          |   ,'|   |      |   |3|   |
-        	   #|         |      |         |          |   |2|   |      |   |,'   |
-        	   #|       0 @______|_________@          |   |,'   +______|_________+
-        	   #|       ,'       |       ,' 3         |       ,'       |       ,'
-        	   #|     ,'         |     ,'             |     ,' [1]  ___|     ,'
-        	   #|   ,'           |   ,'               |   ,'      ,'4,'|   ,'
-        	   #| ,'             | ,'                 | ,'        ~~~  | ,'
-        	   #@________________@'                   +________________+'
-        	 #1                   2
-        #"""
-#
-        #N = zeros(8)
-        #N[0] = 0.125*(1.0-r-s+r*s-t+s*t+r*t-r*s*t)
-        #N[1] = 0.125*(1.0+r-s-r*s-t+s*t-r*t+r*s*t)
-        #N[2] = 0.125*(1.0+r+s+r*s-t-s*t-r*t-r*s*t)
-        #N[3] = 0.125*(1.0-r+s-r*s-t-s*t+r*t+r*s*t)
-        #N[4] = 0.125*(1.0-r-s+r*s+t-s*t-r*t+r*s*t)
-        #N[5] = 0.125*(1.0+r-s-r*s+t-s*t+r*t-r*s*t)
-        #N[6] = 0.125*(1.0+r+s+r*s+t+s*t+r*t+r*s*t)
-        #N[7] = 0.125*(1.0-r+s-r*s+t+s*t-r*t-r*s*t)
-        #return N
-#
-#
-    #def shape_func_o2(self, r, s, t):
-        #"""
-        #Local IDs
-        				  #Vertices                               Faces
-        	#t
-        	#|           4        15        7
-           #,+--s         @-------@--------@                   +----------------+
-         #r'            ,'|              ,'|                 ,'|              ,'|
-        		  #12 @'  |         14 ,'  |               ,'  |  ___       ,'  |
-        		   #,'    |16        ,@    |19           ,'    |,'5,'  [0],'    |
-        	 #5   ,'      @      6 ,'      @           ,'      |~~~     ,'      |
-        	   #@'=======@=======@'        |         +'===============+'  ,'|   |
-        	   #|      13 |      |         |         |   ,'|   |      |   |3|   |
-        	   #|         |      |  11     |         |   |2|   |      |   |,'   |
-        	#17 |       0 @- - - | @- - - -@         |   |,'   +- - - | +- - - -+
-        	   #@       ,'       @       ,' 3        |       ,'       |       ,'
-        	   #|   8 @'      18 |     ,'            |     ,' [1]  ___|     ,'
-        	   #|   ,'           |   ,@ 10           |   ,'      ,'4,'|   ,'
-        	   #| ,'             | ,'                | ,'        ~~~  | ,'
-        	   #@-------@--------@'                  +----------------+'
-        	 #1         9         2
-        #"""
-#
-        #N = zeros(20)
-        #rp1=1.0+r; rm1=1.0-r
-        #sp1=1.0+s; sm1=1.0-s
-        #tp1=1.0+t; tm1=1.0-t
-#
-        #N[ 0] = 0.125*rm1*sm1*tm1*(-r-s-t-2)
-        #N[ 1] = 0.125*rp1*sm1*tm1*( r-s-t-2)
-        #N[ 2] = 0.125*rp1*sp1*tm1*( r+s-t-2)
-        #N[ 3] = 0.125*rm1*sp1*tm1*(-r+s-t-2)
-        #N[ 4] = 0.125*rm1*sm1*tp1*(-r-s+t-2)
-        #N[ 5] = 0.125*rp1*sm1*tp1*( r-s+t-2)
-        #N[ 6] = 0.125*rp1*sp1*tp1*( r+s+t-2)
-        #N[ 7] = 0.125*rm1*sp1*tp1*(-r+s+t-2)
-        #N[ 8] = 0.25*(1-r*r)*sm1*tm1
-        #N[ 9] = 0.25*rp1*(1-s*s)*tm1
-        #N[10] = 0.25*(1-r*r)*sp1*tm1
-        #N[11] = 0.25*rm1*(1-s*s)*tm1
-        #N[12] = 0.25*(1-r*r)*sm1*tp1
-        #N[13] = 0.25*rp1*(1-s*s)*tp1
-        #N[14] = 0.25*(1-r*r)*sp1*tp1
-        #N[15] = 0.25*rm1*(1-s*s)*tp1
-        #N[16] = 0.25*rm1*sm1*(1-t*t)
-        #N[17] = 0.25*rp1*sm1*(1-t*t)
-        #N[18] = 0.25*rp1*sp1*(1-t*t)
-        #N[19] = 0.25*rm1*sp1*(1-t*t)
-        #return N
-
-    def split(self, points, shapes, faces):
+    def split(self, points, cells, faces):
         # Check number of points
         if not len(self.coords) in [8, 20]:
             raise Exception("Block3D.split: Wrong number of points.")
 
         if not self.quadratic:
             if not self.use_tetra:
-                self.split_o1(points, shapes, faces)
+                self.split_o1(points, cells, faces)
             else:
-                self.split_tet_o1(points, shapes, faces)
+                self.split_tet_o1(points, cells, faces)
         else:
             if not self.use_tetra:
-                self.split_o2(points, shapes, faces)
+                self.split_o2(points, cells, faces)
             else:
-                self.split_tet_o2(points, shapes, faces)
+                self.split_tet_o2(points, cells, faces)
 
 
-    def split_o1(self, points, shapes, faces):
-        p_arr = numpy.empty((self.nx+1, self.ny+1, self.nz+1), dtype='object')
+    def split_o1(self, points, cells, faces):
+        nx    = self.nx
+        ny    = self.ny
+        nz    = self.nz
+        p_arr = numpy.empty((nx+1, ny+1, nz+1), dtype='object')
 
         # Generating points
-        for k in range(self.nz+1):
-            for j in range(self.ny+1):
-                for i in range(self.nx+1):
-                    r=(2.0/self.nx)*i-1.0
-                    s=(2.0/self.ny)*j-1.0
-                    t=(2.0/self.nz)*k-1.0
+        for k in range(nz+1):
+            for j in range(ny+1):
+                for i in range(nx+1):
+                    r=(2.0/nx)*i-1.0
+                    s=(2.0/ny)*j-1.0
+                    t=(2.0/nz)*k-1.0
 
                     # calculate shape function values
                     if self.coords.shape[0]==8:
-                        #N = self.shape_func(r, s, t)
                         N = shape_hex8([r, s, t])
                     else:
-                        #N = self.shape_func_o2(r, s, t)
                         N = shape_hex20([r, s, t])
 
                     C = mul(N.T, self.coords)      # interpolated coordinates x, y
                     C.round(8)
 
-                    P = None
-                    tmpP = Point()
-                    tmpP.set_coords(C)
-                    if i==0 or j==0 or k==0 or i==self.nx or j==self.ny or k==self.nz:  # check if point is on block bry
-                        P = tmpP.get_match_from(points)
-
-                    if not P:
-                        P = tmpP
-                        P.id = len(points)
-                        points.add(P);       # adding a point
+                    if any([i==0, j==0, k==0, i==nx, j==ny, k==nz]): # check if point is on block bry
+                        P = points.get_from_border(C)
+                        if P is None: P = points.add_new(C, border=True)
+                    else:
+                        P = points.add_new(C)
 
                     p_arr[i,j,k] = P
 
-        # Generating shapes and faces
-        for k in range(1, self.nz+1):
-            for j in range(1, self.ny+1):
-                for i in range(1, self.nx+1):
+        # Generating cells and faces
+        for k in range(1, nz+1):
+            for j in range(1, ny+1):
+                for i in range(1, nx+1):
                     # Vertices of hex8 element
                     p0 = p_arr[i-1, j-1, k-1]
                     p1 = p_arr[i  , j-1, k-1]
@@ -202,101 +112,75 @@ class Block3D(Block):
                     p6 = p_arr[i  , j  , k  ]
                     p7 = p_arr[i-1, j  , k  ]
 
-                    S = Cell()
-                    S.shape_type = HEX8
-                    S.tag  = self.tag
-
-                    S.points = [p0, p1, p2, p3, p4, p5, p6, p7]
-                    S.id = len(shapes)
-                    shapes.append(S)
+                    cell = cells.add_new(HEX8, [p0, p1, p2, p3, p4, p5, p6, p7], self.tag)
 
                     # Array of faces vertices and tag indexes for face
-                    shape_faces_nodes = []
-                    tag_idx     = []
+                    faces_conn = []
+                    tag_idx    = []
 
                     # Identifying faces
                     if i==1:
-                        F = [ p0, p4, p7, p3]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p4, p7, p3])
                         tag_idx.append(0)
-                    if i==self.nx:
-                        F = [ p1, p2, p6, p5]
-                        shape_faces_nodes.append(F)
+                    if i==nx:
+                        faces_conn.append([ p1, p2, p6, p5])
                         tag_idx.append(1)
                     if j==1:
-                        F = [ p0, p1, p5, p4]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p1, p5, p4])
                         tag_idx.append(2)
-                    if j==self.ny:
-                        F = [ p2, p3, p7, p6]
-                        shape_faces_nodes.append(F)
+                    if j==ny:
+                        faces_conn.append([ p2, p3, p7, p6])
                         tag_idx.append(3)
                     if k==1:
-                        F = [ p0, p3, p2, p1]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p3, p2, p1])
                         tag_idx.append(4)
-                    if k==self.nz:
-                        F = [ p4, p5, p6, p7]
-                        shape_faces_nodes.append(F)
+                    if k==nz:
+                        faces_conn.append([ p4, p5, p6, p7])
                         tag_idx.append(5)
 
                     # Generating faces
-                    for i, idx in enumerate(tag_idx):
-                        curr_face = shape_faces_nodes[i]
-                        tmpF = Cell()
-                        tmpF.points = curr_face
-                        if tmpF not in faces:
-                            F = tmpF
-                            F.shape_type  = QUAD4
-                            F.owner_shape = S
-                            F.tag = self.face_tags[idx]
-                            if F.tag == "": F.tag = "no_tag"
-                            F.id = len(faces)
-                            faces.append(F)
+                    for faces_conn, idx in zip(faces_conn, tag_idx):
+                        faces.add_new(QUAD4, faces_conn, self.face_tags[idx], cell) # can add duplicates
 
-    def split_o2(self, points, shapes, faces): #TODO
-        p_arr = numpy.empty((2*self.nx+1, 2*self.ny+1, 2*self.nz+1), dtype='object')
+    def split_o2(self, points, cells, faces):
+        nx    = self.nx
+        ny    = self.ny
+        nz    = self.nz
+        p_arr = numpy.empty((2*nx+1, 2*ny+1, 2*nz+1), dtype='object')
 
         # Generating points
-        for k in range(2*self.nz+1):
-            for j in range(2*self.ny+1):
-                for i in range(2*self.nx+1):
+        for k in range(2*nz+1):
+            for j in range(2*ny+1):
+                for i in range(2*nx+1):
                     if i%2 and j%2: continue # False point
                     if j%2 and k%2: continue # False point
                     if i%2 and k%2: continue # False point
 
-                    r=(1.0/self.nx)*i-1.0
-                    s=(1.0/self.ny)*j-1.0
-                    t=(1.0/self.nz)*k-1.0
+                    r=(1.0/nx)*i-1.0
+                    s=(1.0/ny)*j-1.0
+                    t=(1.0/nz)*k-1.0
 
                     # calculate shape function values
                     if self.coords.shape[0]==8:
-                        #N = self.shape_func(r, s, t)
                         N = shape_hex8([r, s, t])
                     else:
-                        #N = self.shape_func_o2(r, s, t)
                         N = shape_hex20([r, s, t])
 
                     C = mul(N.T, self.coords)      # interpolated coordinates x, y
                     C.round(8)
 
-                    P = None
-                    tmpP = Point()
-                    tmpP.set_coords(C)
-                    if i==0 or j==0 or k==0 or i==self.nx or j==self.ny or k==self.nz:  # check if point is on block bry
-                        P = tmpP.get_match_from(points)
-
-                    if not P:
-                        P = tmpP
-                        P.id = len(points)
-                        points.add(P);       # adding a point
+                    if any([i==0, j==0, k==0, i==nx, j==ny, k==nz]): # check if point is on block bry
+                        P = points.get_from_border(C)
+                        if P is None: P = points.add_new(C, border=True)
+                    else:
+                        P = points.add_new(C)
 
                     p_arr[i,j,k] = P
 
-        # Generating shapes and faces
-        for k in range(2, 2*self.nz+1, 2):
-            for j in range(2, 2*self.ny+1, 2):
-                for i in range(2, 2*self.nx+1, 2):
+        # Generating cells and faces
+        for k in range(2, 2*nz+1, 2):
+            for j in range(2, 2*ny+1, 2):
+                for i in range(2, 2*nx+1, 2):
                     # vertices of Hex20 element
                     p0 = p_arr[i-2][j-2][k-2]
                     p1 = p_arr[i  ][j-2][k-2]
@@ -311,6 +195,7 @@ class Block3D(Block):
                     p9  = p_arr[i  ][j-1][k-2]
                     p10 = p_arr[i-1][j  ][k-2]
                     p11 = p_arr[i-2][j-1][k-2]
+
                     p12 = p_arr[i-1][j-2][k  ]
                     p13 = p_arr[i  ][j-1][k  ]
                     p14 = p_arr[i-1][j  ][k  ]
@@ -320,54 +205,33 @@ class Block3D(Block):
                     p18 = p_arr[i  ][j  ][k-1]
                     p19 = p_arr[i-2][j  ][k-1]
 
-                    S = Cell()
-                    S.shape_type = HEX20
-                    S.tag      = self.tag
-
-                    S.points = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
-                    S.id = len(shapes)
-                    shapes.append(S)
+                    conn = [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19]
+                    cell = cells.add_new(HEX20, conn, self.tag)
 
                     # Array of faces vertices and tag indexes for face
-                    shape_faces_nodes = []
-                    tag_idx     = []
+                    faces_conn = []
+                    tag_idx    = []
 
                     # Identifying faces
                     if i==2:
-                        F = [ p0, p4, p7, p3, p16, p15, p19, p11]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p4, p7, p3, p16, p15, p19, p11])
                         tag_idx.append(0)
-                    if i==2*self.nx:
-                        F = [ p1, p2, p6, p5, p9, p18, p13, p17]
-                        shape_faces_nodes.append(F)
+                    if i==2*nx:
+                        faces_conn.append([ p1, p2, p6, p5, p9, p18, p13, p17])
                         tag_idx.append(1)
                     if j==2:
-                        F = [ p0, p1, p5, p4, p8, p17, p12, p16]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p1, p5, p4, p8, p17, p12, p16])
                         tag_idx.append(2)
-                    if j==2*self.ny:
-                        F = [ p2, p3, p7, p6, p10, p19, p14, p18]
-                        shape_faces_nodes.append(F)
+                    if j==2*ny:
+                        faces_conn.append([ p2, p3, p7, p6, p10, p19, p14, p18])
                         tag_idx.append(3)
                     if k==2:
-                        F = [ p0, p3, p2, p1, p11, p10, p9, p8]
-                        shape_faces_nodes.append(F)
+                        faces_conn.append([ p0, p3, p2, p1, p11, p10, p9, p8])
                         tag_idx.append(4)
-                    if k==2*self.nz:
-                        F = [ p4, p5, p6, p7, p12, p13, p14, p15]
-                        shape_faces_nodes.append(F)
+                    if k==2*nz:
+                        faces_conn.append([ p4, p5, p6, p7, p12, p13, p14, p15])
                         tag_idx.append(5)
 
                     # Generating faces
-                    for i, idx in enumerate(tag_idx):
-                        curr_face = shape_faces_nodes[i]
-                        tmpF = Cell()
-                        tmpF.points = curr_face
-                        if tmpF not in faces:
-                            F = tmpF
-                            F.shape_type  = QUAD8
-                            F.owner_shape = S
-                            F.tag = self.face_tags[idx]
-                            if F.tag == "": F.tag = "no_tag"
-                            F.id = len(faces)
-                            faces.append(F)
+                    for faces_conn, idx in zip(faces_conn, tag_idx):
+                        faces.add_new(QUAD8, faces_conn, self.face_tags[idx], cell) # can add duplicates

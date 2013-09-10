@@ -1,7 +1,9 @@
-from block import *
-from shape_types import *
 from collections import OrderedDict
 from collections import Counter
+
+from shape_types import *
+from block       import *
+from entities    import *
 
 def get_line(file_obj):
     line = ''
@@ -14,10 +16,9 @@ class Mesh:
         self.ndim       = 0
         self.verbose    = True
         self.blocks     = CollectionBlock()
-        self.points     = []
-        self.shapes     = []
-        self.faces      = []
-        self.points_set = set()
+        self.points     = CollectionPoint()
+        self.cells      = CollectionCell()
+        self.faces      = CollectionCell()
 
         if len(args)>0:
             first = args[0]
@@ -46,21 +47,21 @@ class Mesh:
             P.set_coords(P_coords)
             self.points.append(P)
 
-        # Loading shapes
+        # Loading cells
         for i, con in enumerate(Cs):
             S = Cell()
             S.id = i
             for idx in con:
                 S.points.append(self.points[idx])
-            self.shapes.append(S)
+            self.cells.append(S)
 
         # Setting types
         for i, typ in enumerate(Ts):
-            self.shapes[i].shape_type = typ
+            self.cells[i].shape_type = typ
 
         # Setting tatgs
         for i, tag in enumerate(Tags):
-            self.shapes[i].tag = tag
+            self.cells[i].tag = tag
 
         # Set ndim
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
@@ -74,7 +75,7 @@ class Mesh:
             P.tag = vert_data.get('tag', '')
             self.points.append(P)
 
-        # Loading shapes
+        # Loading cells
         for i, cell_data in enumerate(cells):
             S = Cell()
             S.id = i
@@ -83,7 +84,7 @@ class Mesh:
                 S.points.append(self.points[idx])
             S.shape_type = cell_data['type']
             S.tag        = cell_data['tag']
-            self.shapes.append(S)
+            self.cells.append(S)
 
         # Set ndim
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
@@ -120,26 +121,26 @@ class Mesh:
 
         # Line for cells header
         seq = get_line(file).split()
-        nshapes = int(seq[1])
+        ncells = int(seq[1])
 
-        # Reading shapes
-        for i in range(nshapes):
+        # Reading cells
+        for i in range(ncells):
             seq = get_line(file).split()
             npoints = int(seq[0])
             S = Cell()
             S.id = i
             for j in range(1, npoints+1):
                 S.points.append(self.points[int(seq[j])])
-            self.shapes.append(S)
+            self.cells.append(S)
 
         # Line for cells types header
         seq = get_line(file).split()
-        nshapes = int(seq[1])
+        ncells = int(seq[1])
 
         # Reading cell types
-        for i in range(nshapes):
+        for i in range(ncells):
             vtk_type = int(get_line(file))
-            self.shapes[i].shape_type = get_shape_type(vtk_type, len(self.shapes[i].points))
+            self.cells[i].shape_type = get_shape_type(vtk_type, len(self.cells[i].points))
 
         # Check for extra tags data
         if 'tags:' in extra_data:
@@ -151,15 +152,15 @@ class Mesh:
             seq = get_line(file) # LOOKUP_TABLE default
 
             # Reading cell tags
-            for i in range(nshapes):
+            for i in range(ncells):
                 tag_idx = int(get_line(file))
-                self.shapes[i].tag = tags[tag_idx]
+                self.cells[i].tag = tags[tag_idx]
 
         file.close()
 
         # Generate faces
         all_faces = Counter()
-        for S in self.shapes:
+        for S in self.cells:
             faces = generate_faces(S)
             #pp = [p.id for p in S.points]
             for F in faces:
@@ -186,25 +187,20 @@ class Mesh:
             block.id = i
 
 		# Spliting blocks
+        self.points = CollectionPoint()
+        self.cells  = CollectionCell()
+        self.faces  = CollectionCell()
         for i, block in enumerate(self.blocks):
-            if self.verbose: print "  spliting block", i, "..."
-            block.split(self.points_set, self.shapes, self.faces)
+            if self.verbose: print "  spliting block", block.id, "..."
+            block.split(self.points, self.cells, self.faces)
 
         # Checking all ids were set
-        assert all([point.id != -1 for point in self.points_set])
-        assert all([shape.id != -1 for shape in self.shapes])
+        assert all([point.id != -1 for point in self.points])
+        assert all([cell .id != -1 for cell  in self.cells])
         assert all([face .id != -1 for face  in self.faces ])
 
-        # Setting up nodes, faces and shapes
-        self.points = sorted(self.points_set, key=lambda n: n.id)
-
         # Selecting unique faces
-        faces_set  = Counter(self.faces)
-        self.faces = [F for F, count in faces_set.iteritems() if count==1]
-
-        # Renumerating faces
-        for i, F in enumerate(self.faces):
-            F.id = i
+        self.faces.unique()
 
         # Getting ndim
         given_ndim = True if self.ndim > 1 else False
@@ -216,8 +212,8 @@ class Mesh:
             if not given_ndim:
                 print " ", str(self.ndim, ) + "d found"
             print " ", len(self.points), "  vertices obtained"
-            print " ", len(self.shapes), "  cells obtained"
-            print " ", len(self.faces ), "  faces obtained"
+            print " ", len(self.cells) , "  cells obtained"
+            print " ", len(self.faces) , "  faces obtained"
 
     def write_file(self, filename, fmt = "vtk"):
         name, ext = os.path.splitext(filename)
@@ -226,12 +222,12 @@ class Mesh:
         filename = name + ext
 
         npoints  = len(self.points)
-        nshapes = len(self.shapes)
+        ncells = len(self.cells)
         ndim    = self.ndim
 
         ndata = 0
-        for shape in self.shapes:
-            ndata += 1 + len(shape.points)
+        for cell in self.cells:
+            ndata += 1 + len(cell.points)
 
         with open(filename, "w") as output:
             print >> output, "# vtk DataFile Version 3.0"
@@ -249,18 +245,18 @@ class Mesh:
             print >> output, ""
 
             # Write connectivities
-            print >> output, "CELLS ",nshapes, " ", ndata
-            for shape in self.shapes:
-                print >> output, len(shape.points), " ",
-                for point in shape.points:
+            print >> output, "CELLS ",ncells, " ", ndata
+            for cell in self.cells:
+                print >> output, len(cell.points), " ",
+                for point in cell.points:
                     print >> output, point.id, " ",
                 print >> output
             print >> output
 
             # Write cell types
-            print >> output, "CELL_TYPES ", nshapes
-            for shape in self.shapes:
-                print >> output, get_vtk_type(shape.shape_type)
+            print >> output, "CELL_TYPES ", ncells
+            for cell in self.cells:
+                print >> output, get_vtk_type(cell.shape_type)
             print >> output
 
     write = write_file
