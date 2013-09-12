@@ -53,7 +53,6 @@ def OUT(*args):
         print '{0}: {1}'.format(name, val), "  ",
     print
 
-
 def main():
     data = Stream()
     data << "The average of " << 1 << " and " << 3 << " is " << (1 + 3)/2. << endl

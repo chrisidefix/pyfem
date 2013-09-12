@@ -27,8 +27,6 @@ alp = atan((0.8-0.2)/(6.0-2.045256))
 
 # Mesh generation
 mesh.generate  ()
-#mesh.write_file("tmesh.vtk")
-
 
 # Setting domain
 # -----------------------------------------------------------------------------------
@@ -38,10 +36,9 @@ domain = Domain()
 domain.load_mesh(mesh)
 
 # Setting element types and parameters
-Dm  = 0.15
-Dm = 0.4/pi
-As  = pi*Dm**2/4.0
-A   = 0.005
+Dm  = 0.4/pi
+#As  = pi*Dm**2/4.0
+As  = 0.005
 C   = 10.0
 phi = 30*pi/180.0
 Es  = 210.0E3
@@ -90,9 +87,7 @@ for i in range(nstages):
 
 print " total load = ", tload
 
-
-#################################################################################################
-
 # Plot results
+# -----------------------------------------------------------------------------------
 bar_nodes.plot("tau", coef=-1.0/tau_max, legend=load_levels[1:])
 

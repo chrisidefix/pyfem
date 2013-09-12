@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso.
+Copyright 2010-2013.
+"""
+
 from copy import copy
 
 from tools.matvec import *
@@ -60,7 +67,7 @@ class ElemModel:
         return self.active
 
     def set_mat_model(self, model):
-        if len(self.ips) == 0: 
+        if len(self.ips) == 0:
             self.tmp_mat_model = model
             return
 
@@ -68,7 +75,7 @@ class ElemModel:
             ip.mat_model = model.copy()
             ip.mat_model.ndim = self.ndim
 
-    def setup(self):
+    def setup(self, mat_model=None):
         self.nnodes = len(self.nodes)
         self.config_ips()
         self.config_dofs()
@@ -151,7 +158,7 @@ class ElemModel:
             os << " nodes: Undef. "
         else:
             os << " nodes: "
-            for node in self.nodes: 
+            for node in self.nodes:
                 os << " " << node.id
 
         os << " )"

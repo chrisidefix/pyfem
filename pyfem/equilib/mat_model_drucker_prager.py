@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*- 
+"""
+PYFEM - Finite element software
+Raul Durand 2010-2013.
+"""
+
 from pyfem.model import *
 from pyfem.tools.tensor import *
 from math import copysign

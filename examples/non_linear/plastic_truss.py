@@ -1,6 +1,4 @@
 # Include libraries
-import os,sys; sys.path.insert(0, os.getcwd()+"/../..")
-
 from pyfem import *
 
 # Generate mesh
@@ -21,9 +19,9 @@ domain.load_mesh(mesh)
 #domain.set_analysis_type("plane_strain")
 
 # Setting element types and parameters
-mat1 = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
-mat2 = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
-mat3 = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
+mat1 = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
+mat2 = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
+mat3 = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
 
 # Selections
 vert_elems = domain.elems.with_dx(0.0)

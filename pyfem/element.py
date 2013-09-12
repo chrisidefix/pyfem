@@ -1,4 +1,11 @@
-from copy import copy
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso.
+Copyright 2010-2013.
+"""
+
+from copy import deepcopy
 
 from node import *
 from elem_model import *
@@ -21,6 +28,7 @@ class Element:
         if self.shape_type==0: raise Exception("Error")
         if self.ndim==0: raise Exception("Error")
         if not model.is_applicable(self.shape_type): raise Exception("Error")
+
         self.elem_model = model.copy()
 
         elem_model = self.elem_model
@@ -221,11 +229,13 @@ class CollectionElem(list):
 
     def set_elem_model(self, model):
         for e in self:
-            e.set_elem_model(model.copy())
+            #e.set_elem_model(model.copy())
+            e.set_elem_model(model)
 
     def set_mat_model(self, model):
         for e in self:
-            e.elem_model.set_model(model.copy())
+            #e.elem_model.set_model(model.copy())
+            e.elem_model.set_model(model)
 
     def set_state(self, **state):
         for e in self:

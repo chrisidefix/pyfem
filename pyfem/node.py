@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso.
+Copyright 2010-2013.
+"""
+
 from operator import lt, gt, le, ge
 
 from dof import *
@@ -12,6 +19,8 @@ from tools.real_list import *
 
 
 class Node:
+    """ Contains information about coordinates and degrees of freedom.
+    """
     def __init__(self):
         self.id       = -1
         self.X        = zeros(3)
@@ -33,13 +42,22 @@ class Node:
     def ndof(self): return len(self.dofs)
 
     @property
-    def x(self): return self.X[0]
+    def x(self):
+        """ Returns the x coordinate
+        """
+        return self.X[0]
 
     @property
-    def y(self): return self.X[1]
+    def y(self):
+        """ Returns the y coordinate
+        """
+        return self.X[1]
 
     @property
-    def z(self): return self.X[2]
+    def z(self):
+        """ Returns the z coordinate
+        """
+        return self.X[2]
 
 
     def is_essential(self, varname):
@@ -51,6 +69,13 @@ class Node:
     def has_var(self, varname): return self.keys.has_key(varname)
 
     def set_bc(self, *args, **kwargs):
+        """ Sets the boundary conditions at node
+
+        :param bc_dict: A dictionay with boundary conditions
+        :type  bc_dict: dict
+        :param kwargs:  A series of keyword arguments describing boundary conditions
+        :type  kwargs:  {str:float}
+        """
 
         if args: brys = args[0] # dictionary as input
         else:    brys = kwargs  # keyword arguments
@@ -135,6 +160,13 @@ class CollectionNode(list):
             self.set_bry(varname, value)
 
     def set_bc(self, *args, **kwargs):
+        """ Sets the boundary conditions at node
+
+        :param bc_dict: A dictionay with boundary conditions
+        :type  bc_dict: dict
+        :param kwargs:  A series of keyword arguments describing boundary conditions
+        :type  kwargs:  {str:float}
+        """
         for n in self:
             n.set_bc(*args, **kwargs)
 
@@ -292,28 +324,42 @@ class CollectionNode(list):
 
     @property
     def min_x(self):
+        """ Returns the minimum x coordinate in collection
+        """
         return min(n.x for n in self) if self else None
 
     @property
     def min_y(self):
+        """ Returns the minimum y coordinate in collection
+        """
         return min(n.y for n in self) if self else None
 
     @property
     def min_z(self):
+        """ Returns the minimum z coordinate in collection
+        """
         return min(n.z for n in self) if self else None
 
     @property
     def max_x(self):
+        """ Returns the maximum x coordinate in collection
+        """
         return max(n.x for n in self) if self else None
 
     @property
     def max_y(self):
-        return max(n.y for n in self) if self else None
+        """ Returns the maximum y coordinate in collection
+        """
+        return max(n.x for n in self) if self else None
 
     @property
     def max_z(self):
+        """ Returns the maximum z coordinate in collection
+        """
         return max(n.z for n in self) if self else None
 
     def plot(self, *args, **kwargs):
         self.data_book.plot(*args, **kwargs)
+
+        return max(n.y for n in self) if self else None
 

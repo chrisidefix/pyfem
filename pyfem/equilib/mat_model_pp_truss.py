@@ -1,121 +1,93 @@
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso
+Copyright 2010-2013.
+"""
+
+from copy import deepcopy
+from math import tan, copysign
+
 from pyfem.model import *
-from math import tan
-from math import copysign
 
 class ModelPPTruss(Model):
+    """ Constitutive models for Elastic Plastic 1D materials
+    """
+
     name = "ModelPPTruss"
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
-        self.sig = zeros(1)
-        self.eps = zeros(1)
-        self.E   = 0.0
-        self.A   = 0.0
-        self.sig_max = 0.0
-        self.z   = 0.0
-        self.H   = 0.0
+        self.E    = 0.0
+        self.A    = 0.0
+        self.s    = 0.0    # σ
+        self.e    = 0.0    # ε
+        self.s_y  = 0.0    # σy
+        self.e_p  = 0.0    # εp
+        self.e_pa = 0.0    # εp¯ 
+        self.H    = 0.0
+        self.COEF = 1.0e-3
 
-        if args: data = args[0]
-        else:    data = kwargs
+        data = args[0] if args else kwargs
 
         if data:
             self.set_params(**data)
-            self.set_state(**data)
+            self.set_state (**data)
 
     def copy(self):
-        cp = self.__class__()
-        cp.sig  = self.sig.copy()
-        cp.eps  = self.eps.copy()
-        cp.E    = self.E
-        cp.A    = self.A
-        cp.ndim = self.ndim
-        cp.z    = self.z
-        cp.H    = self.H
-        cp.sig_max = self.sig_max
-        cp.attr    = self.attr.copy()
-        return cp
+        return deepcopy(self)
 
     def prime_and_check(self):
         pass
 
     def set_params(self, **params):
-        if "E"  in params: self.E  = params["E"]
-        if "A"  in params: self.A  = params["A"]
-        self.sig_max = params.get("sig_max", self.sig_max)
-        self.H = 1.0E-10*self.E
+        self.E   = params.get("E"      , self.E)
+        self.A   = params.get("A"      , self.A)
+        self.s_y = params.get("sig_max", self.s_y)
+        self.s_y = params.get("sig_y"  , self.s_y)
+        self.H   = self.COEF*self.E
+        if self.s_y<=0.0: raise Exception("ModelPPTruss:: Invalid value for parameter sig_y.")
+        if self.E  <=0.0: raise Exception("ModelPPTruss:: Invalid value for parameter E.")
+        if self.A  <=0.0: raise Exception("ModelPPTruss:: Invalid value for parameter A.")
 
     def set_state(self, **state):
-        if "sa" in state: self.sig[0] = state["sa"]
+        self.s = state.get("sa", self.s)
 
-    def yield_func(self, sig):
-        s = sig[0]
-        #print self.z, self.sig, self.sig_max
-        smax = self.sig_max + self.z
-        return abs(s) - self.sig_max + self.z
-
-    def calcDe(self):
-        return self.E
+    def yield_func(self, s):
+        s_ya = self.s_y + self.H*self.e_pa   # σya = σy + H*εp¯
+        return abs(s) - s_ya
 
     def stiff(self):
-        F = self.yield_func(self.sig)
-        if F < -1.0E-5:
+        F = self.yield_func(self.s)
+        if F < 0:
             return self.E
         else:
-            E   = self.E
-            H   = self.H
-            Eep = (E - (E**2.0)/(E+H*abs(self.sig)))[0]
-            return Eep
+            E = self.E
+            H = self.H
+            return E*H/(E+H)
 
-    def stress_update(self, deps):
-        dsig   = self.E*deps
-        sig_tr = self.sig + dsig
+    def stress_update(self, depsv):
+        de    = float(depsv)  # Δε
+        E     = self.E
+        H     = self.H
+        s_ini = self.s        # σini
 
-        # Elastic integration
-        if self.yield_func(sig_tr) < 0.0:
-            self.sig  = sig_tr
-            self.eps += deps
-            return dsig
+        s_tr = self.s + E*de            # σ trial
+        f_tr = self.yield_func(s_tr)    # f trial
 
-        # Finding intersection and elastic integration
-        sig_ini = self.sig
-        aint    = 0.0
-        F = self.yield_func(self.sig)
-
-        if F<0:
-            # Calculate intersection
-            smax = self.sig + self.z
-            aint = (self.sig_max - abs(self.sig))/(abs(sig_tr)-abs(self.sig))
-            #aint = (smax - abs(self.sig))/(abs(sig_tr)-abs(self.sig))
-
-            # Elastic integration
-            self.sig = sig_ini + aint*dsig
-            deps_e = aint*deps # elastic deformation
-            self.eps += deps_e
-
-        # Plastic integration (one FE step)
-        H   = self.H
-        E   = self.E
-        sig = self.sig
-
-        D = E - (E**2.0)/(E+H*abs(self.sig)) # Elastic plastic stiffness
-        #print D
-        deps = (1.0 - aint)*deps # plastic strain
-        dsig = D*deps
-        dz   = ((E*H*self.sig*deps) / (E - H*abs(self.sig)))[0]
-
-        self.eps += deps
-        self.sig += dsig
-        self.z   += dz
-        #print self.z, self.sig
-
-        dsig = self.sig - sig_ini # total stress increment
-        return dsig
+        dg         = f_tr/(E+H) if f_tr>0. else 0.   # Δγ
+        de_p       = dg*copysign(1, s_tr)            # Δεp
+        self.e_p  += de_p
+        self.e_pa += dg                              # εp¯ += Δγ
+        self.s     = s_tr - E*de_p                   # σ
+        dsig       = self.s - s_ini # total stress increment
+        return array([dsig])
 
     def get_vals(self):
         vals = {}
-        vals["sa"] = self.sig
-        vals["ea"] = self.eps
-        vals["Fa"] = self.sig*self.A
+        vals["sa"] = self.s
+        vals["ea"] = self.e
+        vals["Fa"] = self.s*self.A
         return vals
 
 

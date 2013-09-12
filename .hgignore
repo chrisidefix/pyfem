@@ -5,6 +5,7 @@ CMakeFiles
 Makefile
 build/**
 dist/**
+_build/**
 cmake_install.cmake
 install_manifest.txt
 *.xmf

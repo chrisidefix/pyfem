@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso
+Copyright 2010-2013.
+"""
+
 import os,sys
 from collections import OrderedDict
 

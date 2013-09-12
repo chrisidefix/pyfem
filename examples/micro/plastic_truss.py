@@ -22,9 +22,9 @@ domain.load_mesh(mesh)
 #domain.set_analysis_type("plane_strain")
 
 # Setting element types and parameters
-mat_h = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
-mat_v = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
-mat_d = EqPlasticBar(E=20000, A=0.03, sig_max=200.0E1)
+mat_h = EqPlasticTruss(E=20000, A=0.03, sig_y=200.0E1)
+mat_v = EqPlasticTruss(E=20000, A=0.028, sig_y=200.0E1)
+mat_d = EqPlasticTruss(E=20000, A=0.03, sig_y=200.0E1)
 
 # 
 domain.elems.sub(tag='h').set_elem_model(mat_h)
@@ -64,8 +64,8 @@ solver.write_output()
 
 domain.nodes.sub(y=0.0).set_bc(ux=0, uy=0.0)
 domain.nodes.sub(x=[0.0, 1.0]).set_bc(ux=0.0)
-load = -50.0
-domain.nodes.sub(y=1.0).set_bc(fy=load)
+load = -200.0
+domain.nodes.sub(y=1.0).sub(x=0.5).set_bc(fy=load)
 
 
 solver.solve()

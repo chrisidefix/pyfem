@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*- 
+"""
+PYFEM - Finite element software
+Raul Durand 2010-2013
+"""
+
 # Element analysis models
 from elem_model_eq import *
 from elem_model_punctual_joint import *
@@ -19,6 +25,8 @@ from solver_eq import *
 
 
 class EqElasticSolid(ElemModelEq):
+    """ Element model for linear elastic material
+    """
     def __init__(self, *args, **kwargs):
         ElemModelEq.__init__(self, *args, **kwargs)
         mat_model = ModelLinElastic(*args, **kwargs)
