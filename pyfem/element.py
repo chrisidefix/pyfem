@@ -13,6 +13,9 @@ from tools.stream import *
 from tools.real_list import *
 
 class Element:
+    """ Contains information related to a finite element such as id, tag, shape type,
+    connectivities, material, etc.
+    """
     def __init__(self):
         self.id    = -1
         self.ndim  = 0
@@ -25,6 +28,12 @@ class Element:
         self.data_table = Table()
 
     def set_elem_model(self, model):
+        """ Sets the mathematical model to be used to represent the material and
+        behavior of the element.
+
+        :param model: A numerical model object.
+        :type  model: ElemModel
+        """
         if self.shape_type==0: raise Exception("Error")
         if self.ndim==0: raise Exception("Error")
         if not model.is_applicable(self.shape_type): raise Exception("Error")
@@ -48,18 +57,26 @@ class Element:
         self.elem_model.set_mat_model(model)
 
     def set_state(self, **state):
+        """ Set the internal state for an element.
+        """
         self.elem_model.set_state(**state)
 
     @property
     def is_solid(self):
+        """ Returns a boolean that states if the element is a solid element.
+        """
         return is_solid(self.shape_type)
 
     @property
     def is_line(self):
+        """ Returns a boolean that states if the element is a line shaped element.
+        """
         return is_line(self.shape_type)
 
     @property
     def is_line_joint(self):
+        """ Returns a boolean that states if the element is an 1D joint element.
+        """
         return is_line_joint(self.shape_type)
 
     @property
@@ -68,12 +85,18 @@ class Element:
 
     @property
     def ips(self):
+        """ Returns a list containing all integrations poins in the element.
+        """
         return self.elem_model.ips
 
     def set_body_force(self, brys):
+        """ Defines the body force to be applied as boundary condition in the element.
+        """
         self.elem_model.set_body_force(brys)
 
     def plot(self, *args, **kwargs):
+        """ Plots information logged in the element.
+        """
         self.data_table.plot(*args, **kwargs)
 
     def __str__(self):
@@ -107,7 +130,8 @@ class Element:
 
 
 class CollectionElem(list):
-
+    """ Object that contains Element objects as a collection.
+    """
     @property
     def nodes(self):
         res = []
@@ -119,6 +143,8 @@ class CollectionElem(list):
 
     @property
     def ips(self):
+        """ Returns a list containing all integrations poins in the collection.
+        """
         res = []
         for elem in self:
             for ip in elem.elem_model.ips: res.append(ip)
@@ -126,10 +152,14 @@ class CollectionElem(list):
 
     @property
     def lines(self):
+        """ Returns a collection containing all line shaped elements.
+        """
         return CollectionElem(e for e in self if e.is_line)
 
     @property
     def line_joints(self):
+        """ Returns a collection containing all 1D joint elements.
+        """
         return CollectionElem(e for e in self if e.is_line_joint)
 
     @property
@@ -138,6 +168,8 @@ class CollectionElem(list):
 
     @property
     def solids(self):
+        """ Returns a collection containing all solid elements.
+        """
         return CollectionElem(e for e in self if e.is_solid)
 
     def with_tag(self, *args):
@@ -195,20 +227,24 @@ class CollectionElem(list):
 
         assert False
 
-    def sub(self, **kwargs):
-        """
-        Filters the collection according at least one of given conditions
-        =================================================================
+    def sub(self, *args, **kwargs):
+        """sub(att1=value1, [att2=value2 [,...]])
+        Filters the collection according to given criteria.
 
-        INPUT:
-            kwargs: A keyword argument dict with multiple conditions.
+        :param value1: A value for node attribute att1 (*str*) used to filter the collection.
+        :type  value1: float or str
+        :param value2: A value for node attribute att2 (*str*) used to filter the collection.
+        :type  value2: float or str
 
-        RETURNS:
-            coll  : A new collection with elements that match at least one given condition
+        :returns: A new collection with nodes that match the given criteria.
 
-        EXAMPLE:
-            tmp = elems.sub(dx=1.0)
-            tmp = elems.sub(tag="soft_soil")
+        The following code filters the nodes collection returning all nodes with tag equal
+        to "soft_soil".
+
+        >>> tmp = elems.sub(tag="soft_soil")
+
+        other examples are:
+        >>> tmp = elems.sub(dx=1.0)
         """
 
         # Resultant collection initialization
@@ -216,6 +252,11 @@ class CollectionElem(list):
 
         for key, value in kwargs.iteritems():
             coll = coll + self._with_attr(key, value)
+
+        for value in args:
+            # filter usign lambda function
+            f = value
+            coll = coll + CollectionElem(e for e in self if f(e))
 
         return coll
 
@@ -228,28 +269,40 @@ class CollectionElem(list):
         return CollectionElem(e for e in self if not e in tmp)
 
     def set_elem_model(self, model):
+        """ Sets the mathematical model to be used to represent the material and
+        behavior for all elements in the collection.
+
+        :param model: A numerical model object.
+        :type  model: ElemModel
+        """
         for e in self:
-            #e.set_elem_model(model.copy())
             e.set_elem_model(model)
 
     def set_mat_model(self, model):
         for e in self:
-            #e.elem_model.set_model(model.copy())
             e.elem_model.set_model(model)
 
     def set_state(self, **state):
+        """ Set the internal state for all elements in the collection.
+        """
         for e in self:
             e.elem_model.set_state(**state)
 
     def set_body_force(self, brys):
+        """ Defines the body force to be applied as boundary condition in the collection.
+        """
         for e in self:
             e.elem_model.set_body_force(brys)
 
     def activate(self):
+        """ Activates all elements in the collection.
+        """
         for e in self:
             e.elem_model.activate()
 
     def deactivate(self):
+        """ Deactivate all elements in the collection.
+        """
         for e in self:
             e.elem_model.deactivate()
 

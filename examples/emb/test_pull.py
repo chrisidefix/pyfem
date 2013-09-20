@@ -12,7 +12,6 @@ block = Block3D()
 block.make_box((0,0,0),(1,6,1))
 
 block.set_divisions (1,20,1)
-#block.set_quadratic()
 
 iblock = BlockInset  ()
 punctual_model  = False
@@ -36,12 +35,11 @@ domain = Domain()
 domain.load_mesh(mesh)
 
 # Setting element types and parameters
-Dm  = 0.4/pi
-#As  = pi*Dm**2/4.0
+Dm = 0.15138
+C  = 20.0
+phi = 30*3.14159/180.0
+Es  = 1.0E7
 As  = 0.005
-C   = 10.0
-phi = 30*pi/180.0
-Es  = 210.0E3
 tau_max = C + 100.*tan(phi)
 
 domain.elems.solids.set_elem_model(EqElasticSolid(E=1.E4, nu=0.0))
@@ -73,12 +71,13 @@ tload       = (3.14159*Dm*4.0)*(C + 100.0*tan(phi))
 domain.set_solver(SolverEq())
 domain.solver.set_scheme("NR")
 domain.solver.set_precision(1.0E-3)
-domain.solver.track(bar_nodes, 'inter')
+domain.solver.track(bar_nodes)
 domain.solver.set_track_per_inc(False)
 
 # Loop along load stages
 for i in range(nstages):
     domain.elems.solids.nodes.set_bc(ux=0.0, uy=0.0, uz=0.0 )
+
     hook_node.set_bc(fz = sin(alp)*tload*load_incs[i])
     hook_node.set_bc(fy = cos(alp)*tload*load_incs[i])
     domain.solver.set_incs(4)

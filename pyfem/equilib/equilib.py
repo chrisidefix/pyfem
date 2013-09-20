@@ -10,9 +10,11 @@ from elem_model_punctual_joint import *
 from elem_model_line_joint import *
 
 # Material models
-from mat_model_elastic import *
 from mat_model_elastic_truss      import *
 from mat_model_pp_truss           import *
+from mat_model_concrete_truss           import *
+
+from mat_model_elastic import *
 from mat_model_drucker_prager     import *
 from mat_model_mohr_coulomb       import *
 from mat_model_mohr_coulomb_joint import *
@@ -64,6 +66,12 @@ class EqPlasticTruss(ElemModelEq):
         self.set_mat_model(mat_model)
         self.is_truss = True
 
+class EqConcreteTruss(ElemModelEq):
+    def __init__(self, *args, **kwargs):
+        ElemModelEq.__init__(self, *args, **kwargs)
+        mat_model = ModelConcreteTruss(*args, **kwargs)
+        self.set_mat_model(mat_model)
+        self.is_truss = True
 
 ############################################################################## Joint elements
 

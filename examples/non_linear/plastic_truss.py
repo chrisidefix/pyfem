@@ -64,5 +64,6 @@ solver.solve()
 solver.write_output()
 
 #    solver.trim_elems(min_sa=0.03)
+#deactivate_elems(sa=0.03)
 
 

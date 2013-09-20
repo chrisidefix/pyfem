@@ -14,7 +14,9 @@ from domain  import *
 #from __future__ import print_function
 
 class Solver:
-    def __init__(self, domain=None, scheme="FE", nincs=1):
+    """ Base class for finite element solvers.
+    """
+    def __init__(self, domain=None, scheme="FE", nincs=1, precision=1.e-4):
         self.name  = "Abstract Solver"
         self.stage = 0
         self.inc   = 0
@@ -23,7 +25,7 @@ class Solver:
         self.Dt    = 0.0
         self.residue   = 0.0
         self.nmaxits   = 50
-        self.precision = 1.0E-4
+        self.precision = precision
         self.scheme    = scheme
         self.verbose   = True
         self.track_per_inc = False
@@ -48,6 +50,12 @@ class Solver:
                 raise TypeError()
 
     def set_domain(self, domain):
+        """ Sets the finite element domain to be solved.
+
+        :param domain: A finite element domain.
+        :type  domain: Domain
+        """
+
         self.domain = domain
         self.ndim   = domain.ndim
         self.elems  = domain.elems
@@ -72,6 +80,9 @@ class Solver:
         pass
 
     def solve(self):
+        """ Solves the problem given by the domain and the boundary conditions
+        using the finite element method.
+        """
         pass
 
     def get_nodal_and_elem_vals(self):
@@ -272,11 +283,19 @@ class Solver:
             print >> output, "CELL_DATA ", naelems
             for i in range(necomps):
                 print >> output, "SCALARS ", elem_labels[i], " float 1"
-                print >> output, "LOOKUP_TABLE default" 
+                print >> output, "LOOKUP_TABLE default"
                 for j in range(naelems):
                     e_idx = self.aelems[j].id
-                    print >> output, "{:15.4}".format(float(elem_vals[e_idx, i])) 
+                    print >> output, "{:15.4}".format(float(elem_vals[e_idx, i]))
                 print >> output
+
+            # Write cell type
+            print >> output, "SCALARS cell_type int 1"
+            print >> output, "LOOKUP_TABLE default"
+            for j in range(naelems):
+                print >> output, "%d"%(self.aelems[j].shape_type)
+            print >> output
+
         pass
 
     def track(self, *args):

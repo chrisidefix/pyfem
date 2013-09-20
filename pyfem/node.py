@@ -43,19 +43,23 @@ class Node:
 
     @property
     def x(self):
-        """ Returns the x coordinate
+        """ Returns the node x coordinate.
+
+        For example, the following code prints the x coordinate of node n0.
+
+        >>> print n0.x
         """
         return self.X[0]
 
     @property
     def y(self):
-        """ Returns the y coordinate
+        """ Returns the node y coordinate.
         """
         return self.X[1]
 
     @property
     def z(self):
-        """ Returns the z coordinate
+        """ Returns the node z coordinate.
         """
         return self.X[2]
 
@@ -69,12 +73,22 @@ class Node:
     def has_var(self, varname): return self.keys.has_key(varname)
 
     def set_bc(self, *args, **kwargs):
-        """ Sets the boundary conditions at node
+        """set_bc(key1=value1, [key2=value2 [,...]])
+        Sets the boundary conditions at node.
 
-        :param bc_dict: A dictionay with boundary conditions
-        :type  bc_dict: dict
-        :param kwargs:  A series of keyword arguments describing boundary conditions
-        :type  kwargs:  {str:float}
+        :param value1: A boundary condition value for key1 (*str*) degree of freedom.
+        :type  value1: float
+        :param value2: A boundary condition value for key2 (*str*) degree of freedom (optional).
+        :type  value2: float
+
+        The following example applies boundary conditions (displacement of 0.25 in x direction) to node n0.
+
+        >>> n0.set_bc(ux=0.25)
+
+        other examples are:
+
+        >>> n0.set_bc(ux=0.0, uy=0.0, uz=0.0)
+        >>> n0.set_bc(fy=-10.0)
         """
 
         if args: brys = args[0] # dictionary as input
@@ -89,25 +103,10 @@ class Node:
                 else:
                     tmp_dof.bryF  += value
 
-    #def set_bry(self, varname, value):
-        #if self.keys.has_key(varname):
-            #tmp_dof = self.keys[varname]
-            #if tmp_dof.strU == varname:
-                #tmp_dof.prescU = True
-                #tmp_dof.bryU   = value
-            #else:
-                #tmp_dof.bryF  += value
-#
-    #def set_brys(self, *args, **kwargs):
-        #if args: brys = args[0]
-        #else:    brys = kwargs
-        #for varname, value in brys.iteritems():
-            #self.set_bry(varname, value)
+    def clear_bc(self):
+        """Clears all boundary conditions previously defined for the node
+        """
 
-    #def set_bc(self, *args, **kwargs):
-        #self.set_brys(*args, **kwargs)
-
-    def clear_brys(self):
         for dof in self.dofs:
             dof.bryU   = 0.0
             dof.bryF   = 0.0
@@ -134,6 +133,8 @@ class Node:
 
 
 class CollectionNode(list):
+    """ Object that contains Point objects as a collection.
+    """
     def __init__(self, *args):
         list.__init__(self, *args);
         self.attr = {}
@@ -160,12 +161,23 @@ class CollectionNode(list):
             self.set_bry(varname, value)
 
     def set_bc(self, *args, **kwargs):
-        """ Sets the boundary conditions at node
+        """set_bc(key1=value1, [key2=value2 [,...]])
+        Sets the boundary conditions for all nodes in the collection.
 
-        :param bc_dict: A dictionay with boundary conditions
-        :type  bc_dict: dict
-        :param kwargs:  A series of keyword arguments describing boundary conditions
-        :type  kwargs:  {str:float}
+        :param value1: A boundary condition value for key1 (*str*) degree of freedom.
+        :type  value1: float
+        :param value2: A boundary condition value for key2 (*str*) degree of freedom (optional).
+        :type  value2: float
+
+        The following example applies boundary conditions (displacement of 0.0 in x direction)
+        to all nodes in the collection nodes:
+
+        >>> nodes.set_bc(ux=0.0)
+
+        other examples are:
+
+        >>> nodes.set_bc(ux=0.0, uy=0.0, uz=0.0)
+        >>> nodes.set_bc(fy=-10.0)
         """
         for n in self:
             n.set_bc(*args, **kwargs)
@@ -176,14 +188,19 @@ class CollectionNode(list):
                 node.set_bc({key: M[j, i]})
 
     def set_brys_from_vec(self, keys, V):
+        #print V
         ndim = len(keys)
         for i, key in enumerate(keys):
             for j, node in enumerate(self):
-                node.set_bc({key: V[j*ndim, i]})
+                #print key, V[j*ndim+i]
+                node.set_bc({key: V[j*ndim + i]})
+        #exit()
 
-    def clear_brys(self):
+    def clear_bc(self):
+        """Clears all boundary conditions previously defined for all nodes in the collection.
+        """
         for node in self:
-            node.clear_brys()
+            node.clear_bc()
 
     def __add__(self, other):
         tmp = set(self)
@@ -274,39 +291,42 @@ class CollectionNode(list):
         assert False
 
     def sub(self, *args, **kwargs):
-        """
-        Filters the collection according to at least one of given conditions
-        ====================================================================
+        """sub(att1=value1, [att2=value2 [,...]])
+        Filters the collection according to given criteria.
 
-        INPUT:
-            kwargs: A keyword argument dict with multiple conditions.
+        :param value1: A value for node attribute att1 (*str*) used to filter the collection.
+        :type  value1: float or str
+        :param value2: A value for node attribute att2 (*str*) used to filter the collection.
+        :type  value2: float or str
 
-        RETURNS:
-            coll  : A new collection with nodes that match at least one given condition
+        :returns: A new collection with nodes that match the given criteria.
 
-        EXAMPLE:
-            tmp = nodes.sub(x=0.0).sub(y=0.0)
-            tmp = nodes.sub(x=[1.0, 2.0, 3.0, 5.0])
-            tmp = nodes.sub('x>value')      # Unsuported
-            tmp = nodes.sub(x=('>',value))  # Unsuported
-            tmp = nodes.sub(x='>value'))    # Unsuported
-            tmp = nodes.sub(x>value)        # Unsuported
+        The following code filters the nodes collection returning all nodes with x coordinate
+        equal to zero:
 
-            tmp = nodes.sub(lambda n: n.x>2)
-            tmp = nodes.sub(lambda n: n.x>=2 and x<=4)
+        >>> tmp = nodes.sub(x=0.0)
 
+        other examples are:
+
+        >>> tmp = nodes.sub(x=0.0).sub(y=0.0)
+        >>> tmp = nodes.sub(x=[1.0, 2.0, 3.0, 5.0])
+        >>> tmp = nodes.sub(lambda n: n.x>2)
+        >>> tmp = nodes.sub(lambda n: n.x>=2 and x<=4)
         """
 
         # Resultant collection initialization
         coll = CollectionNode()
+        coll = self
 
         for key, value in kwargs.iteritems():
-            coll = coll + self._with_attr(key, value)
+            coll = coll._with_attr(key, value)
+            #coll = coll + self._with_attr(key, value)
 
         for value in args:
             # filter usign lambda function
             f = value
-            coll = coll + CollectionNode(n for n in self if f(n))
+            coll = CollectionNode(n for n in coll if f(n))
+            #coll = coll + CollectionNode(n for n in self if f(n))
 
         return coll
 
@@ -314,47 +334,53 @@ class CollectionNode(list):
         list.sort(self, key= lambda n: n.id)
 
     def sort_in_x(self):
+        """ Sorts all nodes in collection according to x coordinate.
+        """
         list.sort(self, key= lambda n: n.X[0])
 
     def sort_in_y(self):
+        """ Sorts all nodes in collection according to y coordinate.
+        """
         list.sort(self, key= lambda n: n.X[1])
 
     def sort_in_z(self):
+        """ Sorts all nodes in collection according to z coordinate.
+        """
         list.sort(self, key= lambda n: n.X[2])
 
     @property
     def min_x(self):
-        """ Returns the minimum x coordinate in collection
+        """ Returns the minimum x coordinate for all nodes in the collection.
         """
         return min(n.x for n in self) if self else None
 
     @property
     def min_y(self):
-        """ Returns the minimum y coordinate in collection
+        """ Returns the minimum y coordinate for all nodes in the collection.
         """
         return min(n.y for n in self) if self else None
 
     @property
     def min_z(self):
-        """ Returns the minimum z coordinate in collection
+        """ Returns the minimum z coordinate for all nodes in the collection.
         """
         return min(n.z for n in self) if self else None
 
     @property
     def max_x(self):
-        """ Returns the maximum x coordinate in collection
+        """ Returns the maximum x coordinate for all nodes in the collection.
         """
         return max(n.x for n in self) if self else None
 
     @property
     def max_y(self):
-        """ Returns the maximum y coordinate in collection
+        """ Returns the maximum y coordinate for all nodes in the collection.
         """
-        return max(n.x for n in self) if self else None
+        return max(n.y for n in self) if self else None
 
     @property
     def max_z(self):
-        """ Returns the maximum z coordinate in collection
+        """ Returns the maximum z coordinate for all nodes in the collection.
         """
         return max(n.z for n in self) if self else None
 

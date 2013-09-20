@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*- 
 """
-PYFEM - Finite element software
-Raul Durand 2010-2013
+PYFEM - Finite element software.
+Raul Durand & Dorival Pedroso.
+Copyright 2010-2013.
 """
+
+from numpy import average
 
 from pyfem.tools.matvec import *
 from pyfem.elem_model import *
-from numpy import average
 
 class ElemModelEq(ElemModel):
     def __init__(self, *args, **kwargs):
@@ -22,6 +24,9 @@ class ElemModelEq(ElemModel):
 
         self.gamma = props.get("gamma", 10.0)
         self.A     = props.get("A"    , 10.0)
+
+        # temporary vars
+        self.memo = {}
 
     def copy(self):
         cp = ElemModel.copy(self)
@@ -45,13 +50,13 @@ class ElemModelEq(ElemModel):
         for n in self.nodes:
             n.add_dof("ux", "fx")
             n.add_dof("uy", "fy")
-            if ndim==3: n.add_dof("uz", "fz") 
+            if ndim==3: n.add_dof("uz", "fz")
 
     def remove_dofs(self):
         for n in self.nodes:
             n.remove_dof("ux", "fx")
             n.remove_dof("uy", "fy")
-            if ndim==3: n.remove_dof("uz", "fz") 
+            if ndim==3: n.remove_dof("uz", "fz")
 
     def stiff(self):
         nnodes = len(self.nodes)
@@ -61,9 +66,9 @@ class ElemModelEq(ElemModel):
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, C)
             mdl     = ip.mat_model
-            Dep  = mdl.stiff()
-            thk  = self.thickness
-            coef = detJ*ip.w*thk
+            Dep     = mdl.stiff()
+            thk     = self.thickness
+            coef    = detJ*ip.w*thk
             if self.is_truss: coef *= mdl.A
             K += mul(B.T, Dep, B)*coef
 
@@ -72,11 +77,14 @@ class ElemModelEq(ElemModel):
     def calcB(self, R, C):
         nnodes = len(self.nodes)
         ndim   = self.ndim
-        D = deriv_func(self.shape_type, R)
-        J = mul(D, C)
 
         # B matrix for truss elements
         if self.is_truss:
+            saved = self.memo.get(tuple(R))
+            if saved: return saved[0], saved[1]
+
+            D = deriv_func(self.shape_type, R)
+            J = mul(D, C)
             detJ = pdet(J)
 
             B = zeros(ndim, ndim*nnodes)
@@ -91,14 +99,24 @@ class ElemModelEq(ElemModel):
                     B[2,2+i*ndim] = D[0,i]
 
             B = mul(J, B)*(1.0/detJ**2.0)
+            self.memo[tuple(R)] = (B, detJ)
             return B, detJ
 
         # B matrix for solid elements
-        detJ = det(J)
-        dNdX = mul(inv(J),D)
+        saved = self.memo.get(tuple(R))
+        if saved:
+            dNdX = saved[0]
+            detJ = saved[1]
+        else:
+            D = deriv_func(self.shape_type, R)
+            J = mul(D, C)
+
+            dNdX = mul(inv(J),D)
+            detJ = det(J)
+            self.memo[tuple(R)] = (dNdX, detJ)
 
         B = zeros(6, ndim*nnodes)
-        sqrt2 = 2.0**0.5
+        sqrt2 = 1.41421356237
 
         if ndim==2:
             for i in range(nnodes):
@@ -115,58 +133,27 @@ class ElemModelEq(ElemModel):
                 B[2,2+i*ndim] = dNdz
                 B[3,0+i*ndim] = dNdy/sqrt2;   B[3,1+i*ndim] = dNdx/sqrt2
                 B[4,1+i*ndim] = dNdz/sqrt2;   B[4,2+i*ndim] = dNdy/sqrt2
-                B[5,2+i*ndim] = dNdx/sqrt2;   B[5,0+i*ndim] = dNdz/sqrt2
+                B[5,0+i*ndim] = dNdz/sqrt2;   B[5,2+i*ndim] = dNdx/sqrt2;
 
         return B, detJ
 
-    def get_eq_loc(self):
-        loc = []
-        for n in self.nodes:
-            loc.append(n.keys["ux"].eq_id)
-            loc.append(n.keys["uy"].eq_id)
-            if self.ndim==3:
-                loc.append(n.keys["uz"].eq_id)
-        return loc
-
-    #def internal_force(self):
-        #C = self.coords()
-        #F = zeros(nnodes*ndim)
-#
-        #for ip in self.ips:
-            #B, detJ = self.calcB(ip.R, C)
-            #mdl     = ip.mat_model
-            #coef    = detJ*ip.w
-            #if self.is_truss: coef *= mdl.A
-            #F += mul(B.T, M.sigma())*coef
-#
-        #return F
+    def get_eqn_map(self):
+        dof_keys = ["ux", "uy", "uz"][:self.ndim]
+        return [ node.keys[ky].eq_id for node in self.nodes for ky in dof_keys ]
 
     def U(self):
         # Mount displacement vector
-        nnodes = self.nnodes
-        ndim = self.ndim
-        keys = ["ux", "uy", "uz"][:ndim]
-
-        U_ = zeros(nnodes* ndim)
-
-        i = 0
-        for n in self.nodes:
-            for key in keys:
-                U_[i] = n.keys[key].U
-                i = i+1
-
-        return U_
+        dof_keys = ["ux", "uy", "uz"][:self.ndim]
+        return [ node.keys[ky].U for node in self.nodes for ky in dof_keys ]
 
     def update(self, DU, DF):
         ndim = self.ndim
         nnodes = len(self.nodes)
-        loc = self.get_eq_loc()
-        dU = zeros(nnodes*ndim)
+        loc = self.get_eqn_map()
         dF = zeros(nnodes*ndim)
 
         # Mount incremental displacement vector
-        for i in range(ndim*nnodes):
-            dU[i] = DU[loc[i]]
+        dU = DU[loc]
 
         C = self.coords()
         for ip in self.ips:
@@ -178,14 +165,47 @@ class ElemModelEq(ElemModel):
             if self.is_truss: coef *= mdl.A
             dF += mul(B.T, dsig)*coef
 
-        for i in range(ndim*nnodes):
-            DF[loc[i]] += dF[i]
+        # Update global vector
+        DF[loc] += dF
 
     def activate(self):
+        self.is_active = True
+
+        # Referencing nodes
+        for node in self.nodes:
+            node.n_shares += 1
         pass
 
     def deactivate(self):
-        pass
+        if not self.is_active:
+            raise Exception("ElemModelEq::deactivate: Element is already inactive.")
+
+        self.is_active = False
+        in_boundary    = False
+
+        # Dereferencing nodes
+        for node in self.nodes:
+            node.n_shares -= 1
+            if node.n_shares>0:
+                in_boundary = True
+
+        if not in_boundary:
+            return
+
+        # Calculating deactivation forces
+        ndim   = self.ndim
+        nnodes = len(self.nodes)
+        C  = self.coords()
+        dF = zeros(nnodes*ndim)
+
+        for ip in self.ips:
+            B, detJ = self.calcB(ip.R, C)
+            sig     = ip.mat_model.sig
+            coef    = detJ*ip.w
+            dF     += mul(B.T, sig)*coef
+
+        # Set node boundary conditions
+        self.nodes.set_brys_from_vec(["fx","fy","fz"][:ndim], dF)
 
     def set_face_bry(self, fnodes, fshape_type, key, val):
         if key == "tz" and self.ndim == 2:
@@ -232,7 +252,7 @@ class ElemModelEq(ElemModel):
 
                 NV += mul(as_col(S), as_row(V))*(detJ*w)
 
-            fnodes.set_brys_from_mat(["fx", "fy", "fz"][0:ndim], NV)
+            fnodes.set_brys_from_mat(["fx", "fy", "fz"][:ndim], NV)
         else:
             raise Exception("ElemModelEq.set_face_bry: Unknown boundary condition key")
 
@@ -341,8 +361,9 @@ class ElemModelEq(ElemModel):
             nodal_values[label] = N[:,i]
 
         # Filling elem_values dict
-        for i, label in enumerate(all_ip_vals[0].keys()):
-            elem_values[label] = average(IP[:,i])
+        if self.is_truss:
+            for i, label in enumerate(all_ip_vals[0].keys()):
+                elem_values[label] = average(IP[:,i])
 
         return nodal_values, elem_values
 

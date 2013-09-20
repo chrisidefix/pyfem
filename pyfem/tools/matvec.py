@@ -1,6 +1,4 @@
 import numpy
-from numpy import ndarray as mat
-from numpy import ndarray as vec
 from numpy import eye
 from numpy import array
 from numpy import cross
@@ -27,20 +25,18 @@ def dott(left, rigth):
 def zeros(*args):
     if len(args)==1:
         return numpy.zeros(args[0])
-    rows = args[0]
-    cols = args[1]
-    return numpy.zeros((rows,cols))
+
+    return numpy.zeros(tuple(args))
 
 def empty(*args):
     if len(args)==1:
         return numpy.empty(args[0])
-    rows = args[0]
-    cols = args[1]
-    return numpy.empty((rows,cols))
+
+    return numpy.zeros(tuple(args))
 
 def as_col(arr_1d):
     assert arr_1d.ndim == 1
-    return arr_1d[numpy.newaxis].T
+    return numpy.reshape(arr_1d, (-1,1))
 
 def as_row(arr_1d):
     assert arr_1d.ndim == 1
@@ -58,7 +54,6 @@ def pdet(J):
     if r==1: return norm(J)
     if c==r: return det(J)
     raise Exception("Pseudo determinant: No rule to operate non-square matrix jacobian")
-
 
 def compare(a, b, tol=1e-14):
     typ = type(a)

@@ -14,12 +14,10 @@ if osname=='nt':
     pyfem_path = os.path.join(sitepackages_dir, 'Lib', 'site-packages', 'pyfem')
 
 if os.path.isdir(pyfem_path):
-    print "Current installation path : ", pyfem_path
-    shutil.rmtree(pyfem_path, ignore_errors=True)
+    try:
+        shutil.rmtree(pyfem_path)
+        print "Deleting current installation path : ", pyfem_path
+    except:
+        print "Permission denied."
+        pass
 
-# Installation setup
-setup(name='pyfem',
-      version="1.0",
-      #package_dir={'pyfem':'../'},
-      packages=['pyfem', 'pyfem.mesh', 'pyfem.tools', 'pyfem.equilib', 'pyfem.seepage', 'pyfem.hydromec']
-      )

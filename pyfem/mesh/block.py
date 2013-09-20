@@ -6,6 +6,7 @@ Copyright 2010-2013.
 """
 
 import os,sys
+from copy import deepcopy
 from collections import OrderedDict
 
 from pyfem.tools.matvec import *
@@ -13,6 +14,10 @@ from pyfem.tools.stream import *
 from entities import *
 
 class Block:
+    """ Represent the base class for specific types of blocks.
+    This class should not be instantiated directly.
+    Derived classes inherit the methods described in this item.
+    """
     subtypes = []
 
     @staticmethod
@@ -28,13 +33,10 @@ class Block:
         self.cubic     = False
 
     def set_coords(self, C):
-        """
-        sets the block coordinates
-        ==========================
+        """ Sets the block coordinates
 
-        input:
-            C:  A list of lists with all coordinates.
-                A numpy matrix is also accepted.
+        :param C:  A list of lists with all coordinates.  A numpy matrix is also accepted.
+        :type  C:  list, ndarray
         """
 
         ncols = len(C[0])
@@ -43,28 +45,55 @@ class Block:
         self.coords[:,:ncols] = array(C)[:,:ncols]
 
     def set_tag(self, tag):
+        """ Sets the tag for all cells generated from the block.
+
+        :param tag:  A text to identify generated cells.
+        :type  tag:  str
+        """
+
         self.tag = tag
 
     def set_linear(self):
+        """ Determines that generated cells will be linear shapes.
+        """
         self.linear    = True
         self.quadratic = False
         self.cubic     = False
 
     def set_quadratic(self):
+        """ Determines that generated cells will be quadratic shapes.
+        """
         self.linear    = False
         self.quadratic = True
         self.cubic     = False
 
     def set_cubic(self):
+        """ Determines that generated cells will be cubic shapes.
+        """
         self.linear    = False
         self.quadratic = False
         self.cubic     = True
 
-    def move(self, Dist):
+    def copy(self):
+        """ Creates a copy of the block.
 
-        D = zeros(3)
-        D[:len(Dist)] = Dist
+        :returns:  Block -- A copy of the block.
+        """
+        return deepcopy(self)
 
+    def move(self, x=0, y=0, z=0):
+        """move(x, [y, [z]]) -> Block -- return self.
+
+        Shift the block in x, y and z directions.
+
+        :param x: Shift in x direction
+        :type  x: float
+        :param y: Shift in y direction
+        :type  y: float
+        :param z: Shift in z direction (optional)
+        :type  z: float
+        """
+        D = array([x, y, z])
         for R in self.coords:
             R += D
         return self
@@ -75,7 +104,7 @@ class Block:
         pass
         return self
 
-    def rotate__(self, Point, Vector, angle): 
+    def rotate__(self, Point, Vector, angle):
         P = zeros(3); P[:len(Point)] = Point
         V = zeros(3); V[:len(Vector)] = Vector
         pass

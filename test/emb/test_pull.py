@@ -11,7 +11,7 @@ punctual_model = False
 block = Block3D()
 block.make_box((0,0,0),(1,6,1))
 
-block.set_divisions (1,6,1)
+block.set_divisions (1,5,1)
 #block.set_quadratic()
 
 iblock = BlockInset  ()

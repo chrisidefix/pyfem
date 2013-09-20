@@ -5,6 +5,7 @@ Raul Durand & Dorival Pedroso.
 Copyright 2010-2013.
 """
 
+import itertools
 from copy import copy
 
 from tools.matvec import *
@@ -51,7 +52,7 @@ class ElemModel:
         if self.id<0:          os << "AnalysisModel::check: Id not found in element " << id << endl
         if self.nnodes==0:     os << "AnalysisModel::check: Nodes were not set in element " << id << endl
         if self.shape_type==0: os << "AnalysisModel::check: Shape was not defined for element " << id << endl
-        if not self.ips: 
+        if not self.ips:
             os << "AnalysisModel::check: Integration points were not defined for element " << id << endl
         else:
             if not self.ips[0].mat_model:
@@ -92,12 +93,8 @@ class ElemModel:
         return elem_local_coords(shape_name)
 
     def coords(self):
-        nnodes = len(self.nodes)
         ndim   = self.ndim
-        C = zeros(nnodes, ndim)
-        for i, n in enumerate(self.nodes):
-            C[i] = n.X[:ndim] # row assigment
-        return C
+        return array( [n.X[:ndim] for n in self.nodes], dtype=float )
 
     def config_dofs(self, brys):
         assert False

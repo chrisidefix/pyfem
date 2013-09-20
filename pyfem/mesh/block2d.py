@@ -15,6 +15,25 @@ from shape_functions    import *
 from block import *
 
 class Block2D(Block):
+    """ A class designed to contain information of two dimensional blocks
+    used to generate structured meshes. It stores geometric information and
+    flags for the mesh generation process.
+
+    The following example generates a 2D quadratic structured mesh and saves
+    it in a vtk file::
+
+        from pyfem import *
+
+        my_block = Block2D()
+        my_block.set_coords( [[0,0],[1,0],[1,1],[0,1]] )
+        my_block.set_quadratic()
+
+        my_mesh = Mesh()
+        my_mesh.add_blocks(my_block)
+        my_mesh.generate()
+        my_mesh.write("my_mesh.vtk")
+
+    """
     def __init__(self, box_coords=None, nx=1, ny=1):
         Block.__init__(self)
         self.nx = nx
@@ -23,47 +42,21 @@ class Block2D(Block):
         self.face_tags    = ['', '', '', '']
         self.is_truss     = False
 
-    def set_coords(self, C):
-        """
-        Sets the block coordinates
-        ==========================
-
-        INPUT:
-            C:  A list with all coordinates.
-                A numpy matrix is also accepted.
-        """
-
-        # Check if C is given as a matrix
-        if hasattr(C[0], '__iter__'):
-            ncols = len(C[0])
-            nrows = len(C)
-            self.coords = zeros(nrows, 3)
-            self.coords[:,:ncols] = array(C)[:,:ncols]
-            return
-
-        coord_size = len(C)
-
-        if not (coord_size==8 or coord_size==16):
-            raise Exception("Block2D.set_coords: Coords list size does not match 8 or 16")
-
-        self.coords = zeros(coord_size/2, 3)
-        for i, R in enumerate(self.coords):
-            R[0] = C[i*2]
-            R[1] = C[i*2+1]
-
-    def set_divisions(self, nx, ny):
-        self.nx = nx
-        self.ny = ny
-
-    def set_face_tag(self, idx, tag):
-        self.face_tags[idx] = tag
-
-    def set_triangles(self, val=True):
-        self.use_triangle = val
-
     def make_box(self, C1, C2):
-        """
-        C1 and C2 are lists with coordinates with 2 components
+        """ Generates the block coordinates by defining two diagonal coordinates of a box.
+
+        :param C1: Coordinates of the first point
+        :type  C1: list
+        :param C2: Coordinates of the second point
+        :type  C2: list
+
+        The following example defines the coordinates of a square 2D block using the
+        make_box function::
+
+            from pyfem import *
+            my_block = Block2D()
+            my_block.make_box([0,0], [1,1])
+
         """
         if len(C1) !=2 or len(C2) != 2:
             raise Exception("Block2D.set_box: Coords list size does not match 2")
@@ -79,7 +72,37 @@ class Block2D(Block):
         self.coords[2, 0] = x0+lx; self.coords[2, 1] = y0+ly; self.coords[2, 2] = 0.0
         self.coords[3, 0] = x0;    self.coords[3, 1] = y0+ly; self.coords[3, 2] = 0.0
 
+    def set_divisions(self, nx=1, ny=1):
+        """ Sets the number of divisions in local x and y directions.
+
+        :param nx:  Number of divisions in x direction.
+        :type  nx:  int
+        :param ny:  Number of divisions in y direction.
+        :type  ny:  int
+        """
+
+        self.nx = nx
+        self.ny = ny
+
+    def set_face_tag(self, idx, tag):
+        self.face_tags[idx] = tag
+
+    def set_triangles(self, val=True):
+        """ Defines that triangle cells will be generated insetead of quadrilateral cells.
+        """
+        self.use_triangle = val
+
     def make_truss(self, htag='h', vtag='v', dtag='d'):
+        """ Defines that a truss cell system will be generated instead of a structured mesh
+        of quadrilateral cells.
+
+        :param htag: Tag for horizontal truss elements.
+        :type  htag: str
+        :param vtag: Tag for vertical truss elements.
+        :type  vtag: str
+        :param dtag: Tag for diagonal truss elements.
+        :type  dtag: str
+        """
         self.is_truss = True
         self.htag = htag
         self.vtag = vtag
@@ -305,21 +328,21 @@ class Block2D(Block):
                     faces.add_new(LIN4, faces_conn, self.face_tags[idx], cell) # can add duplicates
 
     def split_tri_o1(self, points, cells, faces):
-        """
-	        3                        2
-	          @--------------------@
-	          |                  / |
-	          |                /   |
-	          |             /      |
-	          |           /        |
-	          |         /          |
-	          |       /            |
-	          |    /               |
-	          |  /                 |
-	          |/                   |
-	          @--------------------@
-	        0                        1
-        """
+        # 
+        #  3                        2
+        #    @--------------------@
+        #    |                  / |
+        #    |                /   |
+        #    |             /      |
+        #    |           /        |
+        #    |         /          |
+        #    |       /            |
+        #    |    /               |
+        #    |  /                 |
+        #    |/                   |
+        #    @--------------------@
+        #  0                        1
+        # 
         nx    = self.nx
         ny    = self.ny
         p_arr = numpy.empty((nx+1, ny+1), dtype='object')
@@ -387,21 +410,21 @@ class Block2D(Block):
                     faces.add_new(LIN2, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_tri_o2(self, points, cells, faces):
-        """
-	        3           6            2
-	          @---------@----------@
-	          |                  / |
-	          |                /   |
-	          |             /      |
-	          |           /        |
-	        7 @         @          @ 5
-	          |       /   9        |
-	          |    /               |
-	          |  /                 |
-	          |/                   |
-	          @---------@----------@
-	        0           4            1
-        """
+        # 
+        #  3           6            2
+        #    @---------@----------@
+        #    |                  / |
+        #    |                /   |
+        #    |             /      |
+        #    |           /        |
+        #  7 @         @          @ 5
+        #    |       /   9        |
+        #    |    /               |
+        #    |  /                 |
+        #    |/                   |
+        #    @---------@----------@
+        #  0           4            1
+        # 
         nx    = self.nx
         ny    = self.ny
         p_arr = numpy.empty((2*nx+1, 2*ny+1), dtype='object')
@@ -475,21 +498,21 @@ class Block2D(Block):
                     faces.add_new(LIN3, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_tri_o3(self, points, cells, faces):
-        """
-	        3      10       6        2
-	          @-----@-------@------@
-	          |                  / |
-	          |          13    /   |
-	        7 @     x       @      @ 9
-	          |           /        |
-	          |         /          |
-	          |       /            |
-	       11 @     @       x      @ 5
-	          |   /   12           |
-	          | /                  |
-	          @-----@-------@------@
-	        0       4       8        1
-        """
+        #  
+        #   3      10       6        2
+        #     @-----@-------@------@
+        #     |                  / |
+        #     |          13    /   |
+        #   7 @     x       @      @ 9
+        #     |           /        |
+        #     |         /          |
+        #     |       /            |
+        #  11 @     @       x      @ 5
+        #     |   /   12           |
+        #     | /                  |
+        #     @-----@-------@------@
+        #   0       4       8        1
+        #  
         nx    = self.nx
         ny    = self.ny
         p_arr = numpy.empty((3*nx+1, 3*ny+1), dtype='object')
@@ -572,21 +595,21 @@ class Block2D(Block):
                     faces.add_new(LIN4, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_as_truss(self, points, cells):
-        """
-	        3                        2
-	          @--------------------@
-	          | \                / |
-	          |   \            /   |
-	          |     \        /     |
-	          |       \    /       |
-	          |         /          |
-	          |       /    \       |
-	          |     /        \     |
-	          |   /            \   |
-	          | /                \ |
-	          @--------------------@
-	        0                        1
-        """
+        # 
+        #  3                        2
+        #    @--------------------@
+        #    | \                / |
+        #    |   \            /   |
+        #    |     \        /     |
+        #    |       \    /       |
+        #    |         /          |
+        #    |       /    \       |
+        #    |     /        \     |
+        #    |   /            \   |
+        #    | /                \ |
+        #    @--------------------@
+        #  0                        1
+        # 
 
         assert(self.linear)
         assert(self.use_triangle==False)

@@ -1,93 +1,95 @@
-from pyfem.model import *
+# -*- coding: utf-8 -*- 
+"""
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso.
+Copyright 2010-2013.
+"""
+
 from math import tan
 from math import copysign
 from math import pi
+from copy import deepcopy
+
+from pyfem.model import *
 
 class MatModelMohrCoulombJoint(Model):
     name = "MatModelMohrCoulombJoint"
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
-        self.sig = zeros(3)
-        self.eps = zeros(3)
-        self.Ks  = 0.0
+
+        # Internal data
+        self.sig  = zeros(3)
+        self.eps  = zeros(3)
+        self.w_pa = 0.0
+        self.dg   = 0.0
+
+        # Parameters
+        self.ks  = 0.0
+        self.kh  = 0.0
         self.Kn  = 0.0
         self.Dm  = 0.0
         self.C   = 0.0
-        self.phi = 0.0
-        self.z   = 0.0
-        self.H   = 0.0
-        self.h   = 0.0
+        self.mu  = 0.0   # μ
+        self.h   = 0.0   # perimeter
 
-        if args: data = args[0]
-        else:    data = kwargs
+        data = args[0] if args else kwargs
 
         if data:
             self.set_params(**data)
             self.set_state(**data)
 
     def copy(self):
-        cp = MatModelMohrCoulombJoint()
-        cp.ndim = self.ndim
-        cp.sig = self.sig.copy()
-        cp.eps = self.eps.copy()
-        cp.Ks  = self.Ks
-        cp.Kn  = self.Kn
-        cp.Dm  = self.Dm
-        cp.C   = self.C
-        cp.phi = self.phi
-        cp.z   = self.z
-        cp.H   = self.H
-        cp.attr = self.attr.copy()
-
-        cp.h   = self.h
-        return cp
+        return deepcopy(self)
 
     def prime_and_check(self):
         pass
 
     def set_params(self, **params):
-        self.Ks  = params.get("Ks", self.Ks)
-        self.Kn  = params.get("Kn", self.Ks) # Kn=Ks by default
-        self.Dm  = params.get("Dm", self.Dm)
-        self.C   = params.get("C" , self.C)
-        self.phi = params.get("phi", self.phi)
-        self.H   = 1.0E-15*self.Ks
+        self.ks  = params.get("Ks" , self.ks)
+        self.ks  = params.get("ks" , self.ks)
+        self.Kn  = params.get("Kn" , self.ks) # Kn=ks by default
+        self.Dm  = params.get("Dm" , self.Dm)
+        self.C   = params.get("C"  , self.C)
+        self.mu  = params.get("mu" , self.mu)
+        phi      = params.get("phi", 0.0)
+        self.kh  = 1.0E-15*self.ks
 
-        self.h   = self.Dm*pi
+        self.h   = self.Dm*pi # perimeter
+
+        if self.mu==0:
+            self.mu = tan(phi)   # μ = tan(φ)
 
     def set_state(self, **state):
         self.sig[0] = state.get("tau", self.sig[0])
 
     def yield_func(self, tau):
-        sign  = self.attr.get("sign", 0.0)
-        sign_ = 0.0 if sign>0.0 else abs(sign)
-        return abs(tau) - self.C - sign_*tan(self.phi) + self.z
+        sign = self.attr.get("sign", 0.0)
+        sign = 0.0 if sign>0.0 else abs(sign)
+        return abs(tau) - (self.C + self.kh*self.w_pa + self.mu*sign)
 
     def calcDe(self):
-        Ks  = self.Ks
+        ks  = self.ks
         Kn  = self.Kn
         if self.ndim==2:
             return  array([\
-                    [   Ks, 0.0 ], \
+                    [   ks, 0.0 ], \
                     [  0.0,   Kn ] ] )
         else:
             return  array([\
-                    [   Ks, 0.0, 0.0 ], \
+                    [   ks, 0.0, 0.0 ], \
                     [  0.0,  Kn, 0.0 ], \
                     [  0.0, 0.0,  Kn ]])
 
     def stiff(self):
-        tau = self.sig[0]
-        Ks  = self.Ks
+        ks  = self.ks
+        kh  = self.kh
         Kn  = self.Kn
-        H   = self.H
-        F   = self.yield_func(tau)
 
-        if F < -1.0E-5:
-            Ksep = Ks
+        if self.dg == 0.0:
+            Ksep = ks
         else:
-            Ksep = Ks - (Ks**2.0)/(Ks - H*abs(tau))
+            Ksep = ks*kh/(ks + kh)
 
         if self.ndim==2:
             return  array([\
@@ -100,70 +102,47 @@ class MatModelMohrCoulombJoint(Model):
                     [  0.0, 0.0,  Kn ]])
 
     def stress_update(self, deps):
-        De   = self.calcDe()
-        dsig = mul(De, deps)
-        sig_tr = self.sig + dsig
+        ks  = self.ks
+        Kn  = self.Kn
+        kh  = self.kh
+        dw      = deps[0]
+        tau_ini = self.sig[0]
 
-        # Elastic integration
-        if self.yield_func(sig_tr[0]) < 0.0:
-            self.sig  = sig_tr.copy()
-            self.eps += deps
-            return dsig
+        tau_tr = tau_ini + ks*dw           # τ trial: τ_tr = τ_ini + ks*Δω
+        f_tr   = self.yield_func(tau_tr)   # f trial
 
-        # Finding intersection and elastic integration
-        sig_ini = self.sig.copy()
-        aint    = 0.0
-        F = self.yield_func(self.sig[0])
-        Ks = self.Ks
-        H  = self.H
 
-        MAXIT = 50
-        TOL   = 1.0e-5
-        DEN   = max(1.0, abs(self.sig[0]))
-        if F<0:
-            coef = 1.0
-            for i in range(MAXIT):
-                coef  = -copysign(0.5*coef, F)
-                aint += coef
-                self.sig = sig_ini + aint*dsig
-                F = self.yield_func(self.sig[0]) 
-                if abs(F)/DEN<TOL and F>0: break
-            else:
-                raise Exception("MatModelMohrCoulombJoint.stress_update: Yield function intersection not found")
+        if f_tr<0.0:
+            self.dg = 0.0
+            tau = tau_tr
+        else:
+            self.dg    = f_tr/(ks+kh)                   # Δγ
+            dw_p       = self.dg*copysign(1, tau_tr)    # Δωp
+            self.w_pa += self.dg                        # ωp¯ += Δγ
+            tau        = tau_tr - ks*dw_p               # τ    = ks*Δωp
 
-            # Elastic integration
-            du_e = aint*deps
-            self.eps += du_e
+        # Update eps
+        self.eps += deps
 
-        # Plastic integration FE
-        n = 10
-        deps_inc = (1.0 - aint)*deps/n
-        for i in range(n):
-            D = self.stiff()
-            dsig = mul(D, deps_inc)
-            tau  = self.sig[0]
-            ur_p = deps_inc[0]
+        # Calculate dsig
+        dtau    = tau - tau_ini
+        dsig    = self.Kn*deps
+        dsig[0] = dtau             # correcting first term
 
-            dz   = (Ks*H*tau*ur_p) / (Ks - H*abs(tau))
-            self.eps += deps_inc
-            self.sig += dsig
-            self.z   += dz
-
-        dsig = self.sig - sig_ini
+        # Update sig
+        self.sig += dsig
 
         return dsig
 
     def get_vals(self):
-        sig = self.sig
-        eps = self.eps
         sign = self.attr.get("sign", 0.0)
-        sign_   = 0.0 if sign>0.0 else abs(sign)
-        tau_max = self.C + sign_*tan(self.phi)
+        sign = 0.0 if sign>0.0 else abs(sign)
+        tau_max = self.C + sign*self.mu
 
         vals = {}
-        vals["tau"]  = self.sig[0]
-        vals["rdis"] = self.eps[0]
-        vals["sign"] = self.attr["sign"]
+        vals["tau"    ] = self.sig[0]
+        vals["rdis"   ] = self.eps[0]
+        vals["sign"   ] = self.attr["sign"]
         vals["tau_max"] = tau_max
 
         return vals

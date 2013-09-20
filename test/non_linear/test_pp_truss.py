@@ -6,6 +6,7 @@ from pyfem import *
 #Blocks 
 block = Block2D()
 block.make_box( (0,0),  (1,1) )
+block.set_divisions(1,1)
 block.set_divisions(2,1)
 block.make_truss(htag='h', vtag='v', dtag='d')
 
@@ -17,9 +18,9 @@ msh.generate()
 dom = Domain(mesh=msh)
 
 # Setting element types and parameters
-mat_h = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
-mat_v = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
-mat_d = EqPlasticTruss(E=20000, A=0.03, sig_max=200.0E1)
+mat_h = EqPlasticTruss(E=20000, A=0.03, sig_y=200.0E1)
+mat_v = EqPlasticTruss(E=20000, A=0.03, sig_y=200.0E1)
+mat_d = EqPlasticTruss(E=20000, A=0.03, sig_y=200.0E1)
 
 dom.elems.sub(tag='h').set_elem_model(mat_h)
 dom.elems.sub(tag='v').set_elem_model(mat_v)
@@ -27,6 +28,10 @@ dom.elems.sub(tag='d').set_elem_model(mat_d)
 
 #Setting solver 
 solver = SolverEq(domain=dom, scheme="FE", nincs=10)
+t_elem = dom.elems[3]
+solver.track(t_elem)
+solver.set_track_per_inc(True)
+
 
 # Stage 1
 # ====================================================
@@ -66,3 +71,10 @@ solver.solve()
 #solver.write_output()
 
 # ====================================================
+
+telem = dom.elems[2]
+tip   = telem.ips[0]
+
+
+
+

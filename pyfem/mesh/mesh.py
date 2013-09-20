@@ -19,6 +19,26 @@ def get_line(file_obj):
     return line
 
 class Mesh:
+    """
+    A class used to generate structured meshes based on information
+    given by blocks which represent a geometry.
+
+    The following example shows the usage of class Mesh. It generates a 2D
+    quadratic structured mesh and saves it in a vtk file::
+
+        from pyfem import *
+
+        my_block = Block2D()
+        my_block.set_coords( [[0,0],[1,0],[1,1],[0,1]] )
+        my_block.set_quadratic()
+
+        my_mesh = Mesh()
+        my_mesh.add_blocks(my_block)
+        my_mesh.generate()
+        my_mesh.write("my_mesh.vtk")
+
+    """
+
     def __init__(self, *args):
         self.ndim       = 0
         self.verbose    = True
@@ -181,10 +201,20 @@ class Mesh:
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
 
     def add_blocks(self, *args):
+        """
+        add_blocks(block0, block1, ...)
+        Add blocks containing geometric information to the Mesh object.
+        """
         for blk in args:
             self.blocks.append(blk)
 
-    def generate(self):
+    def generate(self, filename=None, format="vtk"):
+        """
+        Generates a structured mesh based on information given by geometrical
+        blocks using the add_blocks function.  The resulting mesh is stored internally.
+        If a file name is given in the arguments then the mesh is also saved to that file.
+        """
+
         if self.verbose:
             print "Mesh generation"
             print "  analysing", len(self.blocks), "blocks..."
@@ -222,7 +252,13 @@ class Mesh:
             print " ", len(self.cells) , "  cells obtained"
             print " ", len(self.faces) , "  faces obtained"
 
+        if filename:
+            self.write_file(filename, format)
+
     def write_file(self, filename, fmt = "vtk"):
+        """
+        Saves the mesh information stored internally to a file.
+        """
         name, ext = os.path.splitext(filename)
         if ext == "": ext = ".vtk"
         assert ext == ".vtk"

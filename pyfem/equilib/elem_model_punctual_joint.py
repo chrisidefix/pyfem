@@ -209,7 +209,7 @@ class ElemModelPunctualJoint(ElemModelEq):
         l = linalg.norm(Ct[0]-Ct[1])  # truss length
 
         # Mount incremental displacement vector
-        loc = self.get_eq_loc()
+        loc = self.get_eqn_map()
         dU = [DU[loc[i]] for i in range(ndim*nnodes)]
         dF = zeros(nnodes*ndim)
 

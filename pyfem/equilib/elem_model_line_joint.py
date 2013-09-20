@@ -85,9 +85,6 @@ class ElemModelLineJoint(ElemModelEq):
         J = mul(D, Ct)
         T = self.calcT(J)
 
-        #OUT("R")
-        #OUT("T")
-
         # Mount NN matrix
         N = shape_func(self.shape_type, R)
         stack = []
@@ -108,7 +105,9 @@ class ElemModelLineJoint(ElemModelEq):
         MM = concatenate(stack, axis=0)
 
         B = mul(T, concatenate([mul(NN,MM), -NN], axis=1))
-        return B, pdet(J)
+        detJ = pdet(J)
+
+        return B, detJ
 
     def calcT_test(self, J):
         if self.ndim==2:
@@ -202,7 +201,7 @@ class ElemModelLineJoint(ElemModelEq):
     def update(self, DU, DF):
         ndim = self.ndim
         nnodes = len(self.nodes)
-        loc = self.get_eq_loc()
+        loc = self.get_eqn_map()
         dU = empty(nnodes*ndim)
         dF = zeros(nnodes*ndim)
 

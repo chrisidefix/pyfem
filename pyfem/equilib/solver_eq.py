@@ -5,11 +5,15 @@ import math
 from scipy.sparse import lil_matrix
 from scipy import *
 import scipy
+
+from numpy import linalg
 from scipy.sparse.linalg import factorized
 
 class SolverEq(Solver):
-    def __init__(self, domain=None, scheme="FE", nincs=1):
-        Solver.__init__(self, domain=domain, scheme=scheme, nincs=nincs)
+    """ A finite element solver for static linear/non-linear equilibrium analysis.
+    """
+    def __init__(self, domain=None, scheme="FE", nincs=1, precision=1.e-4):
+        Solver.__init__(self, domain=domain, scheme=scheme, nincs=nincs, precision=precision)
         self.name = "SolverEq"
         self.DU = None
         self.DF = None
@@ -59,7 +63,9 @@ class SolverEq(Solver):
         self.pdofs = []
         self.udofs = []
 
+
         for n in self.nodes:
+            if n.n_shares == 0: continue
             for dof in n.dofs:
                 if dof.prescU:
                     self.pdofs.append(dof)
@@ -84,7 +90,7 @@ class SolverEq(Solver):
 
         for e in self.aelems:
             Ke = e.elem_model.stiff()
-            loc = e.elem_model.get_eq_loc()
+            loc = e.elem_model.get_eqn_map()
 
             for i in range(Ke.shape[0]):
                 for j in range(Ke.shape[1]):
@@ -152,13 +158,12 @@ class SolverEq(Solver):
                     DFi       = DFi - DFint
                     DFint_ac += DFint
 
-                    #self.residue = sum( abs(DF[dof.eq_id] - DFint_ac[dof.eq_idi]) for dof in self.udofs)/force
                     self.residue = 0.0
 
                     for dof in self.udofs:
                         self.residue += abs(DF[dof.eq_id] - DFint_ac[dof.eq_id])/force
 
-                    if self.verbose: print "    it", it+1, " error =", self.residue
+                    if self.verbose: print "    it", it+1, " residual =", self.residue
 
                     if math.isnan(self.residue): raise Exception("SolverEq.solve: Solver failed")
 
@@ -173,21 +178,23 @@ class SolverEq(Solver):
                 DFint, R = self.solve_inc(DU, DF)
                 self.residue = numpy.linalg.norm(R)/(numpy.linalg.norm(DFint)*self.nincs)
                 if math.isnan(self.residue): raise Exception("SolverEq.solve: Solver failed")
-                if self.verbose: print "  increment:", self.inc, " error = ", self.residue
+                if self.verbose: print "  increment:", self.inc, " residual = ", self.residue
 
             if self.track_per_inc:
                 self.write_history()
 
-        if self.verbose: print "  end stage:", self.stage
+        if self.verbose: print "  end stage", self.stage
 
         # Clear boundary conditions
-        self.nodes.clear_brys()
+        self.nodes.clear_bc()
 
     def solve_inc(self, DU, DF, calcK=True):
         """
           [  K11   K12 ]  [ U1? ]    [ F1  ]
           [            ]  [     ] =  [     ]
           [  K21   K22 ]  [ U2  ]    [ F2? ]"""
+
+        nverbose = 2000
 
         nu = len(self.udofs)
         np = len(self.pdofs)
@@ -197,9 +204,8 @@ class SolverEq(Solver):
         scheme = self.scheme
 
         if calcK:
-            if self.verbose and nu>2000: print "    building system...", ; sys.stdout.flush()
+            if self.verbose and nu>nverbose: print "    building system...", ; sys.stdout.flush()
             self.mountK()
-            #if self.verbose: print "    done."
 
             # Mount K11.. K22 matrices
             cK = self.K.tocsc()
@@ -215,10 +221,13 @@ class SolverEq(Solver):
         # Solve linear system
         F2 = self.K22*U2  #sparse matrix * dense vector
         if nu:
-            if self.verbose and nu>2000: print "solving...", ; sys.stdout.flush()
+            if self.verbose and nu>nverbose: print "solving...", ; sys.stdout.flush()
             if scheme == "MNR" and decompose   : self.LUsolver = factorized(self.K11)
             if scheme == "NR" or scheme == "FE": self.LUsolver = factorized(self.K11)
             rhs = F1 - self.K12*U2
+            #OUT("rhs")
+            #OUT("F1")
+            #OUT("self.K11")
             U1 = scipy.sparse.linalg.spsolve(self.K11, rhs)
             F2 += self.K21*U1
 
@@ -226,8 +235,8 @@ class SolverEq(Solver):
         for i, dof in enumerate(self.udofs): DU[dof.eq_id] = U1[i]
         for i, dof in enumerate(self.pdofs): DF[dof.eq_id] = F2[i]
 
-        if self.verbose and nu>2000: print "updating..." ; sys.stdout.flush()
-        from numpy import linalg
+        if self.verbose and nu>nverbose: print "updating..." ; sys.stdout.flush()
+        #from numpy import linalg
         DFint = self.update_elems_and_nodes(DU) # Also calculates DFint
 
         R = DF - DFint
@@ -254,7 +263,45 @@ class SolverEq(Solver):
             if n.keys.has_key("uz"): n.keys["uz"].U = 0.0
 
 
+# deactivate elements that fulfill a give criterion
+def deactivate_elems(elems, var, minv=-1e15, maxv=1e15):
 
+    # Deactivating elements
+    for e in elems:
+        if not e.elem_model.is_active: continue
+        # avg values at ip
+        avg_val = 0.0
+        for ip in e.elem_model.ips:
+            avg_val += ip.mat_model.get_vals()[var]
+        avg_val /= len(e.elem_model.ips)
+        #OUT("avg_val")
+
+        if minv <= avg_val and avg_val <= maxv:
+            #e.elem_model.deactivate()
+            for ip in e.ips:
+                ip.mat_model.set_params(E=2e1, A=0.03, sig_y=200e3)
+            print "deactivating", e.id
+
+    ## Deactivating truss orphan elements
+    #for e in elems:
+    #    if not e.elem_model.is_active: continue
+    #    if e.shape_type==LIN2:
+    #        for n in e.nodes:
+    #            if n.n_shares==1:
+    #                e.elem_model.deactivate()
+    #                print "deactivating", e.id
+    #                break
+
+    #print "Again"
+    ## Deactivating truss orphan elements
+    #for e in elems:
+    #    if not e.elem_model.is_active: continue
+    #    if e.shape_type==LIN2:
+    #        for n in e.nodes:
+    #            if n.n_shares==1:
+    #                e.elem_model.deactivate()
+    #                print "deactivating", e.id
+    #                break
 
 
 

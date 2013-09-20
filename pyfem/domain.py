@@ -11,6 +11,17 @@ from face      import *
 from mesh.mesh import *
 
 class Domain:
+    """ Contains information about a finite element domain including collections of
+    nodes, elements and faces.
+
+    **nodes**
+        Returns a *CollectionNode* object containing all nodes in the domain.
+    **elems**
+        Returns a *CollectionElem* object containing all elements in the domain.
+    **faces**
+        Returns a *CollectionFace* object containing all faces in the domain.
+    """
+
     def __init__(self, mesh=None):
         self.thickness = 1.0
         self.analysis_type = ""
@@ -40,6 +51,13 @@ class Domain:
         solver.elems = self.elems
 
     def load_mesh(self, mesh):
+        """ Load a mesh object with all geometric information necessary to initialize
+        internal collections of nodes, elements and faces.
+
+        :param mesh: A mesh object containig all geometric information.
+        :type  mesh: Mesh
+        """
+
         self.mesh = mesh
         self.ndim = mesh.ndim
 

@@ -191,7 +191,7 @@ class ElemModelNewlLineJoint(ElemModelEq):
     def update(self, DU, DF):
         ndim = self.ndim
         nnodes = len(self.nodes)
-        loc = self.get_eq_loc()
+        loc = self.get_eqn_map()
         dU = empty(nnodes*ndim)
         dF = zeros(nnodes*ndim)
 

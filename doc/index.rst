@@ -16,53 +16,83 @@ PyFem's documentation
 Class Mesh
 ==========
 .. autoclass:: pyfem.mesh.Mesh
+    :members: 
+
+    **Available methods**:
 
 Class BlockLine
 ===============
+.. autoclass:: pyfem.mesh.BlockLine
+    :inherited-members: 
+    :members: 
 
 Class Block2D
 =============
+.. autoclass:: pyfem.mesh.Block2D
+    :inherited-members: 
+    :members: 
 
 Class Block3D
 =============
+.. autoclass:: pyfem.mesh.Block3D
+    :inherited-members: 
+    :members: 
 
 Class BlockInset
 ================
-
-Class BlockInset
-================
+.. autoclass:: pyfem.mesh.BlockInset
+    :inherited-members: 
+    :members: 
 
 Class Node
 ==========
-
 .. autoclass:: pyfem.Node
-    :members: x, y, z, set_bc
+    :inherited-members: 
+    :members: 
 
 Class CollectionNode
 ====================
 
 .. autoclass:: pyfem.CollectionNode
-    :members: min_x, min_y,min_z, max_x, max_y, max_z, set_bc, sub, sort_in_x, sort_in_y, sort_in_z 
+    :members: 
 
 Class Element
 =============
+.. autoclass:: pyfem.Element
+    :inherited-members: 
+    :members: 
 
 Class CollectionElem
 ====================
+.. autoclass:: pyfem.CollectionElem
+    :members: 
 
 Class Face
 ==========
+.. autoclass:: pyfem.Face
+    :inherited-members: 
+    :members: 
 
 Class CollectionFace
 ====================
+.. autoclass:: pyfem.CollectionFace
+    :members: 
 
 Class Domain
 ============
+.. autoclass:: pyfem.Domain
+    :inherited-members: 
+    :members: 
 
-Class Solver
-============
+Class SolverEq
+==============
+.. autoclass:: pyfem.equilib.SolverEq
+    :inherited-members: 
+    :members: 
 
 
+Class EqElasticSolid
+====================
 .. autoclass:: EqElasticSolid
 
 

@@ -30,7 +30,7 @@ class Point:
         if len(args)==1:
             x, y, z = (args[0] + [0])[:3]
         else:
-            x, y, z = args
+            x, y, z = (list(args) + [0])[:3]
 
         self.x = round(x, Point.NDIG)
         self.y = round(y, Point.NDIG)
@@ -52,10 +52,15 @@ class Point:
         else:
             return None
 
-    def __str__(self):
+    def __str__(self): # called by print and str
         os = Stream()
         os << "<Point> ( id: " << self.id << "  tag: " << self.tag
         os << "  x: " << self.x << "  y: " << self.y << "  z: " << self.z << " )"
+        return str(os)
+
+    def __repr__(self): # called by repr and a Point container str
+        os = Stream()
+        os << "Point(" << self.x << "," << self.y << "," << self.z << ")"
         return str(os)
 
 
@@ -74,6 +79,10 @@ class CollectionPoint(list):
             self.border_points.add(P)
 
         return P
+
+    def append(self, P):
+        P.id = len(self)
+        list.append(self, P)
 
     def in_border(self, P):
         return True if P in self.border_points else False
@@ -115,6 +124,7 @@ class Cell:
         return tmp
 
 
+
 class CollectionCell(list):
     def __init__(self, *args):
         list.__init__(self, *args)
@@ -129,6 +139,16 @@ class CollectionCell(list):
         cell.owner_shape = owner_shape
         self.append(cell)
         return cell
+
+    def append(self, cell):
+        cell.id = len(self)
+        list.append(self, cell)
+
+    def extend(self, other):
+        idx = len(self)
+        list.extend(self, other)
+        for i, cell in enumerate(other):
+            cell.id = idx + i
 
     def unique(self):
         # Get unique cells

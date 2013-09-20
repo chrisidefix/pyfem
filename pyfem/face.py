@@ -14,6 +14,12 @@ from tools.real_list import *
 
 
 class Face:
+    """ Contains information about a face of a finite element.
+
+    **nodes**
+        Returns a *CollectionNode* object containing all face nodes.
+
+    """
     def __init__(self):
         self.id = -1
         self.owner_elem = None
@@ -22,6 +28,26 @@ class Face:
         self.nodes = CollectionNode()
 
     def set_bc(self, *args, **kwargs):
+        """set_bc(key1=value1, [key2=value2 [,...]])
+        Sets the boundary conditions to all nodes in face. Surface boundary conditions
+        can be applied.
+
+        :param value1: A boundary condition value for key1 (*str*) degree of freedom.
+        :type  value1: float
+        :param value2: A boundary condition value for key2 (*str*) degree of freedom (optional).
+        :type  value2: float
+
+        The following example applies boundary conditions (traction of 0.5 in x direction) to face f0.
+
+        >>> f0.set_bc(tx=0.5)
+
+        other examples are:
+
+        >>> f0.set_bc(ux=0.0, uy=0.0, uz=0.0)
+        >>> f0.set_bc(ty=-10.0)
+        >>> f0.set_bc(tn= 10.0)
+        """
+
         if self.owner_elem is None:
             raise Exception("No owner element for face")
 
@@ -35,31 +61,61 @@ class Face:
             self.owner_elem.elem_model.set_face_bry(self.nodes, self.shape_type, key, value)
 
     @property
-    def x(self): return self._unique('x')
+    def x(self):
+        """ Returns the x coordinate of the face in case all face nodes have the
+        same x coordinate otherwise it returns *None*.
+        """
+        return self._unique('x')
 
     @property
-    def y(self): return self._unique('y')
+    def y(self):
+        """ Returns the y coordinate of the face in case all face nodes have the
+        same y coordinate otherwise it returns *None*.
+        """
+        return self._unique('y')
 
     @property
-    def z(self): return self._unique('z')
+    def z(self):
+        """ Returns the z coordinate of the face in case all face nodes have the
+        same z coordinate otherwise it returns *None*.
+        """
+        return self._unique('z')
 
     @property
-    def min_x(self): return self.nodes.min_x
+    def min_x(self):
+        """ Returns the minimum x coordinate in face.
+        """
+        return self.nodes.min_x
 
     @property
-    def min_y(self): return self.nodes.min_y
+    def min_y(self):
+        """ Returns the minimum y coordinate in face.
+        """
+        return self.nodes.min_y
 
     @property
-    def min_z(self): return self.nodes.min_z
+    def min_z(self):
+        """ Returns the minimum z coordinate in face.
+        """
+        return self.nodes.min_z
 
     @property
-    def max_x(self): return self.nodes.max_x
+    def max_x(self):
+        """ Returns the maximum x coordinate in face.
+        """
+        return self.nodes.max_x
 
     @property
-    def max_y(self): return self.nodes.max_y
+    def max_y(self):
+        """ Returns the maximum y coordinate in face.
+        """
+        return self.nodes.max_y
 
     @property
-    def max_z(self): return self.nodes.max_z
+    def max_z(self):
+        """ Returns the maximum z coordinate in face.
+        """
+        return self.nodes.max_z
 
     def _unique(self, coord):
         """
@@ -106,8 +162,13 @@ class Face:
 
 
 class CollectionFace(list):
+    """ Object that contains Face objects as a collection.
+    """
     @property
     def nodes(self):
+        """ Returns a *CollectionNode* collection with all nodes in the face
+        collection. The returned collection does not contain duplicated nodes.
+        """
         res = []
         for face in self:
             res.extend(face.nodes)
@@ -115,22 +176,40 @@ class CollectionFace(list):
         return CollectionNode(set(res))
 
     @property
-    def min_x(self): return self.nodes.min_x
+    def min_x(self):
+        """ Returns the minimum x coordinate for all nodes in the face collection.
+        """
+        return self.nodes.min_x
 
     @property
-    def min_y(self): return self.nodes.min_y
+    def min_y(self):
+        """ Returns the minimum y coordinate for all nodes in the face collection.
+        """
+        return self.nodes.min_y
 
     @property
-    def min_z(self): return self.nodes.min_z
+    def min_z(self):
+        """ Returns the minimum z coordinate for all nodes in the face collection.
+        """
+        return self.nodes.min_z
 
     @property
-    def max_x(self): return self.nodes.max_x
+    def max_x(self):
+        """ Returns the maximum x coordinate for all nodes in the face collection.
+        """
+        return self.nodes.max_x
 
     @property
-    def max_y(self): return self.nodes.max_y
+    def max_y(self):
+        """ Returns the maximum y coordinate for all nodes in the face collection.
+        """
+        return self.nodes.max_y
 
     @property
-    def max_z(self): return self.nodes.max_z
+    def max_z(self):
+        """ Returns the maximum z coordinate for all nodes in the face collection.
+        """
+        return self.nodes.max_z
 
     def __add__(self, other):
         tmp = set(self)
@@ -180,24 +259,27 @@ class CollectionFace(list):
         assert False
 
     def sub(self, *args, **kwargs):
+        """sub(att1=value1, [att2=value2 [,...]])
+        Filters the collection of faces according to given criteria.
 
-        """
-        Filters the collection according to at least one of given conditions
-        ====================================================================
+        :param value1: A value for face attribute att1 (*str*) used to filter the collection.
+        :type  value1: float or str
+        :param value2: A value for face attribute att2 (*str*) used to filter the collection.
+        :type  value2: float or str
 
-        INPUT:
-            kwargs: A keyword argument dict with multiple conditions.
+        :returns: A new collection with faces that match the given criteria.
 
-        RETURNS:
-            coll  : A new collection with nodes that match at least one given condition
+        The following code filters the faces collection faces0 returning all faces with x coordinate
+        equal to zero:
 
-        EXAMPLE:
-            > tmp = faces.sub(x=0.0)
-            > tmp = faces.sub(x=[1.0, 2.0, 3.0, 5.0])
+        >>> tmp = faces0.sub(x=0.0)
 
-            > tmp = faces.sub(lambda n: f.x>2)
-            > tmp = faces.sub(lambda n: f.x>=2 and x<=4)
+        other examples are:
 
+        >>> tmp = faces0.sub(x=0.0)
+        >>> tmp = faces0.sub(tag="top_nodes")
+        >>> tmp = faces0.sub(x=[0.0, 20.0])
+        >>> tmp = faces0.sub(lambda f: f.y==0 and f.min_x>=10.0)
         """
 
         # Resultant collection initialization

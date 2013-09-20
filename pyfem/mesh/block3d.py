@@ -14,6 +14,8 @@ from shape_functions import *
 from block import *
 
 class Block3D(Block):
+    """ A block class for structured meshes in three dimwnsions.
+    """
     def __init__(self, coords=None, div=[1,1,1], quadratic=False, tetra=False):
         Block.__init__(self)
         self.nx = div[0]
@@ -25,6 +27,16 @@ class Block3D(Block):
         self.face_tags = ["", "", "", "", "", ""]
 
     def set_divisions(self, nx, ny, nz):
+        """ Sets the number of divisions in local x and y directions.
+
+        :param nx:  Number of divisions in x direction.
+        :type  nx:  int
+        :param ny:  Number of divisions in y direction.
+        :type  ny:  int
+        :param nz:  Number of divisions in z direction.
+        :type  nz:  int
+        """
+
         self.nx = nx
         self.ny = ny
         self.nz = nz
@@ -33,8 +45,12 @@ class Block3D(Block):
         self.face_tags[idx] = tag
 
     def make_box(self, C1, C2):
-        """
-        C1 and C2 are lists with coordinates with 3 components
+        """ Generates the block coordinates by defining two diagonal coordinates of a box.
+
+        :param C1: Coordinates of the first point
+        :type  C1: list
+        :param C2: Coordinates of the second point
+        :type  C2: list
         """
 
         if len(C1) !=3 or len(C2) != 3:
