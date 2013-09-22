@@ -3,7 +3,7 @@ from pyfem import *
 block0 = Block3D()
 block0.make_box([0,0,0], [6,1,1])
 
-block0.set_divisions(20,5,5)
+block0.set_divisions(20,6,6)
 
 block1 = BlockInset()
 block2 = BlockInset()
@@ -12,13 +12,13 @@ block2.set_coords([(0.5, 0.8, 0.05), (5.5, 0.8,0.05)])
 
 block3 = BlockInset()
 block3.set_coords([(1.0, 0.1, 0.1), (1.0, 0.9, 0.1), (1.0, 0.9, 0.9), (1.0, 0.1, 0.9), (1.0, 0.1, 0.1) ])
+blocks_st = block3.array([1,0,0], 5, 0.15)
 
 #stirrups = array_block(block3, 6, 0.3)
 
 mesh = Mesh(block0, block1, block2, block3)
 mesh.generate()
 
-#mesh.write_file("tmesh.vtk")
 
 dom = Domain(mesh)
 mat0 = EqElasticSolid(E=1e4, nu=0.25)
@@ -34,11 +34,7 @@ dom.nodes.sub(x=6).set_bc(ux=0,uy=0,uz=0)
 
 dom.faces.sub(z=1).set_bc(tz=-4.0)
 
-solver = SolverEq(domain=dom, scheme="NR", nincs=5, precision=1.e-3)
-#dom.set_solver(SolverEq())
-#dom.solver.set_scheme("MNR")
-#dom.solver.set_incs(5)
-#dom.solver.solve()
+solver = SolverEq(domain=dom, scheme="NR", precision=1.e-3)
 solver.solve()
 
 solver.write_output()

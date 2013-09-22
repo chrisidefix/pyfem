@@ -17,7 +17,7 @@ from mat_model_concrete_truss           import *
 from mat_model_elastic import *
 from mat_model_drucker_prager     import *
 from mat_model_mohr_coulomb       import *
-from mat_model_mohr_coulomb_joint import *
+from mat_model_rjoint import *
 
 #Solver
 from solver_eq import *

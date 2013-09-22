@@ -28,7 +28,7 @@ domain = Domain()
 domain.load_mesh(mesh)
 
 # Setting element types and parameters
-emodel = EqElasticBar(E=1.0, A=1.0)
+emodel = EqElasticTruss(E=1.0, A=1.0)
 domain.elems.set_elem_model(emodel)
 
 #Setting boundary conditions

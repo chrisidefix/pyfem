@@ -26,6 +26,7 @@ class Block2D(Block):
 
         my_block = Block2D()
         my_block.set_coords( [[0,0],[1,0],[1,1],[0,1]] )
+        my_block.set_divisions(10, 10)
         my_block.set_quadratic()
 
         my_mesh = Mesh()

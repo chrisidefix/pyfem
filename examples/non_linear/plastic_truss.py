@@ -37,10 +37,10 @@ slop_elems.set_elem_model(mat3)
 #domain.elems.set_state(sa=0.1)
 
 #Setting boundary conditions
-domain.nodes.sub(y=0.0).set_brys(ux=0, uy=0.0)
-#domain.nodes.sub(x=[0.0, 1.0]).set_brys(ux=0.0)
+domain.nodes.sub(y=0.0).set_bc(ux=0, uy=0.0)
+#domain.nodes.sub(x=[0.0, 1.0]).set_bc(ux=0.0)
 load = -50.0
-domain.nodes.sub(y=1.0).set_brys(fy=load)
+domain.nodes.sub(y=1.0).set_bc(fy=load)
 
 #Setting solver and solving
 solver = SolverEq()
@@ -54,10 +54,10 @@ solver.write_output()
 
 # Stage 2
 
-domain.nodes.sub(y=0.0).set_brys(ux=0, uy=0.0)
-domain.nodes.sub(x=[0.0, 1.0]).set_brys(ux=0.0)
+domain.nodes.sub(y=0.0).set_bc(ux=0, uy=0.0)
+domain.nodes.sub(x=[0.0, 1.0]).set_bc(ux=0.0)
 load = -50.0
-domain.nodes.sub(y=1.0).set_brys(fy=load)
+domain.nodes.sub(y=1.0).set_bc(fy=load)
 
 
 solver.solve()

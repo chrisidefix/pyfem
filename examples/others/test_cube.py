@@ -14,8 +14,8 @@ domain = Domain(mesh)
 domain.elems.set_elem_model(EqElasticSolid(E=1.0E5, nu=0.3))
 
 # Filtering faces
-fixed_faces  = domain.faces.with_x(0.0)
-loaded_faces = domain.faces.with_x(1.0)
+fixed_faces  = domain.faces.sub(x=0.0)
+loaded_faces = domain.faces.sub(x=1.0)
 
 # Boundary conditions
 fixed_faces .set_brys(ux=0.0, uy=0.0, uz=0.0)

@@ -12,9 +12,7 @@ from pyfem.elem_model import *
 
 class ElemModelEq(ElemModel):
     def __init__(self, *args, **kwargs):
-        """
-        Element model class for equilibrium analysis of solids and trusses
-        ==================================================================
+        """ Element model class for equilibrium analysis of solids and trusses
         """
 
         ElemModel.__init__(self);
@@ -110,7 +108,6 @@ class ElemModelEq(ElemModel):
         else:
             D = deriv_func(self.shape_type, R)
             J = mul(D, C)
-
             dNdX = mul(inv(J),D)
             detJ = det(J)
             self.memo[tuple(R)] = (dNdX, detJ)

@@ -20,8 +20,7 @@ class MatModelDruckerPrager(Model):
         self.kappa = 0.0
         self.plast = False
 
-        if args: data = args[0]
-        else:    data = kwargs
+        data = args[0] if args else kwargs
 
         if data:
             self.set_params(**data)
@@ -35,8 +34,8 @@ class MatModelDruckerPrager(Model):
         cp     = self.__class__()
         cp.sig = self.sig.copy()
         cp.eps = self.eps.copy()
-        cp.E   = self.E  
-        cp.nu  = self.nu 
+        cp.E   = self.E
+        cp.nu  = self.nu
         cp.alpha = self.alpha
         cp.kappa = self.kappa
         cp.plast = self.plast
@@ -62,7 +61,7 @@ class MatModelDruckerPrager(Model):
             self.E     = params.get("E", 0.0)
             self.nu    = params.get("nu",0.0)
             self.C     = params.get("C", 0.0)
-            self.C     = params.get("c", 0.0)
+            #self.C     = params.get("c", 0.0)
             self.phi   = params.get("phi", 0.0)
             assert self.nu>=0.0 and self.nu<0.5
             assert self.E>0
@@ -75,10 +74,10 @@ class MatModelDruckerPrager(Model):
 
     def set_state(self, **state):
         sqrt2 = 2.0**0.5
-        self.sig[0] = state.get("sxx", 0.0) 
+        self.sig[0] = state.get("sxx", 0.0)
         self.sig[1] = state.get("syy", 0.0)
         self.sig[2] = state.get("szz", 0.0)
-        self.sig[3] = state.get("sxy", 0.0)*sqrt2 
+        self.sig[3] = state.get("sxy", 0.0)*sqrt2
         self.sig[4] = state.get("syz", 0.0)*sqrt2
         self.sig[5] = state.get("sxz", 0.0)*sqrt2
 
@@ -133,7 +132,7 @@ class MatModelDruckerPrager(Model):
 
         Dep = De - (De.dot(v)).dyad(v.dot(De)) / (v.dot(De)).dot(v)
         return Dep
-            
+
     def stiff_coef(self):
         return 1.0;
 
@@ -156,7 +155,7 @@ class MatModelDruckerPrager(Model):
             aint += coef
             sig0 = sig_ini + aint*dsig
             F = self.yield_func(sig0)
-            if abs(F)/DEN < TOL and F > 0.0: 
+            if abs(F)/DEN < TOL and F > 0.0:
                 return aint, sig0
         else:
             raise Exception("MatModelMohrCoulombJoint.stress_update: Yield function intersection not found")
@@ -215,17 +214,17 @@ class MatModelDruckerPrager(Model):
             else:
                 raise Exception("MatModelDruckerPrager.stress_update: Return algorithm failed")
             aint, self.sig = self.find_intersection(sig_tr, self.sig-sig_tr)
-        
+
         dsig = self.sig - sig_ini;
         return dsig
-    
+
     def get_vals(self):
         sig = self.sig
         eps = self.eps
 
         if self.ndim==2:
             pass
-        
+
         vals = {}
         if self.ndim==3:
             #vec p = eps.principal();

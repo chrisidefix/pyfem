@@ -125,7 +125,7 @@ class MatModelMohrCoulombJoint(Model):
                 coef  = -copysign(0.5*coef, F)
                 aint += coef
                 self.sig = sig_ini + aint*dsig
-                F = self.yield_func(self.sig[0]) 
+                F = self.yield_func(self.sig[0])
                 if abs(F)/DEN<TOL and F>0: break
             else:
                 raise Exception("MatModelMohrCoulombJoint.stress_update: Yield function intersection not found")

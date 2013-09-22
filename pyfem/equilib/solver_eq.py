@@ -280,7 +280,7 @@ def deactivate_elems(elems, var, minv=-1e15, maxv=1e15):
             #e.elem_model.deactivate()
             for ip in e.ips:
                 ip.mat_model.set_params(E=2e1, A=0.03, sig_y=200e3)
-            print "deactivating", e.id
+            #print "deactivating", e.id
 
     ## Deactivating truss orphan elements
     #for e in elems:

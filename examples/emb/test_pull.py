@@ -80,7 +80,7 @@ for i in range(nstages):
 
     hook_node.set_bc(fz = sin(alp)*tload*load_incs[i])
     hook_node.set_bc(fy = cos(alp)*tload*load_incs[i])
-    domain.solver.set_incs(4)
+    #domain.solver.set_incs(4)
     domain.solver.solve()
     domain.solver.write_output()
 

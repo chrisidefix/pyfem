@@ -36,7 +36,7 @@ dom.load_mesh(mesh)
 dom.elems.solids.set_elem_model( EqElasticSolid(E=1.E3, nu=0.25) )
 dom.elems.solids.set_state(sxx=-100.0, syy=-100.0, szz=-100.0)
 
-dom.elems.lines.set_elem_model( EqElasticBar(E=1.0e4, A=0.1) )
+dom.elems.lines.set_elem_model( EqElasticTruss(E=1.0e4, A=0.1) )
 
 dom.elems.joints.set_elem_model( EqMohrCoulombJoint(Ks=2.0, Kn=3.0, Dm=0.15, C=20., phi=0.5) )
 

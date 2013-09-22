@@ -67,10 +67,12 @@ class Node:
     def is_essential(self, varname):
         if self.keys.has_key(varname):
             return self.keys[varname].strU==varname
+
         bad_varname = "Node::is_essential: varname (%s) not found in dofs \n" % (varname,)
         raise Exception(bad_varname)
 
-    def has_var(self, varname): return self.keys.has_key(varname)
+    def has_var(self, varname):
+        return self.keys.has_key(varname)
 
     def set_bc(self, *args, **kwargs):
         """set_bc(key1=value1, [key2=value2 [,...]])
@@ -133,7 +135,7 @@ class Node:
 
 
 class CollectionNode(list):
-    """ Object that contains Point objects as a collection.
+    """ Object that contains Node objects as a collection.
     """
     def __init__(self, *args):
         list.__init__(self, *args);
@@ -179,6 +181,11 @@ class CollectionNode(list):
         >>> nodes.set_bc(ux=0.0, uy=0.0, uz=0.0)
         >>> nodes.set_bc(fy=-10.0)
         """
+
+        if not self:
+            brys = args[0] if args else kwargs
+            print "CollectionNode.set_bc: WARNING - Applying boundary conditions", brys, "to an empty collection."
+
         for n in self:
             n.set_bc(*args, **kwargs)
 
@@ -188,13 +195,10 @@ class CollectionNode(list):
                 node.set_bc({key: M[j, i]})
 
     def set_brys_from_vec(self, keys, V):
-        #print V
         ndim = len(keys)
         for i, key in enumerate(keys):
             for j, node in enumerate(self):
-                #print key, V[j*ndim+i]
                 node.set_bc({key: V[j*ndim + i]})
-        #exit()
 
     def clear_bc(self):
         """Clears all boundary conditions previously defined for all nodes in the collection.
@@ -216,35 +220,35 @@ class CollectionNode(list):
         x, y, z = (C + [0])[:3]
         return CollectionNode(n for n in self if n.x==x and n.y==y and n.z==z)
 
-    def with_tag(self, *args):
-        return CollectionNode(n for n in self if n.tag in args)
+    #def with_tag(self, *args):
+    #    return CollectionNode(n for n in self if n.tag in args)
 
-    def with_id(self, *args):
-        return CollectionNode(n for n in self if n.id in args)
+    #def with_id(self, *args):
+    #    return CollectionNode(n for n in self if n.id in args)
 
-    def with_x(self, *args):
-        tmp = RealList(args)
-        return CollectionNode(n for n in self if n.x in tmp)
+    #def with_x(self, *args):
+    #    tmp = RealList(args)
+    #    return CollectionNode(n for n in self if n.x in tmp)
 
-    def with_y(self, *args):
-        tmp = RealList(args)
-        return CollectionNode(n for n in self if n.y in tmp)
+    #def with_y(self, *args):
+    #    tmp = RealList(args)
+    #    return CollectionNode(n for n in self if n.y in tmp)
 
-    def with_z(self, *args):
-        tmp = RealList(args)
-        return CollectionNode(n for n in self if n.z in tmp)
+    #def with_z(self, *args):
+    #    tmp = RealList(args)
+    #    return CollectionNode(n for n in self if n.z in tmp)
 
-    def with_x_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionNode(n for n in self if n.x+TOL>start and n.x-TOL<end)
+    #def with_x_in_interval(self, start, end):
+    #    TOL = 1.0E-8
+    #    return CollectionNode(n for n in self if n.x+TOL>start and n.x-TOL<end)
 
-    def with_y_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionNode(n for n in self if n.y+TOL>start and n.y-TOL<end)
+    #def with_y_in_interval(self, start, end):
+    #    TOL = 1.0E-8
+    #    return CollectionNode(n for n in self if n.y+TOL>start and n.y-TOL<end)
 
-    def with_z_in_interval(self, start, end):
-        TOL = 1.0E-8
-        return CollectionNode(n for n in self if n.z+TOL>start and n.z-TOL<end)
+    #def with_z_in_interval(self, start, end):
+    #    TOL = 1.0E-8
+    #    return CollectionNode(n for n in self if n.z+TOL>start and n.z-TOL<end)
 
     def _with_attr(self, attr, val=None):
         """
@@ -386,6 +390,3 @@ class CollectionNode(list):
 
     def plot(self, *args, **kwargs):
         self.data_book.plot(*args, **kwargs)
-
-        return max(n.y for n in self) if self else None
-

@@ -102,24 +102,24 @@ class MatModelMohrCoulombJoint(Model):
                     [  0.0, 0.0,  Kn ]])
 
     def stress_update(self, deps):
-        ks  = self.ks
-        Kn  = self.Kn
-        kh  = self.kh
+        ks      = self.ks
+        Kn      = self.Kn
+        kh      = self.kh
         dw      = deps[0]
         tau_ini = self.sig[0]
 
-        tau_tr = tau_ini + ks*dw           # τ trial: τ_tr = τ_ini + ks*Δω
-        f_tr   = self.yield_func(tau_tr)   # f trial
+        tau_tr  = tau_ini + ks*dw           # τ trial: τ_tr = τ_ini + ks*Δω
+        f_tr    = self.yield_func(tau_tr)   # f trial
 
 
         if f_tr<0.0:
             self.dg = 0.0
             tau = tau_tr
         else:
-            self.dg    = f_tr/(ks+kh)                   # Δγ
-            dw_p       = self.dg*copysign(1, tau_tr)    # Δωp
-            self.w_pa += self.dg                        # ωp¯ += Δγ
-            tau        = tau_tr - ks*dw_p               # τ    = ks*Δωp
+            self.dg     = f_tr/(ks+kh)                   # Δγ
+            dw_p        = self.dg*copysign(1, tau_tr)    # Δωp
+            self.w_pa  += self.dg                        # ωp¯ += Δγ
+            tau         = tau_tr - ks*dw_p               # τ    = ks*Δωp
 
         # Update eps
         self.eps += deps

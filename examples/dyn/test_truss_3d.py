@@ -1,10 +1,5 @@
 # Include PyFEM libraries
-import os,sys
-sys.path.append(os.getcwd()+"/..")
-
-from pyfem.mesh import *
-from pyfem.fem import *
-from pyfem.equilib import *
+from pyfem import *
 
 # Generate mesh
 mesh = Mesh()
@@ -28,11 +23,11 @@ domain = Domain()
 domain.load_mesh(mesh)
 
 # Setting element types and parameters
-domain.elems.set_elem_model(EqElasticBar({"E": 1.0, "A": 1.0}))
+domain.elems.set_elem_model(EqElasticTruss({"E": 1.0, "A": 1.0}))
 
 #Setting boundary conditions
-domain.nodes.with_z(0.0).set_brys({"ux": 0, "uy": 0, "uz": 0})
-domain.nodes.with_z(2.0).set_brys({"fz": -1.0})
+domain.nodes.sub(z=0.0).set_brys({"ux": 0, "uy": 0, "uz": 0})
+domain.nodes.sub(z=2.0).set_brys({"fz": -1.0})
 
 #Nodes summary
 #print "\nnodes:\n"

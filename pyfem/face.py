@@ -216,6 +216,13 @@ class CollectionFace(list):
         return CollectionFace(list(self) + [f for f in other if not f in tmp])
 
     def set_bc(self, *args, **kwargs):
+        """ Sets the given boundary conditions to all faces in the collection.
+        """
+
+        if not self:
+            brys = args[0] if args else kwargs
+            print "CollectionFace.set_bc: WARNING - Applying boundary conditions", brys, "to an empty collection."
+
         for f in self:
             f.set_bc(*args, **kwargs)
 

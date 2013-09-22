@@ -11,6 +11,7 @@ from collections import Counter
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
 from shape_types import *
+from shape_functions import *
 
 class Point:
     TOL  = 1.0e-8
@@ -38,19 +39,13 @@ class Point:
 
     def __eq__(self, other):
         if (self.x, self.y, self.z) == (other.x, other.y, other.z):
-            other._match = self
+            other._match = self  # a bit of black magic
             return True
         else:
             return False
 
     def __hash__(self):
         return int(self.x*1001 + self.y*1000001 + self.z*1000000001)
-
-    def get_match_from(self, aset):
-        if self in aset:
-            return self._match
-        else:
-            return None
 
     def __str__(self): # called by print and str
         os = Stream()
@@ -96,8 +91,8 @@ class CollectionPoint(list):
 
 class Cell:
     def __init__(self):
-        self.id   = -1
-        self.tag  = ""
+        self.id          = -1
+        self.tag         = ""
         self.shape_type  = 0
         self.points      = []
         self.lnk_cells   = []    # linked shapes
@@ -120,15 +115,23 @@ class Cell:
         tmp = 0
         for point in self.points:
             tmp += hash(point)
-
         return tmp
 
+    @property
+    def coords(self):
+        if not self.points: return None
+        return array( [ [P.x, P.y, P.z] for P in self.points], dtype=float )
 
 
 class CollectionCell(list):
     def __init__(self, *args):
         list.__init__(self, *args)
-        regions = []
+        self.changed = False # States if the collections was changed after bins construction
+        self.bins    = None  # Cell bins for fast search
+        self.l_bin   = 0.0   # Lenght of each bin
+        self.min_x   = 0.0
+        self.min_y   = 0.0
+        self.min_z   = 0.0
 
     def add_new(self, typ, conn, tag='', owner_shape=None):
         cell             = Cell()
@@ -138,20 +141,23 @@ class CollectionCell(list):
         cell.shape_type  = typ
         cell.owner_shape = owner_shape
         self.append(cell)
+        self.changed = True
         return cell
 
     def append(self, cell):
         cell.id = len(self)
         list.append(self, cell)
+        self.changed = True
 
     def extend(self, other):
         idx = len(self)
         list.extend(self, other)
         for i, cell in enumerate(other):
             cell.id = idx + i
+        self.changed = True
 
     def unique(self):
-        # Get unique cells
+        # Get unique cells (used e.g. to eliminate repeated faces after mesh generation)
         cells_set = Counter(self)
         self[:] = [cell for cell, count in cells_set.iteritems() if count==1]
 
@@ -159,48 +165,103 @@ class CollectionCell(list):
         for i, cell in enumerate(self):
             cell.id = i
 
-    def find_neighbors(self):
-        # could be inneficient in large collections
-        n = len(self)
-        for c in self[0:n]:
-            c.neighbors = []
+    def build_bins(self):
+        # Get all points
+        all_points = set(P for cell in self for P in cell.points)
 
-        for a in self[0:n-1]:
-            for b in self[i+1, n]:
-                if any(c in a for c in b):
-                    a.neighbors.append(b)
-                    b.neighbors.append(a)
+        # Get max lengths
+        min_x = min(P.x for P in all_points)
+        min_y = min(P.y for P in all_points)
+        min_z = min(P.z for P in all_points)
+        max_x = max(P.x for P in all_points)
+        max_y = max(P.y for P in all_points)
+        max_z = max(P.z for P in all_points)
 
-    def set_regions():
-        # get max length
-        minx = 0
-        miny = 0
-        minz = 0
-        maxx = 0
-        maxy = 0
-        maxz = 0
-        l = 0
-        # calc ndim
-        ndim = 0
-        # calc number of regions in each direction 
-        nx = 1
-        ny = 1
-        nz = 1
-        if ndim==3:
-            nz = 1
+        self.min_x = min_x
+        self.min_y = min_y
+        self.min_z = min_z
 
-        self.regions = numpy.empty((nx, ny, nz), dtype='object')
-        for o in nditer(self.regions):
-            o = CollectionCell()
+        # Get global lengths
+        Lx = max_x - min_x
+        Ly = max_y - min_y
+        Lz = max_z - min_z
+        max_L = max(Lx, Ly, Lz)
 
-        for c in self:
-            x  = centercell
-            y  = centercell
-            z  = centercell
-            ix = int((x - minx)/(maxx - minx))
-            iy = int((y - miny)/(maxy - miny))
-            iz = int((z - minz)/(maxz - minz))
-            self.regions[ix,iy,iz].append(c)
+        max_lx = 0.0
+        max_ly = 0.0
+        max_lz = 0.0
+
+        # Get cell lengths
+        for cell in self:
+            lx = max(P.x for P in cell.points) - min(P.x for P in cell.points)
+            if lx > max_lx: max_lx = lx
+
+            ly = max(P.y for P in cell.points) - min(P.y for P in cell.points)
+            if ly > max_ly: max_ly = ly
+
+            lz = max(P.z for P in cell.points) - min(P.z for P in cell.points)
+            if lz > max_lz: max_lz = lz
+
+        max_l = max(max_lx, max_ly, max_lz)
+
+        # Get number of divisions
+        ndiv = min(50, int(max_L/max_l))
+
+        l_bin = max_L/ndiv     # Get bin length
+        self.l_bin = l_bin
+
+        nx = int(Lx/l_bin) + 1
+        ny = int(Ly/l_bin) + 1
+        nz = int(Lz/l_bin) + 1
+
+        # Allocate bins
+        self.bins = numpy.empty((nx, ny, nz), dtype='object')
+        for k in range(nz):
+            for j in range(ny):
+                for i in range(nx):
+                    self.bins[i,j,k] = []
+
+        # Fill bins
+        for cell in self:
+            bins = set()
+            for C in cell.coords:
+                x, y, z = C
+                ix = int((x - min_x)/l_bin)
+                iy = int((y - min_y)/l_bin)
+                iz = int((z - min_z)/l_bin)
+                bins.add( (ix, iy, iz) )
+
+            for bin in bins:
+                self.bins[ bin[0],bin[1],bin[2] ].append(cell)
+
+        # Set self change status
+        self.changed = False
+
+    def find_cell(self, X):
+        # Point coordinates
+        x, y, z = (X + [0])[:3]
+
+        # Build bins if empty
+        if self.bins is None:
+            self.build_bins()
+
+        # Find bin index
+        ix = int((x - self.min_x)/self.l_bin)
+        iy = int((y - self.min_y)/self.l_bin)
+        iz = int((z - self.min_z)/self.l_bin)
+
+        # Search cell in bin
+        bin = self.bins[ix, iy, iz]
+        for cell in bin:
+            if is_inside(cell.shape_type, cell.coords, X):
+                return cell
+
+        # If not found rebuild bins in case of recent change
+        if self.changed:
+            self.build_bins()
+            return get_cell(X)
+
+        return None
 
 
 def generate_faces(shape):

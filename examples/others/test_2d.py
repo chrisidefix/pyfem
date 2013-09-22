@@ -35,7 +35,7 @@ domain.elems.set_elem_model(mat1)
 
 domain.nodes.sub(y=0).set_bc(ux=0, uy=0)
 #domain.nodes.sub(y=1).set_bc(fy=-10)
-domain.faces.with_y(1).set_bc(ty=-2)
+domain.faces.sub(y=1).set_bc(ty=-2)
 
 #Setting solver and solving
 solv = SolverEq()

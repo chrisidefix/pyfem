@@ -815,7 +815,7 @@ def get_ips_data(shape_type):
     if   shape_type == LIN2  :  IP = LIN_IP2;  FIP = None
     elif shape_type == LIN3  :  IP = LIN_IP2;  FIP = None
     elif shape_type == LIN4  :  IP = LIN_IP3;  FIP = None
-    elif shape_type == TRI3  :  IP = TRI_IP1;  FIP = LIN_IP2
+    elif shape_type == TRI3  :  IP = TRI_IP3;  FIP = LIN_IP2
     elif shape_type == TRI6  :  IP = TRI_IP3;  FIP = LIN_IP2
     elif shape_type == TRI9  :  IP = TRI_IP6;  FIP = LIN_IP3
     elif shape_type == LINK1 :  IP = None;     FIP = None

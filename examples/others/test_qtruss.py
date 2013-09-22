@@ -22,7 +22,7 @@ mesh.generate()
 
 dom = Domain()
 dom.load_mesh(mesh)
-dom.elems.set_elem_model(EqElasticBar(E=1.0, A=1.0))
+dom.elems.set_elem_model(EqElasticTruss(E=1.0, A=1.0))
 e = dom.elems[0].elem_model
 K = e.stiff()
 

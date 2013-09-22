@@ -14,11 +14,6 @@ class BlockInset(Block):
     bar elements according to the tresspased elements. In addition, joint
     elements are created to link the tresspased elements with the bar
     elements.
-
-    Stored:
-        quadratic: Flag used to obtain discretized bars with three nodes.
-        punctual : Flag used to generate punctual joint elements instead
-                   of continuous joint elements.
     """
 
     def __init__(self):
@@ -28,170 +23,6 @@ class BlockInset(Block):
         self.neighbors  = []     # Neighbor cells list to speed up cell look up
         self.punctual   = False  # Flag to define embedded punctual method
         self._end_point = None   # Last endpoint found
-
-    #def set_quadratic(self, value=True):
-        #self.quadratic = value
-
-    #def set_coords(self, C):
-        #ncols = len(C[0])
-        #nrows = len(C)
-        #self.coords = zeros(nrows, 3)
-        #self.coords[:,:ncols] = array(C)[:,:ncols]
-
-    def get_cell_coords(self, S):
-        # Constructs a matrix with cell coordinates
-
-        # INPUT:
-        #     S:  Cell object
-        # RETURNS:
-        #     C: A matrix with the coordinates of a cell object
-
-        ndim = 3;
-        sh_type = S.shape_type
-
-        if sh_type in [TRI3, TRI6, QUAD4, QUAD8]:
-            ndim = 2
-        else:
-            ndim = 3
-
-        C = empty(len(S.points), ndim)
-        for i, point in enumerate(S.points):
-            C[i,0] = point.x
-            C[i,1] = point.y
-            if ndim==3:
-                C[i,2] = point.z
-
-        return C
-
-    def inverse_map(self, S, X):
-        # Determines natural coordinates of a point given in global coordinates
-
-        # INPUT:
-        #     S: Cell object
-        #     X: List of global coordinates of a point
-        # RETURNS:
-        #     R: List of natural coordinates of the given point
-
-        TOL   = 1.0E-7
-        MAXIT = 25
-        R = zeros(3)
-
-        C = self.get_cell_coords(S)
-        for k in range(MAXIT):
-            # calculate Jacobian
-            D = deriv_func(S.shape_type, R)
-            J = mul(D, C)
-
-            # calculate trial of real coordinates
-            N  = shape_func(S.shape_type, R)
-            Xt = mul(N.T, C).T # interpolating
-
-            # calculate the error
-            deltaX = Xt - X;
-            deltaR = mul(inv(J).T, deltaX)
-
-            # updating local coords R
-            R -= deltaR
-            if norm(deltaX) < TOL: break
-
-        return R
-
-    def bdistance(self, S, R):
-        # Determines an estimate of the distance of a point to the border of a cell
-
-        # INPUT:
-        #     S:     Cell object
-        #     R:     A list containing natural coordinates of the point
-        #            where the cell functions are evaluated
-        # RETURNS:
-        #     value: An estimate of the distance to the border.
-        #            Positive value means that the point is inside the cell.
-        #            Negative value means that the point is outside the cell.
-
-        r, s, t = R[0], R[1], R[2]
-
-        sh_type = S.shape_type
-
-        if sh_type==TRI3 or sh_type==TRI6:
-            assert False
-
-        if sh_type==QUAD4 or sh_type==QUAD8:
-            return min(1.0 - abs(r), 1.0 - (s))
-
-        if sh_type==HEX8 or sh_type==HEX20:
-            return min(1.0 - abs(r), 1.0 - abs(s), 1.0 - abs(t))
-
-        if sh_type==TET4 or sh_type==TET10:
-            return min(r, s, t, 1.0-r-s-t)
-
-        return -1.0
-        #raise Exception("Block_inset::bdistance: Could not find cell type.")
-
-    def is_inside(self, S, X):
-        # Determines if a point is inside a cell
-
-        # INPUT:
-        #     S:      Cell object
-        #     X:     List of global coordinates of a point
-        # RETURNS:
-        #     value: True if the point is inside the cell
-
-        if S.shape_type in [LIN2, LIN3, LINK1, LINK2, LINK3]: return False
-
-        TOL = 1.0E-7
-        R = self.inverse_map(S, X)
-        if self.bdistance(S, R) > -TOL:
-            return True;
-        else:
-            return False;
-
-    def find_cell(self, X, cells, near_cells=None):
-        # Finds the cell that contains a given point
-
-        # INPUT:
-        #     X:           List of global coordinates of a point
-        #     cells:       A list of cells
-        #     near_cells:  A list of cells that is know that are close to
-        #                   the given point
-        # RETURNS:
-        #     cell:        The cell that contains the given point.
-        #                  In the case of the point is not contained by any cell
-        #                  from the list 'cells' then an None is returned.
-
-        if near_cells is not None:
-            for cell in near_cells:
-                if self.is_inside(cell, X):
-                    return cell
-
-        for cell in cells:
-            if self.is_inside(cell, X):
-                return cell
-
-        return None
-
-    def find_neighbors(self, cells, points):
-        # Finds neighbors cells (not being used)
-
-        pts_lst = sorted(points, key=lambda n: n.id)
-        shp_lst = sorted(cells, key=lambda s: s.id)
-
-        pt_sh_lst = []
-        for p in pts_lst:
-            pt_sh_lst.append([])
-
-        self.neighbors = []
-        for s in shp_lst:
-            self.neighbors.append(set())
-
-        for s in shp_lst:
-            for pt in s.points:
-                pt_sh_lst[pt.id].append(s)
-
-        for sh_set in pt_sh_lst:
-            for sh1 in sh_set:
-                for sh2 in sh_set:
-                    if sh1 is sh2: continue
-                    self.neighbors[sh1.id].add(sh2)
 
     def split(self, points, cells, faces):
         # Performs the discretization of a crossing entity
@@ -236,7 +67,9 @@ class BlockInset(Block):
         T  = (X1-X0)/length  # unitary vector for the inset
 
         # Find the initial and final element
-        init_cell  = self.find_cell(X0 + tinylen*T, cells) # The first tresspased cell
+        #init_cell = self.find_cell(X0 + tinylen*T, cells) # The first tresspased cell
+
+        init_cell = cells.find_cell(X0 + tinylen*T) # The first tresspased cell
 
         if init_cell==None:
             print "Block_inset.split: Inset limits outside the mesh."
@@ -252,8 +85,8 @@ class BlockInset(Block):
             n     = int(log(step/TOL,2)) + 1  # number of required iterations to find intersection
             step0 = 0.0
             for i in range(n):
-                R     = self.inverse_map(curr_cell, X)
-                bdist = self.bdistance  (curr_cell, R)
+                R     = inverse_map(curr_cell.shape_type, curr_cell.coords, X)
+                bdist = bdistance  (curr_cell.shape_type, R)
                 step *= 0.5+TOL
 
                 # Bisection algorithm
@@ -303,7 +136,8 @@ class BlockInset(Block):
 
             # Preparing for the next iteration
             Xp = X.copy()
-            next_cell     = self.find_cell(X + tinylen*T, cells) # The first tresspased cell
+            #next_cell     = self.find_cell(X + tinylen*T, cells) # The first tresspased cell
+            next_cell     = cells.find_cell(X + tinylen*T) # The first tresspased cell
             if next_cell == None:
                 print "Block_inset.split: hole found while searching for next tresspassed cell"
 
