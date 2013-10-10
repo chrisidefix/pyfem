@@ -45,6 +45,9 @@ class Ip:
         os << ")"
         return str(os)
 
+    def get_val(self, var):
+        return self.mat_model.get_vals()[var]
+
 
 class CollectionIp(list):
     def set_state(self, state):

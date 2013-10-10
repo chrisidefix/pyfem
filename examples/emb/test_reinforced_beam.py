@@ -12,11 +12,11 @@ block2.set_coords([(0.5, 0.8, 0.05), (5.5, 0.8,0.05)])
 
 block3 = BlockInset()
 block3.set_coords([(1.0, 0.1, 0.1), (1.0, 0.9, 0.1), (1.0, 0.9, 0.9), (1.0, 0.1, 0.9), (1.0, 0.1, 0.1) ])
-blocks_st = block3.array([1,0,0], 5, 0.15)
+blocks_st = block3.array(n=5, dx=0.2)
 
 #stirrups = array_block(block3, 6, 0.3)
 
-mesh = Mesh(block0, block1, block2, block3)
+mesh = Mesh(block0, block1, block2, blocks_st)
 mesh.generate()
 
 

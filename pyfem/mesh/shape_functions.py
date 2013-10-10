@@ -896,7 +896,8 @@ def extrapolator(shape_type):
 def inverse_map(shape_type, C, X):
     TOL   = 1.0E-4
     MAXIT = 25
-    R = zeros(3)
+    dim   = get_ndim(shape_type)
+    R = zeros(dim)
 
     for k in range(MAXIT):
         # calculate Jacobian
@@ -914,6 +915,8 @@ def inverse_map(shape_type, C, X):
         # updating local coords R
         R -= deltaR
         if norm(deltaX) < TOL: break
+
+    R.resize(3)
 
     return R
 

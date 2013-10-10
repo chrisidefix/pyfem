@@ -18,16 +18,18 @@ class ModelPPTruss(Model):
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
-        self.E    = 0.0
-        self.A    = 0.0
+        # state variables
         self.s    = 0.0    # σ
         self.e    = 0.0    # ε
         self.s_y0 = 0.0    # σy0
         self.e_pa = 0.0    # εp¯ 
         self.dg   = 0.0    # Δγ
-        self.H    = 0.0
-        self.COEF = 1.0e-3
         self.sig  = zeros(1)
+        # parameters
+        self.E    = 0.0
+        self.A    = 0.0
+        self.H    = 0.0
+        self.COEF = 1.0e-10
 
         data = args[0] if args else kwargs
 
@@ -56,12 +58,22 @@ class ModelPPTruss(Model):
         if reset:
             self.s    = 0.0    # σ
             self.e    = 0.0    # ε
-            self.s_y0 = 0.0    # σy0
             self.e_pa = 0.0    # εp¯ 
             self.dg   = 0.0    # Δγ
 
-        self.s = state.get("sa", self.s)
-        self.e = state.get("ea", self.e)
+        self.s    = state.get("sa"  , self.s   )
+        self.e    = state.get("ea"  , self.e   )
+        self.e_pa = state.get("e_pa", self.e_pa)
+        self.dg   = state.get("dg"  , self.dg  )
+        self.sig[0] = self.s
+
+    def get_state(self):
+        return {
+                "sa"  : self.s,
+                "ea"  : self.e,
+                "e_pa": self.e_pa,
+                "dg"  : self.dg,
+                }
 
     def yield_func(self, s):
         s_ya = self.s_y0 + self.H*self.e_pa   # σya = σy0 + H*εp¯
@@ -90,15 +102,19 @@ class ModelPPTruss(Model):
         self.s       = s_tr - E*de_p                   # σ
         ds           = self.s - s_ini                  # Δσ
         self.e      += de
-        self.sig[0] += ds
+        self.sig[0]  = self.s
 
         return array([ds])
 
     def get_vals(self):
         vals = {}
         vals["sa"] = self.s
+        vals["|sa|"] = abs(self.s)
         vals["ea"] = self.e
         vals["Fa"] = self.s*self.A
+        vals["dg"] = self.dg
+        vals["E"] = self.E
+        vals["A"] = self.A
         return vals
 
 

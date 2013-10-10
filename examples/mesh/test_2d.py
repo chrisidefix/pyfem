@@ -5,12 +5,13 @@ from pyfem import *
 # Generate mesh
 block = Block2D()
 #block.set_coords( [(0,0), (1,0), (2,1), (0,1)] )
-block.set_coords( [(0,0), (1,0), (1,1), (0,1)] )
+block.set_coords( [(-10,0), (10,0), (10,5), (5,5), (0,10), (-10,10)] )
 #block.set_coords( [(0,0), (2,0), (2,2), (0,2)] )
 #block.set_coords( [(0,0), (1,0), (0.5, 3**0.5/2), (-0.5,3**0.5/2)] )
-l = (4/3.)**0.25
-h = l/2.*3**0.5
+#l = (4/3.)**0.25
+#h = l/2.*3**0.5
 #block.set_coords( [(0,0), (l,0), (l/2, h), (-l/2,h)] )
+block.unstruct = True
 
 #block.set_unstructured(length=0.25)
 block.set_triangles()
@@ -21,7 +22,8 @@ mesh = Mesh(block)
 
 mesh.generate()
 
-#mesh.write_file("tmesh.vtk")
+mesh.write_file("output0.vtk")
+exit()
 
 # Setting the domain and loading the mesh
 dom = Domain()

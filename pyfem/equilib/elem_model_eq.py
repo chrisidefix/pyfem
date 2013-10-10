@@ -321,27 +321,20 @@ class ElemModelEq(ElemModel):
         elem_values  = {}
 
         # Adding nodal displacements
-        UX, UY, UZ = [], [], []
-        for node in self.nodes:
-            UX.append(node.keys["ux"].U)
-            UY.append(node.keys["uy"].U)
-            if ndim == 3:
-                UZ.append(node.keys["uz"].U)
-
-        nodal_values["ux"] = UX
-        nodal_values["uy"] = UY
-        if ndim == 3:
-            nodal_values["uz"] = UZ
+        nodal_values["ux"]     = [node.keys["ux"].U for node in self.nodes]
+        nodal_values["uy"]     = [node.keys["uy"].U for node in self.nodes]
+        if ndim==3:
+            nodal_values["uz"] = [node.keys["uz"].U for node in self.nodes]
 
         # Getting values from integration points
-        ip_values = {}
+        ip_values   = {}
         all_ip_vals = []
 
         for ip in self.ips:
             ip_vals = ip.mat_model.get_vals()
             all_ip_vals.append(ip_vals)
 
-        nips = len(self.ips)
+        nips    = len(self.ips)
         nipvals = len(ip_vals)
 
         # get matrix from all_ip_vals

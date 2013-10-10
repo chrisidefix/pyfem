@@ -3,6 +3,12 @@ import os, string
 import sys
 import traceback
 
+try:
+    import pyfem
+except:
+    import os,sys; sys.path.insert(0, os.getcwd()+"/..")
+
+
 count=0
 setpath = "./"
 for root, dirs, files in os.walk(setpath, topdown=False):

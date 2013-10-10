@@ -42,6 +42,7 @@ class Block2D(Block):
         self.use_triangle = False
         self.face_tags    = ['', '', '', '']
         self.is_truss     = False
+        self.unstruct     = False
 
     def make_box(self, C1, C2):
         """ Generates the block coordinates by defining two diagonal coordinates of a box.
@@ -112,6 +113,10 @@ class Block2D(Block):
     def split(self, points, cells, faces):
         if self.is_truss:
             self.split_as_truss(points, cells)
+            return
+
+        if self.unstruct:
+            self.split_unstruct_tri(points, cells, faces)
             return
 
         if self.use_triangle:
@@ -384,30 +389,30 @@ class Block2D(Block):
                 cell1 = cells.add_new(TRI3, [p3, p0, p2], self.tag)
 
                 # Array of faces vertices and tag indexes for face
-                faces_conn   = []
-                tag_idx      = []
-                owner_shapes = []
+                faces_conn  = []
+                tag_idx     = []
+                owner_cells = []
 
                 # Identifying faces
                 if i==1:
                     faces_conn.append([ p3, p0 ])
                     tag_idx.append(0)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
                 if i==nx:
                     faces_conn.append([ p1, p2 ])
                     tag_idx.append(1)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==1:
                     faces_conn.append([ p0, p1 ])
                     tag_idx.append(2)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==ny:
                     faces_conn.append([ p2, p3 ])
                     tag_idx.append(3)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
 
                 # Generating faces
-                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_shapes):
+                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_cells):
                     faces.add_new(LIN2, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_tri_o2(self, points, cells, faces):
@@ -472,30 +477,30 @@ class Block2D(Block):
                 cell1 = cells.add_new(TRI6, [p3, p0, p2, p7, p8, p6], self.tag)
 
                 # Array of faces vertices and tag indexes for face
-                faces_conn   = []
-                tag_idx      = []
-                owner_shapes = []
+                faces_conn  = []
+                tag_idx     = []
+                owner_cells = []
 
                 # Identifying faces
                 if i==2:
                     faces_conn.append([ p3, p0, p7 ])
                     tag_idx.append(0)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
                 if i==2*nx:
                     faces_conn.append([ p1, p2, p5 ])
                     tag_idx.append(1)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==2:
                     faces_conn.append([ p0, p1, p4 ])
                     tag_idx.append(2)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==2*ny:
                     faces_conn.append([ p2, p3, p6 ])
                     tag_idx.append(3)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
 
                 # Generating faces
-                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_shapes):
+                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_cells):
                     faces.add_new(LIN3, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_tri_o3(self, points, cells, faces):
@@ -569,30 +574,30 @@ class Block2D(Block):
                 cell1 = cells.add_new(TRI9, [p3, p0, p2, p7, p12, p6, p11, p13, p10], self.tag)
 
                 # Array of faces vertices and tag indexes for face
-                faces_conn   = []
-                tag_idx      = []
-                owner_shapes = []
+                faces_conn  = []
+                tag_idx     = []
+                owner_cells = []
 
                 # Identifying faces
                 if i==3:
                     faces_conn.append([ p3, p0, p7, p11])
                     tag_idx.append(0)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
                 if i==3*nx:
                     faces_conn.append([ p1, p2, p5, p9])
                     tag_idx.append(1)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==3:
                     faces_conn.append([ p0, p1, p4, p8])
                     tag_idx.append(2)
-                    owner_shapes.append(cell0)
+                    owner_cells.append(cell0)
                 if j==3*ny:
                     faces_conn.append([ p2, p3, p6, p10])
                     tag_idx.append(3)
-                    owner_shapes.append(cell1)
+                    owner_cells.append(cell1)
 
                 # Generating faces
-                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_shapes):
+                for faces_conn, idx, owner in zip(faces_conn, tag_idx, owner_cells):
                     faces.add_new(LIN4, faces_conn, self.face_tags[idx], owner) # can add duplicates
 
     def split_as_truss(self, points, cells):
@@ -659,4 +664,80 @@ class Block2D(Block):
 
                 for conn, tag in zip(all_conn, all_tag):
                     cells.add_new(LIN2, conn, tag)
+
+    def split_unstruct_tri(self, points, cells, faces):
+        min_x, min_y, dm = self.coords.min(axis=0)
+        max_x, max_y, dm = self.coords.max(axis=0)
+
+        Lx = max_x - min_x
+        Ly = max_y - min_y
+
+        self.l = 1.
+        l = self.l
+        #min_x -= l/2
+        #min_y -= l/2
+
+        nx = int(round(Lx/l))
+        ny = int(round(Ly/l))
+        p_arr = numpy.empty((nx+1, ny+1), dtype='object')
+        lcells = []
+        lpoints = []
+
+        # Generating points
+        for j in range(ny+1):
+            for i in range(nx+1):
+                r=(2.0/nx)*i-1.0
+                s=(2.0/ny)*j-1.0
+
+                C = array([min_x + i*l, min_y + j*l, 0.0])
+                if j%2:
+                    C[0] -= l/2
+
+                C.round(8)
+
+                P = Point(C)
+                lpoints.append(P)
+                p_arr[i,j] = P
+
+        # Generating cells
+        for j in range(0, ny):
+            for i in range(0, nx):
+                # Vertices of hex8 element
+                p0 = p_arr[i  , j  ]
+                p1 = p_arr[i+1, j  ]
+                p2 = p_arr[i+1, j+1]
+                p3 = p_arr[i  , j+1]
+
+                if j%2==0:
+                    cell0 = lcells.append([p0, p1, p2])
+                    cell1 = lcells.append([p3, p0, p2])
+                else:
+                    cell0 = lcells.append([p0, p1, p3])
+                    cell1 = lcells.append([p2, p3, p1])
+
+        # Remove cells outside the polygon
+        import matplotlib.nxutils as nx
+
+        points_coords = array( [[P.x, P.y] for P in lpoints], float)
+        print points_coords.shape
+        print self.coords[:,:2].shape
+        is_inside     = nx.points_inside_poly(points_coords, self.coords[:,:2])
+        print is_inside
+
+        for pt, inside in zip(lpoints, is_inside):
+            pt.inside = inside
+
+        # Removing cells outside
+        for cell in lcells:
+            if not all(P.inside for P in cell):
+                cell[0] = None
+
+        lcells = [cell for cell in lcells if cell[0]]
+
+
+        for P in lpoints:
+            points.add_new(P)
+
+        for cell in lcells:
+            cells.add_new(TRI3, cell, self.tag)
 

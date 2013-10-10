@@ -7,13 +7,32 @@ from shape_functions    import *
 from block import *
 
 class BlockInset(Block):
-    """ Block class to discretize crossing elements.
+    """ Block class to discretize line-shaped crossing elements.
 
-    This class discretizes entities as reinforcements that cross the mesh.
+    This class discretizes line-shaped entities as reinforcements that
+    cross the mesh.
     For example, a reinforcement entitie can be discretized into several
     bar elements according to the tresspased elements. In addition, joint
-    elements are created to link the tresspased elements with the bar
+    elements are created to link the tresspased elements with the line
     elements.
+
+    The following example generates a 3D structured mesh with a crossing
+    line-shaped entity properly discretized together with joint elements::
+
+        from pyfem import *
+
+        my_block = Block3D()                     # Creates a 3D block object
+        my_block.make_box([0,0,0],[6, 0.4, 0.6]) # Generates a box coordinates
+        my_block.set_divisions(60, 4, 6)         # Sets the number of divisions
+
+        my_inset = BlockInset()                  # Creates an inset block object
+        # Defines inset initial and final coordinates
+        my_inset.set_coords([[0.1, 0.1, 0.1], [5.9, 0.1, 0.1]])
+
+        my_mesh = Mesh()                         # Creates a mesh object
+        my_mesh.add_blocks(my_block, my_inset)   # Adds blocks to mesh object
+        my_mesh.generate()                       # Generates the mesh (cells and points)
+        my_mesh.write("my_mesh.vtk")             # Saves into a file
     """
 
     def __init__(self):
@@ -23,6 +42,8 @@ class BlockInset(Block):
         self.neighbors  = []     # Neighbor cells list to speed up cell look up
         self.punctual   = False  # Flag to define embedded punctual method
         self._end_point = None   # Last endpoint found
+
+    set_cubic = None # Shadows inherited method
 
     def split(self, points, cells, faces):
         # Performs the discretization of a crossing entity

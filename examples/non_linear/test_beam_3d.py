@@ -5,15 +5,12 @@ from pyfem import *
 
 # ... Solid elements
 block = Block3D()
-block.set_tag("beam")
 block.make_box([0,0,0], [1, 5, 1])
-block.set_divisions(3,40,3)
-block.set_quadratic()
+block.set_divisions(3,20,3)
 
 # ... Truss elements 
 block_bar1 = BlockLine()
 block_bar1.set_coords([(0,0,1), (0,5,1) ])
-block_bar1.set_quadratic()
 block_bar1.set_divisions(20)
 
 block_bar2 = block_bar1.copy(dx=1.0)

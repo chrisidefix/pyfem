@@ -36,7 +36,7 @@ class Block:
         """ Sets the block coordinates
 
         :param C:  A list of lists with all coordinates.  A numpy matrix is also accepted.
-        :type  C:  list, ndarray
+        :type  C:  list or ndarray
         """
 
         ncols = len(C[0])
@@ -77,25 +77,51 @@ class Block:
     def copy(self):
         """ Creates a copy of the block.
 
-        :returns:  Block -- A copy of the block.
+        :returns: A copy of the block.
         """
         return deepcopy(self)
 
-    def move(self, x=0, y=0, z=0):
-        """move(x, [y, [z]]) -> Block -- return self.
+    def array(self, n=1, dx=0, dy=0, dz=0):
+        """Creates an array of blocks with copies of current block.
 
-        Shift the block in x, y and z directions.
-
-        :param x: Shift in x direction
-        :type  x: float
-        :param y: Shift in y direction
-        :type  y: float
-        :param z: Shift in z direction (optional)
-        :type  z: float
+        :param n : Total number of elements in the array
+        :type  n : int
+        :param dx: Shift in x direction
+        :type  dx: float
+        :param dy: Shift in y direction
+        :type  dy: float
+        :param dz: Shift in z direction
+        :type  dz: float
+        :returns: self
         """
-        D = array([x, y, z])
+        coll = CollectionBlock()
+        coll.append(self)
+        for i in range(1, n):
+            coll.append(self.copy().move(i*dx, i*dy, i*dz))
+
+        return coll
+
+    def move(self, dx=0, dy=0, dz=0):
+        """Shift the block in x, y and z directions.
+
+        :param dx: Shift in x direction
+        :type  dx: float
+        :param dy: Shift in y direction
+        :type  dy: float
+        :param dz: Shift in z direction
+        :type  dz: float
+        :returns: self
+        """
+
+        if hasattr(x, "__len__"):
+            D = zeros(3)
+            D[:len(x)] = x
+        else:
+            D = array([x, y, z])
+
         for R in self.coords:
             R += D
+
         return self
 
     def rotate(self, Point, angle): # 2D rotate

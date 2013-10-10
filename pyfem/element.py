@@ -305,5 +305,3 @@ class CollectionElem(list):
         """
         for e in self:
             e.elem_model.deactivate()
-
-

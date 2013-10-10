@@ -28,6 +28,7 @@ class Node:
         self.keys     = {}
         self.n_shares = 0
         self.tag      = ''
+        self.data_table = Table()
 
     def add_dof(self, strU, strF):
         if not self.keys.has_key(strU):
@@ -74,6 +75,13 @@ class Node:
     def has_var(self, varname):
         return self.keys.has_key(varname)
 
+    def get_vals(self):
+        vals = {}
+        for dof in self.dofs:
+            vals[dof.strU] = dof.U
+            vals[dof.strF] = dof.F
+        return vals
+
     def set_bc(self, *args, **kwargs):
         """set_bc(key1=value1, [key2=value2 [,...]])
         Sets the boundary conditions at node.
@@ -114,6 +122,9 @@ class Node:
             dof.bryF   = 0.0
             dof.prescU = False
             dof.eq_id  = -1
+
+    def plot(self, *args, **kwargs):
+        self.data_table.plot(*args, **kwargs)
 
     def __repr__(self):
         os = Stream()
@@ -284,7 +295,7 @@ class CollectionNode(list):
 
             if isinstance(val, tuple):
                 start = val[0]
-                end   = val[0]
+                end   = val[1]
                 return CollectionNode(n for n in self if getattr(n,attr)>start-TOL and getattr(n,attr)<end+TOL)
 
             return CollectionNode(n for n in self if abs(getattr(n,attr)-val)<TOL)

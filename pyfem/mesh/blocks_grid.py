@@ -40,10 +40,10 @@ class BlocksGrid(CollectionBlock):
                 dy = dY[j]
                 B = Block2D()
                 B.set_coords([
-                    refx   , refy,
-                    refx+dx, refy,
-                    refx+dx, refy+dy,
-                    refx   , refy+dy]
+                    (refx   , refy   ),
+                    (refx+dx, refy   ),
+                    (refx+dx, refy+dy),
+                    (refx   , refy+dy)]
                     )
                 B.set_divisions(nX[i], nY[j])
                 self.append(B)
@@ -72,7 +72,7 @@ class BlocksGrid(CollectionBlock):
         for B in self:
             B.set_cubic()
 
-    def split(self, Points, Cells, Faces):
-        for B in self:
-            B.split(Points, Cells, Faces)
-        return self
+    #def split(self, Points, Cells, Faces):
+        #for B in self:
+            #B.split(Points, Cells, Faces)
+        #return self

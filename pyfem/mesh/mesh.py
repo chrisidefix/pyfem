@@ -48,14 +48,7 @@ class Mesh:
         self.cells      = CollectionCell()
         self.faces      = CollectionCell()
 
-        if len(args)>0:
-            first = args[0]
-            if isinstance(first, list):
-                self.blocks.extend(first)
-            elif isinstance(first, Block):
-                self.blocks.extend(args)
-            else:
-                assert False
+        self.add_blocks(*args)
 
     def reset(self):
         self.__init__()
@@ -111,7 +104,7 @@ class Mesh:
             for idx in con:
                 S.points.append(self.points[idx])
             S.shape_type = cell_data['type']
-            S.tag        = cell_data['tag']
+            S.tag        = cell_data.get('tag','')
             self.cells.append(S)
 
         # Set ndim
@@ -207,7 +200,12 @@ class Mesh:
         Add blocks containing geometric information to the Mesh object.
         """
         for blk in args:
-            self.blocks.append(blk)
+            if isinstance(blk, Block):
+                self.blocks.append(blk)
+            if isinstance(blk, CollectionBlock):
+                self.blocks.extend(blk)
+            if isinstance(blk, list):
+                self.add_blocks(*blk)
 
     def generate(self, filename=None, format="vtk"):
         """

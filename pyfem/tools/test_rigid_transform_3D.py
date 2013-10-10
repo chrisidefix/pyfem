@@ -7,6 +7,7 @@ from pyfem import *
 # Returns R, D
 # R = 3x3 rotation array
 # D = 1x3 translation vector
+# See: Least-squares fitting of two 3-D points sets (Arun et al.)
 # Thanks to Nghia Kien Ho and others for the simple algorithm
 
 def rigid_transform_3D(source, target):

@@ -4,10 +4,19 @@ import sys
 import traceback
 
 count=0
-setpath = "./"
+rootpath = os.path.dirname(os.path.abspath(__file__))
+
+setpath  = "./"
 for root, dirs, files in os.walk(setpath, topdown=False):
+      os.chdir(rootpath)
+      print "root", root
+      print "files", files
+
       for fname in files:
-          s = fname.find('.py')
+          if not fname.endswith(".py"): continue
+          os.chdir( os.path.dirname( os.path.abspath(root) ) )
+
+          if fname[:4]=='run_': continue
           #if fname[:5]=='test_' and fname[-3:]=='.py':
 
           fpath = os.path.join(root,fname)
@@ -27,3 +36,4 @@ for root, dirs, files in os.walk(setpath, topdown=False):
           else:
               print "Test", fname, "finalized."
 
+os.chdir(rootpath)

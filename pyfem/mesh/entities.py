@@ -65,9 +65,13 @@ class CollectionPoint(list):
         self.border_points = set()
 
     def add_new(self, X, border=False):
-        P    = Point()
+        if isinstance(X, Point):
+            P = X
+        else:
+            P    = Point()
+            P.set_coords(X)
+
         P.id = len(self)
-        P.set_coords(X)
         self.append(P)
 
         if border:
@@ -133,13 +137,14 @@ class CollectionCell(list):
         self.min_y   = 0.0
         self.min_z   = 0.0
 
-    def add_new(self, typ, conn, tag='', owner_shape=None):
+    def add_new(self, typ, conn, tag=None, owner_shape=None):
         cell             = Cell()
         cell.id          = len(self)
-        cell.tag         = tag
         cell.points      = conn
         cell.shape_type  = typ
         cell.owner_shape = owner_shape
+        if tag: cell.tag = tag
+
         self.append(cell)
         self.changed = True
         return cell
@@ -193,13 +198,11 @@ class CollectionCell(list):
 
         # Get cell lengths
         for cell in self:
-            lx = max(P.x for P in cell.points) - min(P.x for P in cell.points)
+            C = cell.coords
+            lx, ly, lz = C.max(axis=0) - C.min(axis=0)
+
             if lx > max_lx: max_lx = lx
-
-            ly = max(P.y for P in cell.points) - min(P.y for P in cell.points)
             if ly > max_ly: max_ly = ly
-
-            lz = max(P.z for P in cell.points) - min(P.z for P in cell.points)
             if lz > max_lz: max_lz = lz
 
         max_l = max(max_lx, max_ly, max_lz)
@@ -224,8 +227,8 @@ class CollectionCell(list):
         # Fill bins
         for cell in self:
             bins = set()
-            for C in cell.coords:
-                x, y, z = C
+            for row in cell.coords:
+                x, y, z = row
                 ix = int((x - min_x)/l_bin)
                 iy = int((y - min_y)/l_bin)
                 iz = int((z - min_z)/l_bin)

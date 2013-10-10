@@ -15,12 +15,28 @@ class Table(OrderedDict):
     def add_row(self, row_dict=None):
         if row_dict is None:
             for col in self.values():
-                col.append(None)
+                col.append(0.0)
         else:
             for key, val in row_dict.iteritems():
                 self[key].append(val)
 
         self.nrows += 1
+
+    def open_new_row(self):
+        self.nrows += 1
+        for col in self.values():
+            col.append(None)
+
+    def set_data(self, data_dict, overwrite=True):
+        assert(self.nrows > 0)
+
+        for key, data in data_dict.iteritems():
+            if key in self:
+                if overwrite:
+                    self[key][-1] = data
+            else:
+                self[key] = [0.0] * self.nrows
+                self[key][-1] = data
 
     def get_col(self, key, scalar = 1.0):
         col = self[key]
@@ -30,10 +46,10 @@ class Table(OrderedDict):
     def add_cols(self, str_keys, *data):
         pass
 
-    def save_csv(self, filename):
+    def write_csv(self, filename):
         pass
 
-    def save(self, filename):
+    def write(self, filename):
         pass
 
     def plot(self, xkey, ykeys, xlabel=None, ylabel=None):
@@ -44,7 +60,7 @@ class Table(OrderedDict):
 
         pylab.subplot(111)
         for ykey in ykeys:
-            pylab.plot(self["0:"+xkey], self["0:"+ykey], 'b-o')
+            pylab.plot(self[xkey], self[ykey], 'b-o')
 
         pylab.xlabel(xlabel, fontsize='large')
         pylab.ylabel(ylabel)
@@ -56,7 +72,7 @@ class Book(list):
     def add_table(self):
         self.append(Table())
 
-    def save(self, filename):
+    def write(self, filename):
         pass
 
     def plot(self, key, coef=1.0, xlabel='d', ylabel=None, legend=[]):

@@ -100,15 +100,14 @@ class SolverEq(Solver):
 
         self.K = scipy.sparse.coo_matrix((v, (r,c)), (ndofs, ndofs))
 
-    def solve(self):
+    def solve(self, to_limit=False):
         scheme = self.scheme
 
-        self.stage += 1
+        self.stage +1
         if not scheme: scheme = "MNR"
 
         if self.verbose:
             print "Solver: SolverEq"
-            print "  stage", self.stage, ":"
             print "  scheme:", self.scheme
 
         # Initialize SolverEq object and check
@@ -125,6 +124,23 @@ class SolverEq(Solver):
             U[i] = dof.bryU
             F[i] = dof.bryF
 
+        # Solve stage
+        if not to_limit:
+            self.solve_stage(U, F)
+        else:
+            self.solve_to_limit(U, F)
+
+        # Clear boundary conditions
+        self.nodes.clear_bc()
+
+    def solve_stage(self, U, F, raise_error=True):
+        scheme = self.scheme
+        if self.verbose:
+            print "  stage", self.stage, ":"
+
+        self.stage += 1
+
+        # Incremental vectors
         nu = len(self.udofs)
         lam = 1.0/self.nincs
         DU = lam*U
@@ -171,8 +187,15 @@ class SolverEq(Solver):
                         converged = True
                         break
 
+                    if self.residue > 100.0:
+                        converged = False
+                        break
+
                 if not converged:
-                    raise Exception("SolverEq.solve: Solver with scheme (M)NR did not converge")
+                    if raise_error:
+                        raise Exception("SolverEq.solve: Solver with scheme (M)NR did not converge")
+                    else:
+                        return False
 
             if scheme == "FE":
                 DFint, R = self.solve_inc(DU, DF)
@@ -184,9 +207,8 @@ class SolverEq(Solver):
                 self.write_history()
 
         if self.verbose: print "  end stage", self.stage
+        return True
 
-        # Clear boundary conditions
-        self.nodes.clear_bc()
 
     def solve_inc(self, DU, DF, calcK=True):
         """
@@ -242,6 +264,93 @@ class SolverEq(Solver):
         R = DF - DFint
         return DFint, R
 
+    def save_state(self):
+        # Save state for elements
+        self.elems_state = []
+        for e in self.elems:
+            e_st = []
+            for ip in e.elem_model.ips:
+                e_st.append(ip.mat_model.get_state())
+
+            self.elems_state.append(e_st)
+
+        # Save state for nodes
+        self.bkU = [dof.U for dof in self.dofs]
+        self.bkF = [dof.F for dof in self.dofs]
+
+
+    def restore_state(self):
+        # Restore elements state
+        for e, e_st in zip(self.elems, self.elems_state):
+            for ip, ip_st in zip(e.elem_model.ips, e_st):
+                ip.mat_model.set_state(ip_st)
+
+        self.elems_state = []
+
+        # Restore nodes state
+        for i, dof in enumerate(self.dofs):
+            dof.U = self.bkU[i]
+            dof.F = self.bkF[i]
+
+    def solve_to_limit(self, U, F):
+        self.scheme = "NR"
+        bkU = U.copy()
+        bkF = F.copy()
+        self.save_state()
+        coef     = 1.0
+        delta    = 0.5
+
+        eps = 0.1
+
+
+
+
+
+        factor = 1.1
+
+        #self.save_state()
+        #success = self.solve_stage(bkU, 1*bkF, raise_error=False)
+        #self.restore_state()
+        #success = self.solve_stage(bkU, 2*bkF, raise_error=False)
+        #self.restore_state()
+        #success = self.solve_stage(bkU, 4*bkF, raise_error=False)
+        #self.restore_state()
+        #success = self.solve_stage(bkU, 8*bkF, raise_error=False)
+        #self.restore_state()
+        #exit()
+
+
+
+        while delta>eps:
+
+
+            OUT("delta")
+            OUT("coef")
+            OUT("bkF")
+            #OUT("D")
+            #OUT("linalg.norm(bkF)")
+            success = self.solve_stage(bkU, bkF, raise_error=False)
+
+            if not success:
+                factor = 0.5
+
+            delta = factor*delta
+            #D    *= delta
+            if success:
+                self.save_state()
+                coef  += delta
+                bkF    = F*coef
+            else:
+                print "not success"
+                self.restore_state()
+                coef  -= delta
+                bkF    = F*coef
+
+            self.restore_state()
+
+        #OUT("coef")
+
+
     def update_elems_and_nodes(self, DU):
         DFint = zeros(len(self.dofs))
 
@@ -261,52 +370,6 @@ class SolverEq(Solver):
             if n.keys.has_key("ux"): n.keys["ux"].U = 0.0
             if n.keys.has_key("uy"): n.keys["uy"].U = 0.0
             if n.keys.has_key("uz"): n.keys["uz"].U = 0.0
-
-
-# deactivate elements that fulfill a give criterion
-def deactivate_elems(elems, var, minv=-1e15, maxv=1e15):
-
-    # Deactivating elements
-    for e in elems:
-        if not e.elem_model.is_active: continue
-        # avg values at ip
-        avg_val = 0.0
-        for ip in e.elem_model.ips:
-            avg_val += ip.mat_model.get_vals()[var]
-        avg_val /= len(e.elem_model.ips)
-        #OUT("avg_val")
-
-        if minv <= avg_val and avg_val <= maxv:
-            #e.elem_model.deactivate()
-            for ip in e.ips:
-                ip.mat_model.set_params(E=2e1, A=0.03, sig_y=200e3)
-            #print "deactivating", e.id
-
-    ## Deactivating truss orphan elements
-    #for e in elems:
-    #    if not e.elem_model.is_active: continue
-    #    if e.shape_type==LIN2:
-    #        for n in e.nodes:
-    #            if n.n_shares==1:
-    #                e.elem_model.deactivate()
-    #                print "deactivating", e.id
-    #                break
-
-    #print "Again"
-    ## Deactivating truss orphan elements
-    #for e in elems:
-    #    if not e.elem_model.is_active: continue
-    #    if e.shape_type==LIN2:
-    #        for n in e.nodes:
-    #            if n.n_shares==1:
-    #                e.elem_model.deactivate()
-    #                print "deactivating", e.id
-    #                break
-
-
-
-
-
 
 
 

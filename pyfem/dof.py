@@ -34,13 +34,13 @@ class Dof:
         os << " eq_id:" << self.eq_id
         os << "  presc_" << self.strU << ": "
 
-        if self.prescU: 
+        if self.prescU:
             os <<= "Yes"
-        else: 
+        else:
             os <<= "No "
 
         os << "  bry_" << self.strU << "= " << self.bryU << " bry_" << self.strF << "= " << self.bryF
-        os << "  "     << self.strU << "= " << self.U    << " "     << self.strF << "= " << self.F   
+        os << "  "     << self.strU << "= " << self.U    << " "     << self.strF << "= " << self.F
         os << ")"
         return str(os)
 

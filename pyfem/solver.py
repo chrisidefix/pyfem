@@ -340,29 +340,26 @@ class Solver:
         for node in self.tracked_nodes:
             #  Write header
             table = node.data_table
-            if not table:
-                table.add_keys("id")
-                table.add_keys(nodal_labels)
+            data  = node.get_vals()
 
-            # Get data
-            dat = {"id": node.id}
-            for i, key in enumerate(nodal_labels):
-                dat[key] = float(nodal_values[node.id, i])
+            #for i, key in enumerate(nodal_labels):
+                #data[key] = float(nodal_vals[node.id, i])
 
             #  Write table row
-            table.add_row(dat)
+            table.open_new_row()
+            table.set_data(data)
 
         # Writing history from node collection
         for coll in self.tracked_coll_nodes:
             dist = 0.0
-            X0 = coll[0].X
+            X0   = coll[0].X
 
             coll.data_book.add_table()
             table = coll.data_book[-1]
 
             #  Write header
-            table.add_keys(["id", "dist"])
-            table.add_keys(nodal_labels)
+            #table.add_keys(["id", "dist"])
+            #table.add_keys(nodal_labels)
 
             #  Write table
             for node in coll:
@@ -370,29 +367,31 @@ class Solver:
                 X0 = node.X
 
                 # Get data
-                dat = {"id": node.id, "dist": dist}
+                data = {"id": node.id, "dist": dist}
                 for i, key in enumerate(nodal_labels):
-                    dat[key] = float(nodal_vals[node.id, i])
+                    data[key] = float(nodal_vals[node.id, i])
 
-                #  Write table row
-                table.add_row(dat)
+                # Write table row
+                table.open_new_row()
+                table.set_data(data)
 
         # Writing history from elements
         for elem in self.tracked_elems:
             table = elem.data_table
             #  Write header
-            if not table:
-                for i, ip in enumerate(elem.elem_model.ips):
-                    ip_vals = ip.mat_model.get_vals()
-                    for label in ip_vals.keys():
-                        table.add_keys(str(i)+":"+label)
+            #if not table:
+                #for i, ip in enumerate(elem.elem_model.ips):
+                    #ip_vals = ip.mat_model.get_vals()
+                    #for label in ip_vals.keys():
+                        #table.add_keys(str(i)+":"+label)
 
             #  Write table
             for i, ip in enumerate(elem.elem_model.ips):
                 ip_vals = ip.mat_model.get_vals()
                 # Updating keys
-                dat = dict((str(i)+":"+key, val) for (key, val) in ip_vals.iteritems())
-                table.add_row(dat)
+                data = { str(i)+":"+key : val for key, val in ip_vals.iteritems()}
+                table.open_new_row()
+                table.set_data(data)
 
     def write_history2(self, *args):
         if args:
