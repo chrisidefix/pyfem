@@ -29,7 +29,7 @@ class ModelPPTruss(Model):
         self.E    = 0.0
         self.A    = 0.0
         self.H    = 0.0
-        self.COEF = 1.0e-10
+        self.COEF = 1.0e-16
 
         data = args[0] if args else kwargs
 
@@ -60,6 +60,8 @@ class ModelPPTruss(Model):
             self.e    = 0.0    # ε
             self.e_pa = 0.0    # εp¯ 
             self.dg   = 0.0    # Δγ
+
+        #OUT("state")
 
         self.s    = state.get("sa"  , self.s   )
         self.e    = state.get("ea"  , self.e   )

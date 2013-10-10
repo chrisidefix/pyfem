@@ -24,6 +24,7 @@ class SolverEq(Solver):
         self.K22 = None
         self.LUsolver = None
         self.plane_stress = False
+        self.nmaxits = 40
 
     def set_plane_stress(self, value):
         self.plane_stress = True
@@ -103,7 +104,11 @@ class SolverEq(Solver):
     def solve(self, to_limit=False):
         scheme = self.scheme
 
-        self.stage +1
+        #self.stage += 1
+
+        if self.stage==0:
+            self.write_history()
+
         if not scheme: scheme = "MNR"
 
         if self.verbose:
@@ -135,10 +140,11 @@ class SolverEq(Solver):
 
     def solve_stage(self, U, F, raise_error=True):
         scheme = self.scheme
+        self.stage += 1
+
         if self.verbose:
             print "  stage", self.stage, ":"
 
-        self.stage += 1
 
         # Incremental vectors
         nu = len(self.udofs)
@@ -206,7 +212,7 @@ class SolverEq(Solver):
             if self.track_per_inc:
                 self.write_history()
 
-        if self.verbose: print "  end stage", self.stage
+        if self.verbose: print "  end stage", self.stage, "\n"
         return True
 
 
@@ -280,75 +286,55 @@ class SolverEq(Solver):
 
 
     def restore_state(self):
+        S = [ip.mat_model.s for ip in self.elems.ips]
         # Restore elements state
         for e, e_st in zip(self.elems, self.elems_state):
             for ip, ip_st in zip(e.elem_model.ips, e_st):
                 ip.mat_model.set_state(ip_st)
 
-        self.elems_state = []
 
         # Restore nodes state
         for i, dof in enumerate(self.dofs):
             dof.U = self.bkU[i]
             dof.F = self.bkF[i]
 
+        Ur = [dof.U for dof in self.dofs]
+        Fr = [dof.F for dof in self.dofs]
+
+        S = [ip.mat_model.s for ip in self.elems.ips]
+
     def solve_to_limit(self, U, F):
         self.scheme = "NR"
-        bkU = U.copy()
-        bkF = F.copy()
-        self.save_state()
-        coef     = 1.0
-        delta    = 0.5
-
-        eps = 0.1
-
-
-
-
-
+        lf     = 1.0  # Load factor (safety factor)
+        delta  = 0.5
+        eps    = 0.01
         factor = 1.1
 
-        #self.save_state()
-        #success = self.solve_stage(bkU, 1*bkF, raise_error=False)
-        #self.restore_state()
-        #success = self.solve_stage(bkU, 2*bkF, raise_error=False)
-        #self.restore_state()
-        #success = self.solve_stage(bkU, 4*bkF, raise_error=False)
-        #self.restore_state()
-        #success = self.solve_stage(bkU, 8*bkF, raise_error=False)
-        #self.restore_state()
-        #exit()
+        self.save_state()
 
+        for i in range(self.nmaxits):
+            #OUT("lf*F")
 
-
-        while delta>eps:
-
-
-            OUT("delta")
-            OUT("coef")
-            OUT("bkF")
-            #OUT("D")
-            #OUT("linalg.norm(bkF)")
-            success = self.solve_stage(bkU, bkF, raise_error=False)
+            success = self.solve_stage(U, lf*F, raise_error=False)
 
             if not success:
                 factor = 0.5
 
             delta = factor*delta
-            #D    *= delta
+            if delta<eps:
+                break
+
             if success:
-                self.save_state()
-                coef  += delta
-                bkF    = F*coef
+                lf  += delta
             else:
-                print "not success"
-                self.restore_state()
-                coef  -= delta
-                bkF    = F*coef
+                lf  -= delta
 
             self.restore_state()
+        else:
+            raise Exception("SolverEq.solve: Solver reached maximum number of iterations.")
 
-        #OUT("coef")
+        print "  Maximum load factor :", lf,"\n"
+        return lf
 
 
     def update_elems_and_nodes(self, DU):
