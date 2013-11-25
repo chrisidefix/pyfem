@@ -55,5 +55,6 @@ print "Residue: ", domain.solver.residue
 
 domain.solver.write_output()
 
+print domain.elems[0].data_table.keys()
 domain.elems[0].plot("J1", "srJ2D")
 domain.elems[0].plot("ezz", "szz")

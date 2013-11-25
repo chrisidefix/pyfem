@@ -45,9 +45,8 @@ class ElemModelLineJoint(ElemModelEq):
             M    = ip.mat_model
             M.attr["sign"] = self.calc_sign(ip.R, Ch, Ct)
             Dep  = M.stiff()
-            #coef = detJ*ip.w*M.stiff_coef()
             coef = detJ*ip.w
-            ###
+
             Dep[0,0] *= M.h
             K += mul(B.T, Dep, B)*coef
 
@@ -339,6 +338,5 @@ class ElemModelLineJoint(ElemModelEq):
             ###
             sig[0] *= M.h
             F += mul(B.T, sig)*coef
-            #F += mul(B.T, M.sig)*coef
 
         print "F:", F

@@ -79,15 +79,14 @@ class SolverHydromec(Solver):
 
         if not self.pdofs: raise Exception("SolveHydromec.prime_and_check: No prescribed dofs=")
 
-    def mountK(self):
+    def mountK(self, dt):
         ndofs = len(self.dofs)
         r, c, v = [], [], []
-        dT = 1.0
         self.alpha = 1.0
 
         calc_funcs = [ "calcH"      , "calcK"    , "calcM"    , "calcL"    , "calcC" ]
         loc_funcs  = [ "get_H_loc"  , "get_K_loc", "get_M_loc", "get_L_loc", "get_C_loc"]
-        matr_coefs = [ self.alpha*dT, 1.0        , 1.0        , 1.0        , 1.0 ]
+        matr_coefs = [ self.alpha*dt, 1.0        , 1.0        , 1.0        , 1.0 ]
 
         for e in self.aelems:
             for func, lfunc, coef in zip(calc_funcs, loc_funcs, matr_coefs):
@@ -116,29 +115,34 @@ class SolverHydromec(Solver):
                 c.append(cloc[j])
                 v.append(M[i,j])
 
-    def mountRHS(self, dt):
+    def mountRHS(self, RHS, dt):
         ndofs = len(self.dofs)
 
         # Vector with natural values
-        RHS = array([dof.bryF for dof in self.dofs])
+        #RHS = array([dof.bryF for dof in self.dofs])
 
         for e in self.aelems:
             # Permeability matrix
             H   = e.elem_model.calcH()
             # Total pore-pressure vector
             P = [ node.keys["wp"].U for node in e.elem_model.nodes ]
-            # Permeability map
+            #print P
+            #Permeability map
             loc = e.elem_model.get_H_loc()
-            RHS[loc] += dt*mul(H,P)
+            RHS[loc] += -dt*mul(H,P)
+            #OUT('dt*mul(H,P)')
+
 
             Qh = e.elem_model.calcQh()
             RHS[loc] += dt*Qh
+            #OUT('dt*Qh')
+            #OUT('dt*mul(H,P) - dt*Qh')
+
+        return RHS
 
         #print "dt: ", dt
         #print RHS
         #exit()
-
-        return RHS
 
     def solve(self, Dt):
         scheme = self.scheme
@@ -162,7 +166,8 @@ class SolverHydromec(Solver):
         lam   = 1.0/self.nincs
         dt    = lam*Dt
         U     = array([dof.bryU for dof in self.dofs])
-        F     = self.mountRHS(dt)
+        F     = array([dof.bryF for dof in self.dofs])
+        #F     = self.mountRHS(dt)
 
         nu    = len(self.udofs)
         DU    = lam*U
@@ -219,19 +224,21 @@ class SolverHydromec(Solver):
                     raise Exception("SolveHydromec.solve: Solver with scheme (M)NR did not converge")
 
             if scheme == "FE":
-                DFint, R = self.solve_inc(DU, DF, dt)
-                if not no_natural:
-                    self.residue = norm(R)/(norm(DFint)*self.nincs)
-                else:
-                    self.residue = 0.0
-                    for dof in self.udofs:
-                        self.residue += (DF[dof.eq_id] - DFint[dof.eq_id])**2
-                    self.residue = self.residue/(norm(DF)*self.nincs + 1.)
+                DF = lam*F
+                DFint, R, DFext = self.solve_inc(DU, DF, dt)
+                #self.residue = norm(R)/(norm(DFint)*self.nincs)
+                #if not no_natural:
+                    #self.residue = norm(R)/(norm(DFint)*self.nincs)
+                #else:
+                self.residue = 0.0
+                for dof in self.udofs:
+                    self.residue += (DFext[dof.eq_id] - DFint[dof.eq_id])**2
+                self.residue = self.residue/(norm(DFext)*self.nincs + 1.)
 
                 if math.isnan(self.residue): raise Exception("SolveHydromec.solve: Solver failed")
                 if self.verbose: print "  increment:", self.inc, " error = ", self.residue
 
-            if self.track_per_inc: 
+            if self.track_per_inc:
                 self.write_history()
 
         if self.verbose: print "  end stage:", self.stage
@@ -251,7 +258,7 @@ class SolverHydromec(Solver):
 
         if calcK:
             if incver: print "    building system...", ; sys.stdout.flush()
-            self.mountK()
+            self.mountK(dt)
 
             # Mount K11.. K22 matrices
             cK = self.K.tocsc()
@@ -260,6 +267,9 @@ class SolverHydromec(Solver):
             self.K21 = cK[ nu:, :nu ]
             self.K22 = cK[ nu:,  nu:]
             cK = None # Free memory
+
+        DF = self.mountRHS(DF, dt)
+        #OUT("DF")
 
         F1 = DF[:nu]
         U2 = DU[nu:]
@@ -287,11 +297,11 @@ class SolverHydromec(Solver):
         DFint = self.update_elems_and_nodes(DU, dt) # Also calculates DFint
 
         R = DF - DFint
-        return DFint, R
+        return DFint, R, DF
 
     def update_elems_and_nodes(self, DU, dt):
         DFint = zeros(len(self.dofs))
-        
+
         # Updating elements
         for e in self.aelems:
             e.elem_model.update_state(DU, DFint, dt)

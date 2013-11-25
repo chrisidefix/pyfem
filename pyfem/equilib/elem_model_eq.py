@@ -355,52 +355,54 @@ class ElemModelEq(ElemModel):
             for i, label in enumerate(all_ip_vals[0].keys()):
                 elem_values[label] = average(IP[:,i])
 
+        #OUT('elem_values')
+        #exit()
+
         return nodal_values, elem_values
 
 
-    def get_nodal_vals(self):
-        ndim = self.ndim
-        nodal_values = {}
-        #nodal_values.rows_resize(nnodes);
+    #def get_nodal_vals(self):
+        #ndim = self.ndim
+        #nodal_values = {}
 
         # Adding displacements
-        UX, UY, UZ = [], [], []
-        for node in self.nodes:
-            UX.append(node.keys["ux"].U)
-            UY.append(node.keys["uy"].U)
-            if ndim == 3:
-                UZ.append(node.keys["uz"].U)
+        #UX, UY, UZ = [], [], []
+        #for node in self.nodes:
+            #UX.append(node.keys["ux"].U)
+            #UY.append(node.keys["uy"].U)
+            #if ndim == 3:
+                #UZ.append(node.keys["uz"].U)
 
-        nodal_values["ux"] = UX
-        nodal_values["uy"] = UY
-        if ndim == 3:
-            nodal_values["uz"] = UZ
+        #nodal_values["ux"] = UX
+        #nodal_values["uy"] = UY
+        #if ndim == 3:
+            #nodal_values["uz"] = UZ
 
         # Getting values from integration points
-        ip_values = {}
-        all_ip_vals = []
-
-        for ip in self.ips:
-            ip_vals = ip.mat_model.get_vals()
-            all_ip_vals.append(ip_vals)
-
-        nips = len(self.ips)
-        nipvals = len(ip_vals)
+        #ip_values = {}
+        #all_ip_vals = []
+#
+        #for ip in self.ips:
+            #ip_vals = ip.mat_model.get_vals()
+            #all_ip_vals.append(ip_vals)
+#
+        #nips = len(self.ips)
+        #nipvals = len(ip_vals)
 
         # get matrix from all_ip_vals
-        IP = zeros(nips, nipvals)
-        for i, ip_vals in enumerate(all_ip_vals):
-            for j, val in enumerate(ip_vals.values()):
-                IP[i,j] = val
-
-        E = extrapolator(self.shape_type)
+        #IP = zeros(nips, nipvals)
+        #for i, ip_vals in enumerate(all_ip_vals):
+            #for j, val in enumerate(ip_vals.values()):
+                #IP[i,j] = val
+#
+        #E = extrapolator(self.shape_type)
         N = mul(E, IP)
 
         # Filling nodal_values dict
-        for i, label in enumerate(all_ip_vals[0].keys()):
-            nodal_values[label] = N[:,i]
-
-        return nodal_values
+        #for i, label in enumerate(all_ip_vals[0].keys()):
+            #nodal_values[label] = N[:,i]
+#
+        #return nodal_values
 
 
     def get_elem_vals(self):

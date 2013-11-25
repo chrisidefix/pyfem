@@ -202,9 +202,9 @@ class Mesh:
         for blk in args:
             if isinstance(blk, Block):
                 self.blocks.append(blk)
-            if isinstance(blk, CollectionBlock):
+            elif isinstance(blk, CollectionBlock):
                 self.blocks.extend(blk)
-            if isinstance(blk, list):
+            elif isinstance(blk, list):
                 self.add_blocks(*blk)
 
     def generate(self, filename=None, format="vtk"):
@@ -236,7 +236,7 @@ class Mesh:
         assert all([face .id != -1 for face  in self.faces ])
 
         # Selecting unique faces
-        self.faces.unique()
+        self.faces.unique()  #TODO: check this ()
 
         # Getting ndim
         given_ndim = True if self.ndim > 1 else False

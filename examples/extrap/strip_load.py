@@ -64,10 +64,12 @@ blocks = BlocksGrid(
         dY = [25., 4., 1.],
         nY = [5  , 1 , 1])
 
-#blocks.set_quadratic()
-blocks.set_cubic()
+blocks.set_quadratic()
+
+#blocks.set_cubic()
 blocks.set_triangles()
-mesh.blocks.append(blocks)
+
+mesh.add_blocks(blocks)
 mesh.generate()
 
 # Create the domain

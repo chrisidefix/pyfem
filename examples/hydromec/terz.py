@@ -32,7 +32,7 @@ print "mv = " , mv, "cv = " , cv
 emodel = HydromecLin(E=5000, nu=0.25, k=1.0e-5, gammaw=10.)
 domain.elems.set_elem_model(emodel)
 
-outnodes = domain.nodes.sub(x=0).sub(y=0)
+outnodes = domain.nodes.sub(x=0, y=0)
 outnodes.sort_in_z()
 
 #print domain.elems[0].elem_model.calcQh()
@@ -42,16 +42,16 @@ outnodes.sort_in_z()
 domain.set_solver( SolverHydromec() )
 domain.solver.set_scheme("MNR")
 domain.solver.set_scheme("FE")
-domain.solver.track(outnodes, 'outnodes')
+domain.solver.track(outnodes)
 
 # Stage 1 (to get steady state)
 domain.nodes.set_bc(ux=0, uy=0)
 domain.nodes.sub(z=0 ).set_bc(uz=0)
 domain.nodes.sub(z=10).set_bc(wp=0)
-domain.solver.set_incs(40)
+domain.solver.set_incs(3)
 domain.solver.set_scheme("FE")
 
-domain.solver.solve(100000.0)
+domain.solver.solve(1000000.0)
 domain.solver.write_output()
 
 # Stage 2 (load application)
@@ -70,13 +70,16 @@ Dt = [t[i] - t[i-1] for i in range(1,len(t))]
 
 # Next stage (consolidation)
 for dt in Dt:
+    OUT('dt')
     domain.nodes.set_bc(ux=0, uy=0)
     domain.nodes.sub(z=0).set_bc(uz=0)
     domain.nodes.sub(z=10).set_bc(wp=0)
-    domain.solver.set_incs(10)
+    domain.solver.set_incs(2)
     domain.solver.solve(dt)
     domain.solver.write_output()
 
+print outnodes
+
 # Plot results
-#outnodes.plot("pw", coef=1.0)
+outnodes.plot("d","wp")
 

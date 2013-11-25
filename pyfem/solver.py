@@ -342,9 +342,6 @@ class Solver:
             table = node.data_table
             data  = node.get_vals()
 
-            #for i, key in enumerate(nodal_labels):
-                #data[key] = float(nodal_vals[node.id, i])
-
             #  Write table row
             table.open_new_row()
             table.set_data(data)
@@ -356,10 +353,6 @@ class Solver:
 
             coll.data_book.add_table()
             table = coll.data_book[-1]
-
-            #  Write header
-            #table.add_keys(["id", "dist"])
-            #table.add_keys(nodal_labels)
 
             #  Write table
             for node in coll:
@@ -378,20 +371,11 @@ class Solver:
         # Writing history from elements
         for elem in self.tracked_elems:
             table = elem.data_table
-            #  Write header
-            #if not table:
-                #for i, ip in enumerate(elem.elem_model.ips):
-                    #ip_vals = ip.mat_model.get_vals()
-                    #for label in ip_vals.keys():
-                        #table.add_keys(str(i)+":"+label)
 
             #  Write table
-            for i, ip in enumerate(elem.elem_model.ips):
-                ip_vals = ip.mat_model.get_vals()
-                # Updating keys
-                data = { str(i)+":"+key : val for key, val in ip_vals.iteritems()}
-                table.open_new_row()
-                table.set_data(data)
+            data = elem.elem_model.get_elem_vals()
+            table.open_new_row()
+            table.set_data(data)
 
     def write_history2(self, *args):
         if args:

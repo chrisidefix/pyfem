@@ -179,11 +179,7 @@ class ElemModelHydromec(ElemModel):
         RETURNS:
             loc: a list with the dof indexes
         """
-
-        loc = []
-        for node in self.nodes:
-            loc.append(node.keys["wp"].eq_id)
-        return loc
+        return [ node.keys['wp'].eq_id for node in self.nodes ]
 
     def calcM(self):
         """
@@ -229,8 +225,7 @@ class ElemModelHydromec(ElemModel):
             loc: a list with the dof indexes
         """
 
-        return self.get_H_loc()
-
+        return [ node.keys['wp'].eq_id for node in self.nodes ]
 
     def calcL(self):
         """
@@ -253,24 +248,31 @@ class ElemModelHydromec(ElemModel):
         nnodes = len(self.nodes)
         C      = self.coords()
         ndim   = self.ndim
-        L      = zeros(ndim*nnodes, nnodes)
+        L      = zeros(nnodes, ndim*nnodes)
         thk    = self.thickness
 
-        mT     = array([[1.0, 1.0, 1.0, 0.0, 0.0, 0.0]]).T
+        m     = array([[1.0, 1.0, 1.0, 0.0, 0.0, 0.0]]).T
 
         for ip in self.ips:
             N        = shape_func(self.shape_type, ip.R)
             N        = as_row(N)
             D        = deriv_func(self.shape_type, ip.R)
-            Bu, detJ = self.calcB(ip.R, C)
+            Bu, detJ = self.calcB (ip.R, C)
+            Bp, detJ = self.calcBp(ip.R, C)
             mdl      = ip.mat_model
             coef     = detJ*ip.w*thk
-            L       += -mul(Bu.T, mT, N)*coef
+            #L       += -mul(Bu.T, mT, N)*coef
+            #OUT('N.T')
+            #OUT('m.T')
+            #OUT('Bu')
+            L       += -mul(N.T, m.T, Bu)*coef
 
+        #OUT('L')
+        #exit()
         return L
 
     def get_L_loc(self):
-        return self.get_K_loc(), self.get_H_loc()
+        return self.get_H_loc(), self.get_K_loc()
 
     def calcC(self):
         """
@@ -293,13 +295,9 @@ class ElemModelHydromec(ElemModel):
         return -self.calcL().T
 
     def get_C_loc(self):
-        return self.get_H_loc(), self.get_K_loc()
+        return self.get_K_loc(), self.get_H_loc()
 
     def calcQh(self):
-        """
-        Calculates the compling matrix C
-        """
-
         nnodes = len(self.nodes)
         ndim   = self.ndim
         C      = self.coords()
@@ -365,7 +363,7 @@ class ElemModelHydromec(ElemModel):
             mdl     = ip.mat_model
 
             G       = mul(Bp,P)/self.gamw   # gradient
-            G[-1]  += 1.0          # gravity gradient in the vertical direction
+            G[-1]  += -1.0          # gravity gradient in the vertical direction
             dsig, dnSr, V  = mdl.update_state(deps, dwp, G)
 
             mcoef   = 1.0
@@ -376,21 +374,21 @@ class ElemModelHydromec(ElemModel):
             dsig   += dwp*m
             dF     += mul(B.T, dsig)*coef
 
-            dQ += -mul(Bp.T,V)*dt*coef
+            dQ += mul(Bp.T,V)*dt*coef
 
-            OUT('V')
+            #OUT('V')
 
         # Updating global vectors
         DF[locK] += dF
         DF[locH] += dQ
 
-        OUT('dU')
-        OUT('dP')
+        #OUT('dU')
+        #OUT('dP')
 
-        OUT('dt')
-        OUT('dF')
-        OUT('dQ')
-        exit()
+        #OUT('dt')
+        #OUT('dF')
+        #OUT('dQ')
+        #exit()
 
         #for i, idx in enumerate(locK):
         #    DF[idx] += dF[i]

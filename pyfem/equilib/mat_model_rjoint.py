@@ -90,6 +90,7 @@ class MatModelMohrCoulombJoint(Model):
             Ksep = ks
         else:
             Ksep = ks*kh/(ks + kh)
+            # Ksep += 
 
         if self.ndim==2:
             return  array([\

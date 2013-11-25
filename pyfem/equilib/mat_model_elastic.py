@@ -32,12 +32,12 @@ class ModelLinElastic(Model):
         the_copy = ModelLinElastic()
         the_copy.sig = self.sig.copy()
         the_copy.eps = self.eps.copy()
-        the_copy.E   = self.E  
-        the_copy.nu  = self.nu 
-        the_copy.A   = self.A  
-        the_copy.Ks  = self.Ks 
-        the_copy.Kn  = self.Kn 
-        the_copy.Dm  = self.Dm 
+        the_copy.E   = self.E
+        the_copy.nu  = self.nu
+        the_copy.A   = self.A
+        the_copy.Ks  = self.Ks
+        the_copy.Kn  = self.Kn
+        the_copy.Dm  = self.Dm
         the_copy.ndim  = self.ndim
         the_copy.attr = self.attr.copy()
         return the_copy
@@ -55,10 +55,10 @@ class ModelLinElastic(Model):
 
     def set_state(self, **state):
         sqrt2 = 2.0**0.5
-        self.sig[0] = state.get("sxx", 0.0) 
+        self.sig[0] = state.get("sxx", 0.0)
         self.sig[1] = state.get("syy", 0.0)
         self.sig[2] = state.get("szz", 0.0)
-        self.sig[3] = state.get("sxy", 0.0)*sqrt2 
+        self.sig[3] = state.get("sxy", 0.0)*sqrt2
         self.sig[4] = state.get("syz", 0.0)*sqrt2
         self.sig[5] = state.get("sxz", 0.0)*sqrt2
 
@@ -86,14 +86,21 @@ class ModelLinElastic(Model):
                 [  0.0 ,        0.0 ,       0.0 ,            0.0, c*(1.0-2.0*nu),            0.0 ], \
                 [  0.0 ,        0.0 ,       0.0 ,            0.0,            0.0, c*(1.0-2.0*nu) ] ] )
 
-    #def stiff_coef(self):
-        #return 1.0;
-
     def stress_update(self, deps):
         dsig = mul(self.stiff(), deps)
         self.eps += deps;
         self.sig += dsig;
         return dsig
+
+    def get_state(self):
+        return {
+                "sxx" : self.sig[0],
+                "syy" : self.sig[1],
+                "szz" : self.sig[2],
+                "sxy" : self.sig[3]/sqrt2,
+                "syz" : self.sig[4]/sqrt2,
+                "sxz" : self.sig[5]/sqrt2,
+                }
 
     def get_vals(self):
         sig = self.sig

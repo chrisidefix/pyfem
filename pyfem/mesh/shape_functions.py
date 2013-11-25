@@ -903,6 +903,7 @@ def inverse_map(shape_type, C, X):
         # calculate Jacobian
         D = deriv_func(shape_type, R)
         J = mul(D, C)
+        #OUT("pdet(J)")
 
         # calculate trial of real coordinates
         N = shape_func(shape_type, R)
@@ -916,7 +917,8 @@ def inverse_map(shape_type, C, X):
         R -= deltaR
         if norm(deltaX) < TOL: break
 
-    R.resize(3)
+    if dim==2:
+        R = array([R[0], R[1], 0.0])
 
     return R
 

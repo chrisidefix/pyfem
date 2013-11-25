@@ -101,7 +101,7 @@ class BlockInset(Block):
 
         # Splitting inset
         while True:
-            step  = 0.5*norm(X1-X)
+            step  = 0.5*norm(X1-X) # TODO Check 0.5 coefficient!
             X    += step*T
             n     = int(log(step/TOL,2)) + 1  # number of required iterations to find intersection
             step0 = 0.0

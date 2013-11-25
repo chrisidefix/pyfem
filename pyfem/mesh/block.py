@@ -113,11 +113,11 @@ class Block:
         :returns: self
         """
 
-        if hasattr(x, "__len__"):
+        if hasattr(dx, "__len__"):
             D = zeros(3)
-            D[:len(x)] = x
+            D[:len(dx)] = dx
         else:
-            D = array([x, y, z])
+            D = array([dx, dy, dz])
 
         for R in self.coords:
             R += D

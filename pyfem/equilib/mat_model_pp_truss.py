@@ -14,7 +14,7 @@ class ModelPPTruss(Model):
     """ Constitutive models for Elastic Plastic 1D materials
     """
 
-    name = "ModelPPTruss"
+    #name = "ModelPPTruss"
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
@@ -60,8 +60,6 @@ class ModelPPTruss(Model):
             self.e    = 0.0    # ε
             self.e_pa = 0.0    # εp¯ 
             self.dg   = 0.0    # Δγ
-
-        #OUT("state")
 
         self.s    = state.get("sa"  , self.s   )
         self.e    = state.get("ea"  , self.e   )
@@ -115,7 +113,6 @@ class ModelPPTruss(Model):
         vals["ea"] = self.e
         vals["Fa"] = self.s*self.A
         vals["dg"] = self.dg
-        vals["E"] = self.E
         vals["A"] = self.A
         return vals
 

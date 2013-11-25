@@ -1,37 +1,38 @@
 # -*- coding: utf-8 -*- 
 """
-PYFEM - Finite element software
-Raul Durand 2010-2013.
+PyFem - Finite element software.
+Raul Durand & Dorival Pedroso
+Copyright 2010-2013.
 """
 
+from copy import deepcopy
 from pyfem.model import *
 
 class ModelElasticTruss(Model):
+    """ Constitutive models for Elastic 1D materials
+    """
+
     #name = "ModelElasticTruss"
 
     def __init__(self, *args, **kwargs):
         Model.__init__(self);
+        # state variables
+        self.s    = 0.0    # σ
+        self.e    = 0.0    # ε
         self.sig = zeros(1)
-        self.eps = zeros(1)
+
+        # parameters
         self.E   = 0.0
         self.A   = 0.0
 
-        if args: data = args[0]
-        else:    data = kwargs
+        data = args[0] if args else kwargs
 
         if data:
             self.set_params(**data)
-            self.set_state(**data)
+            self.set_state (**data)
 
     def copy(self):
-        cp      = self.__class__()
-        cp.sig  = self.sig.copy()
-        cp.eps  = self.eps.copy()
-        cp.E    = self.E
-        cp.A    = self.A
-        cp.ndim = self.ndim
-        cp.attr = self.attr.copy()
-        return cp
+        return deepcopy(self)
 
     def prime_and_check(self):
         pass
@@ -40,22 +41,38 @@ class ModelElasticTruss(Model):
         self.E = params.get('E', self.E)
         self.A = params.get('A', self.A)
 
-    def set_state(self, **state):
-        self.sig[0] = state.get('sa', self.sig[0])
+        if self.E   <=0.: raise Exception("ModelPPTruss: Invalid value for parameter E.")
+        if self.A   <=0.: raise Exception("ModelPPTruss: Invalid value for parameter A.")
+
+    def set_state(self, reset=False, **state):
+        if reset:
+            self.s    = 0.0    # σ
+            self.e    = 0.0    # ε
+
+        self.s    = state.get("sa"  , self.s   )
+        self.e    = state.get("ea"  , self.e   )
+        self.sig[0] = self.s
+
+    def get_state(self):
+        return {
+                "sa"  : self.s,
+                "ea"  : self.e,
+                }
 
     def stiff(self):
         return self.E
 
     def stress_update(self, deps):
-        dsig = self.E*deps
-        self.eps += deps;
-        self.sig += dsig;
+        dsig    = self.E*deps
+        self.e += deps
+        self.s += dsig
+        self.sig[0]  = self.s
         return dsig
 
     def get_vals(self):
-        vals = {}
-        vals["sa"] = self.sig[0]
-        vals["ea"] = self.eps[0]
-        vals["Fa"] = self.sig[0]*self.A
-        return vals
-
+        return {
+                "sa": self.s,
+                "ea": self.e,
+                "Fa": self.s*self.A,
+                "A" : self.A,
+                }

@@ -286,11 +286,11 @@ class SolverEq(Solver):
 
 
     def restore_state(self):
-        S = [ip.mat_model.s for ip in self.elems.ips]
+        #S = [ip.mat_model.s for ip in self.elems.ips]
         # Restore elements state
         for e, e_st in zip(self.elems, self.elems_state):
             for ip, ip_st in zip(e.elem_model.ips, e_st):
-                ip.mat_model.set_state(ip_st)
+                ip.mat_model.set_state(**ip_st)
 
 
         # Restore nodes state
@@ -301,7 +301,7 @@ class SolverEq(Solver):
         Ur = [dof.U for dof in self.dofs]
         Fr = [dof.F for dof in self.dofs]
 
-        S = [ip.mat_model.s for ip in self.elems.ips]
+        #S = [ip.mat_model.s for ip in self.elems.ips]
 
     def solve_to_limit(self, U, F):
         self.scheme = "NR"
