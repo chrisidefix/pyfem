@@ -145,7 +145,7 @@ class CollectionElem(list):
     def ips(self):
         """ Returns a list containing all integrations poins in the collection.
         """
-        res = []
+        res = CollectionIp()
         for elem in self:
             for ip in elem.elem_model.ips: res.append(ip)
         return res
@@ -213,6 +213,19 @@ class CollectionElem(list):
             tmp = self._with_attr(y=[1.0, 2.0])
 
         """
+
+        if attr in ['x', 'y', 'z']:
+            TOL = 1.0E-8
+
+            if isinstance(val, tuple):
+                raise Exception('CollectionElem::_with_attr: Invalid argument')
+
+            if isinstance(val,list):
+                tmp = RealList(val, TOL)
+            else:
+                tmp = RealList([val], TOL)
+
+            return CollectionElem(e for e in self if getattr(e, attr) in tmp)
 
         if attr in ['dx', 'dy', 'dz']:
             TOL = 1.0E-8

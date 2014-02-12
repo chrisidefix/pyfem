@@ -3,16 +3,25 @@ from pyfem import *
 
 # Generate mesh
 
+L = 8.0
+H = 4.0
+nx = 64
+ny = 32
+
 #Blocks 
 block = Block2D()
-block.make_box( (0,0),  (8,1) )
-block.set_divisions(32,4)
-block.set_divisions(64,8)
+#block.make_box( (0,0),  (8,1) )
+#block.set_divisions(64,8)
+
+block.make_box( (0,0),  (L,H) )
+block.set_divisions(nx, ny)
+
 block.make_truss(htag='h', vtag='v', dtag='d')
 
 msh = Mesh(block)
 msh.generate()
 msh.write_file("tmesh.vtk")
+
 
 # Setting the domain and loading the mesh
 dom = Domain(mesh=msh)
@@ -39,21 +48,8 @@ solver.set_track_per_inc(True)
 
 #Setting boundary conditions
 dom.nodes.sub(x=0).set_bc(ux=0, uy=0)
-dom.nodes.sub(x=8).set_bc(ux=0, uy=0)
-dom.nodes.sub(y=1.0).sub(x=4).set_bc(fy=-4000)
-
-#import profile
-#
-#def main():
-    #solver.solve()
-#
-#profile.run("main()", "profile.tmp")
-#
-#import pstats
-#p = pstats.Stats('profile.tmp')
-#p.sort_stats('cumulative').print_stats(30)
-#
-#exit()
+dom.nodes.sub(x=L).set_bc(ux=0, uy=0)
+dom.nodes.sub(x=L/2., y=H).set_bc(fy=-6000.*10)
 
 solver.solve()
 solver.write_output()
@@ -62,8 +58,8 @@ solver.write_output()
 # ====================================================
 
 dom.nodes.sub(x=0).set_bc(ux=0, uy=0)
-dom.nodes.sub(x=8).set_bc(ux=0, uy=0)
-dom.nodes.sub(y=1.0).sub(x=4).set_bc(fy=-500)
+dom.nodes.sub(x=L).set_bc(ux=0, uy=0)
+dom.nodes.sub(x=L/2., y=H).set_bc(fy=-500.)
 
 solver.solve()
 solver.write_output()
@@ -72,8 +68,8 @@ solver.write_output()
 # ====================================================
 
 dom.nodes.sub(x=0).set_bc(ux=0, uy=0)
-dom.nodes.sub(x=8).set_bc(ux=0, uy=0)
-dom.nodes.sub(y=1.0).sub(x=4).set_bc(fy=-500)
+dom.nodes.sub(x=L).set_bc(ux=0, uy=0)
+dom.nodes.sub(x=L/2., y=H).set_bc(fy=-500.)
 
 solver.solve()
 solver.write_output()
@@ -82,8 +78,8 @@ solver.write_output()
 # ====================================================
 
 dom.nodes.sub(x=0).set_bc(ux=0, uy=0)
-dom.nodes.sub(x=8).set_bc(ux=0, uy=0)
-dom.nodes.sub(y=1.0).sub(x=4).set_bc(fy=-1500)
+dom.nodes.sub(x=L).set_bc(ux=0, uy=0)
+dom.nodes.sub(x=L/2., y=H).set_bc(fy=-500.)
 
 solver.solve()
 solver.write_output()

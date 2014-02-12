@@ -12,6 +12,8 @@ from shape_types import *
 from block       import *
 from entities    import *
 
+import json
+
 def get_line(file_obj):
     line = ''
     while not line:
@@ -47,6 +49,7 @@ class Mesh:
         self.points     = CollectionPoint()
         self.cells      = CollectionCell()
         self.faces      = CollectionCell()
+        self.edges      = CollectionCell()
 
         self.add_blocks(*args)
 
@@ -108,6 +111,66 @@ class Mesh:
             self.cells.append(S)
 
         # Set ndim
+        self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
+
+    def load_msh(self, filename):
+        # Resets all mesh data
+        self.__init__()
+
+        try:
+            file = open(filename, 'r')
+        except IOError:
+            raise Exception("\n\tmesh.load_msh: File not found %s" % filename)
+
+        file = open(filename, 'r')
+        data = json.load(file)
+
+        verts = data["verts"]
+        cells = data["cells"]
+
+        # Loading points
+        for vert in verts:
+            P = Point()
+            P.id  = vert["id"]
+            P.tag = vert["tag"]
+            P.set_coords(vert["c"])
+            self.points.append(P)
+
+        for cell in cells:
+            C = Cell()
+            C.id  = cell["id"]
+            C.tag = cell["tag"]
+            conn  = cell["verts"]
+            jlingeo = cell.get("jlingeo",None)
+            for id in conn:
+                C.points.append(self.points[id])
+
+            if jlingeo is None:
+                C.shape_type = get_shape_type_from_msh(cell["geo"], len(conn))
+            else:
+                C.lnk_cells = [cell["jlinid"], cell["jsldid"]] # line id plus solid id
+                C.shape_type = LINK2 if jlingeo==0 else LINK3
+
+            self.cells.append(C)
+
+        # Updating linked cells
+        for C in self.cells:
+            for i, id in enumerate(C.lnk_cells):
+                C.lnk_cells[i] = self.cells[id]
+
+        file.close()
+
+        # Generate faces
+        all_faces = Counter()
+        for S in self.cells:
+            faces = generate_faces(S)
+            for F in faces:
+                all_faces[F] += 1 # Counting faces
+
+        # Discarding repeated faces
+        self.faces = [F for F, count in all_faces.iteritems() if count==1]
+
+        # Find dimension
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
 
     def load_file(self, filename):
@@ -254,14 +317,42 @@ class Mesh:
         if filename:
             self.write_file(filename, format)
 
-    def write_file(self, filename, fmt = "vtk"):
+    def get_edges(self, **args):
+        edges = []
+        for f in self.faces:
+            edges.extend(f.edges)
+
+        edges = edges.sub(**args).unique()
+        self.edges.extend(edges)
+
+    def write_file(self, filename, format = "vtk"):
         """
         Saves the mesh information stored internally to a file.
         """
         name, ext = os.path.splitext(filename)
-        if ext == "": ext = ".vtk"
-        assert ext == ".vtk"
-        filename = name + ext
+
+        if ext:
+            if ext[0]==".":
+                ext = ext[1:]
+
+        if ext    == "": ext = "vtk"
+        if format == "": format = ext
+        filename = name + "." + ext
+
+        if format=="vtk":
+            self.write_vtk(filename)
+        elif format=="msh":
+            self.write_msh(filename)
+        else:
+            print "Mesh.write_file: Invalid format", format
+            assert False
+
+    write = write_file
+
+    def write_vtk(self, filename):
+        """
+        Saves the mesh information in vtk format
+        """
 
         npoints  = len(self.points)
         ncells = len(self.cells)
@@ -301,7 +392,20 @@ class Mesh:
                 print >> output, get_vtk_type(cell.shape_type)
             print >> output
 
-    write = write_file
+    def write_msh(self, filename):
+        # writing msh json format NOT WORKING... there is no way to get elements face tags
+        """
+        Saves the mesh information in msh (json) format
+        """
+        verts = [ {"id":p.id, "tag":eval("0"+p.tag), "c":[p.x, p.y, p.z] } for p in self.points ]
+
+        cells = []
+        for c in self.cells:
+            geo   = get_msh_shape_type(c.shape_type)
+            verts = [p.id for p in c.points]
+            ftags = [ 0 for f in get_nfacets(c.shape_type)]
+            cell  = {"id":c.id, "tag":eval("0"+c.tag), "geo":geo, "part":0, "verts":verts, "ftags":[] }
+
 
     def gui_get_default_data(self):
         data = OrderedDict()

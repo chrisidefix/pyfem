@@ -64,8 +64,8 @@ class ModelElasticTruss(Model):
 
     def stress_update(self, deps):
         dsig    = self.E*deps
-        self.e += deps
-        self.s += dsig
+        self.e += float(deps)
+        self.s += float(dsig)
         self.sig[0]  = self.s
         return dsig
 

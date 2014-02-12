@@ -66,7 +66,7 @@ blocks = BlocksGrid(
 
 blocks.set_quadratic()
 
-#blocks.set_cubic()
+blocks.set_cubic()
 blocks.set_triangles()
 
 mesh.add_blocks(blocks)

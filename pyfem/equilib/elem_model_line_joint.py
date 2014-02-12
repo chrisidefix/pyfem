@@ -26,13 +26,11 @@ class ElemModelLineJoint(ElemModelEq):
 
     def prime_and_check(self):
         ElemModel.prime_and_check(self)
-        os = Stream()
-        if len(self.lnk_elem_models) != 2: os << "ElemModelLineJoint.prime_and_check: No linked elements found"
+        if len(self.lnk_elem_models) != 2:
+            print "ElemModelLineJoint.prime_and_check: No linked elements found"
 
         self.truss = self.lnk_elem_models[0]
         self.hook  = self.lnk_elem_models[1]
-
-        if os: raise Exception(str(os))
 
     def stiff(self):
         nnodes = len(self.nodes)
@@ -110,7 +108,8 @@ class ElemModelLineJoint(ElemModelEq):
 
     def calcT_test(self, J):
         if self.ndim==2:
-            raise Exception("Non implemented")
+            L1 = array([[-L0[0,1], L0[0,0]]])
+            return concatenate([L0, L1], axis=0)
 
         ndim = self.ndim
         e0 = J[0]/norm(J)
@@ -130,7 +129,8 @@ class ElemModelLineJoint(ElemModelEq):
         L0 = J/norm(J)
 
         if self.ndim==2:
-            pass
+            L1 = array([[-L0[0,1], L0[0,0]]])
+            return concatenate([L0, L1], axis=0)
 
         # Finding second vector
         if   L0[0,0] == 1.0:
@@ -159,10 +159,15 @@ class ElemModelLineJoint(ElemModelEq):
         D = deriv_func(self.shape_type, R)
         J = mul(D, Ct)       # Jacobian
         T = self.calcT(J)    #
-
-        l0 = T[0, 0]; m0 = T[0, 1]; n0 = T[0, 2]
-        l1 = T[1, 0]; m1 = T[1, 1]; n1 = T[1, 2]
-        l2 = T[2, 0]; m2 = T[2, 1]; n2 = T[2, 2]
+        #OUT("T")
+        if self.ndim==2:
+            l0 = T[0, 0]; m0 = T[0, 1]; n0 = 0.0
+            l1 = T[1, 0]; m1 = T[1, 1]; n1 = 0.0
+            l2 = 0.0; m2 = 0.0; n2 = 0.0
+        else:
+            l0 = T[0, 0]; m0 = T[0, 1]; n0 = T[0, 2]
+            l1 = T[1, 0]; m1 = T[1, 1]; n1 = T[1, 2]
+            l2 = T[2, 0]; m2 = T[2, 1]; n2 = T[2, 2]
         sq2 = 2.0**0.5
 
         Ts = array([\
@@ -187,6 +192,11 @@ class ElemModelLineJoint(ElemModelEq):
         for ip in self.hook.ips:
             stack.append([ip.mat_model.sig])
         Sig = concatenate(stack, axis=0)
+
+        use_avg_stress = True
+        if use_avg_stress:
+            sig = mul(M.T, E, Sig) # stress vector at link ip
+            return 1./3.*(sig[0]+sig[1]+sig[2])
 
         # Calculating stresses at current link ip
         sig = mul(Ts, mul(M.T, E, Sig).T); # stress vector at link ip

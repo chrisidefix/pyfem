@@ -40,4 +40,4 @@ solv = SolverEq()
 domain.set_solver( solv )
 domain.solver.solve()
 
-#domain.solver.write_output()
+domain.solver.write_output()

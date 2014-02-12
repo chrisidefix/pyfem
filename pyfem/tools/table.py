@@ -1,8 +1,10 @@
 from collections import *
+import json
 
 class Table(OrderedDict):
     def __init__(self):
         OrderedDict.__init__(self)
+        self.filename = ""
         self.nrows = 0
 
     def add_keys(self, keys):
@@ -13,6 +15,9 @@ class Table(OrderedDict):
             self[l] = []
 
     def add_row(self, row_dict=None):
+        if self.nrows == 0:
+            self.add_keys(row_dict.keys())
+
         if row_dict is None:
             for col in self.values():
                 col.append(0.0)
@@ -50,7 +55,15 @@ class Table(OrderedDict):
         pass
 
     def write(self, filename):
-        pass
+        if not filename:
+            filename = self.filename
+
+        assert(filename)
+
+        #print json.dumps(self)
+        with open(filename, 'w') as outfile:
+            json.dump(self, outfile, indent=4, sort_keys=False)
+        outfile.close()
 
     def plot(self, xkey, ykeys, xlabel=None, ylabel=None):
         import pylab
@@ -67,13 +80,18 @@ class Table(OrderedDict):
         pylab.grid(True)
         pylab.show()
 
-
 class Book(list):
+    def __init__(self):
+        self.filename = ""
+
     def add_table(self):
         self.append(Table())
 
     def write(self, filename):
-        pass
+        #print json.dumps(self)
+        with open(filename, 'w') as outfile:
+            json.dump(self, outfile, indent=4, sort_keys=False)
+        outfile.close()
 
     def plot(self, key, coef=1.0, xlabel='d', ylabel=None, legend=[]):
         if not ylabel: ylabel = key

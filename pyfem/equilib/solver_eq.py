@@ -24,7 +24,7 @@ class SolverEq(Solver):
         self.K22 = None
         self.LUsolver = None
         self.plane_stress = False
-        self.nmaxits = 40
+        self.nmaxits = 100
 
     def set_plane_stress(self, value):
         self.plane_stress = True
@@ -101,13 +101,13 @@ class SolverEq(Solver):
 
         self.K = scipy.sparse.coo_matrix((v, (r,c)), (ndofs, ndofs))
 
-    def solve(self, to_limit=False):
+    def solve(self, to_limit=False, write=False):
         scheme = self.scheme
 
         #self.stage += 1
 
-        if self.stage==0:
-            self.write_history()
+        #if self.stage==0:
+            #self.write_history()
 
         if not scheme: scheme = "MNR"
 
@@ -131,9 +131,11 @@ class SolverEq(Solver):
 
         # Solve stage
         if not to_limit:
-            self.solve_stage(U, F)
+            self.solve_stage(U, F, raise_error=True)
+            if write:
+                self.write_output()
         else:
-            self.solve_to_limit(U, F)
+            self.solve_to_limit(U, F, write)
 
         # Clear boundary conditions
         self.nodes.clear_bc()
@@ -153,12 +155,13 @@ class SolverEq(Solver):
         DF = lam*F
         DFint = None
         R     = None
-        force = 0.0
+        #force = 0.0
 
         if scheme == "MNR" or scheme == "NR":
-            for i, dof in enumerate(self.udofs):
-                force += abs(F[dof.eq_id])
-            if force==0.0: raise Exception("SolverEq.solve: Select scheme needs dofs with prescribed forces")
+            UNK_map = [dof.eq_id for dof in self.udofs]
+            force = linalg.norm(F[UNK_map])
+
+            #if force==0.0: raise Exception("SolverEq.solve: Select scheme needs dofs with prescribed forces")
 
         # Solve accros increments
         for self.inc in range(1, self.nincs+1):
@@ -182,8 +185,14 @@ class SolverEq(Solver):
 
                     self.residue = 0.0
 
-                    for dof in self.udofs:
-                        self.residue += abs(DF[dof.eq_id] - DFint_ac[dof.eq_id])/force
+                    #for dof in self.udofs:
+                    #    self.residue += abs(DF[dof.eq_id] - DFint_ac[dof.eq_id])/force
+
+                    #self.residue = linalg.norm(DF[UNK_map] - DFint_ac[UNK_map])/force
+
+                    #self.residue = numpy.amax(numpy.fabs(DF[UNK_map] - DFint_ac[UNK_map]))
+
+                    self.residue = abs(DF[UNK_map] - DFint_ac[UNK_map]).max()
 
                     if self.verbose: print "    it", it+1, " residual =", self.residue
 
@@ -201,12 +210,20 @@ class SolverEq(Solver):
                     if raise_error:
                         raise Exception("SolverEq.solve: Solver with scheme (M)NR did not converge")
                     else:
+                        self.stage -= 1
                         return False
 
             if scheme == "FE":
                 DFint, R = self.solve_inc(DU, DF)
-                self.residue = numpy.linalg.norm(R)/(numpy.linalg.norm(DFint)*self.nincs)
-                if math.isnan(self.residue): raise Exception("SolverEq.solve: Solver failed")
+                #OUT("numpy.linalg.norm(DFint)")
+                self.residue = numpy.fabs(numpy.amax(R))
+                #self.residue = numpy.linalg.norm(R)/(numpy.linalg.norm(DFint)*self.nincs)
+                if math.isnan(self.residue):
+                    if raise_error:
+                        raise Exception("SolverEq.solve: Solver failed")
+                    else:
+                        self.stage -= 1
+                        return False
                 if self.verbose: print "  increment:", self.inc, " residual = ", self.residue
 
             if self.track_per_inc:
@@ -237,9 +254,10 @@ class SolverEq(Solver):
 
             # Mount K11.. K22 matrices
             cK = self.K.tocsc()
-            self.K11 = cK[:nu , :nu ]
-            self.K12 = cK[:nu ,  nu:]
-            self.K21 = cK[ nu:, :nu ]
+            if nu:
+                self.K11 = cK[:nu , :nu ]
+                self.K12 = cK[:nu ,  nu:]
+                self.K21 = cK[ nu:, :nu ]
             self.K22 = cK[ nu:,  nu:]
             cK = None # Free memory
 
@@ -303,11 +321,11 @@ class SolverEq(Solver):
 
         #S = [ip.mat_model.s for ip in self.elems.ips]
 
-    def solve_to_limit(self, U, F):
+    def solve_to_limit(self, U, F, write):
         self.scheme = "NR"
         lf     = 1.0  # Load factor (safety factor)
-        delta  = 0.5
-        eps    = 0.01
+        d_lf  = 0.5
+        eps    = 0.001
         factor = 1.1
 
         self.save_state()
@@ -320,14 +338,15 @@ class SolverEq(Solver):
             if not success:
                 factor = 0.5
 
-            delta = factor*delta
-            if delta<eps:
+            d_lf = factor*d_lf
+            if d_lf<eps:
                 break
 
             if success:
-                lf  += delta
+                self.write_output()
+                lf  += d_lf
             else:
-                lf  -= delta
+                lf  -= d_lf
 
             self.restore_state()
         else:

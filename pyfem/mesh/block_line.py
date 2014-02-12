@@ -22,41 +22,8 @@ class BlockLine(Block):
         if not C is None:
             self.set_coords(C)
 
-    def copy(self, dx=0.0, dy=0.0, dz=0.0):
-        cp = self.__class__()
-        cp.n = self.n
-        cp.quadratic = self.quadratic
-        cp.coords = self.coords.copy()
-        for row in cp.coords:
-            row[0] += dx
-            row[1] += dy
-            row[2] += dz
-
-        return cp
-
     def set_divisions(self, n):
         self.n = n
-
-    #def shape_func(self, r):
-        #"""
-              #-----o===================o----->  r
-                   #0                   1
-        #"""
-        #N = empty(2)
-        #N[0] = 0.5*(1-r)
-        #N[1] = 0.5*(1+r)
-        #return N
-#
-    #def shape_func_o2(self, r):
-        #"""
-              #-----o=========o=========o----->  r
-                   #0         1         2
-        #"""
-        #N = empty(3)
-        #N[0] = 0.5*(r*r-r)
-        #N[1] = 1.0 - r*r
-        #N[2] = 0.5*(r*r+r)
-        #return N
 
     def split(self, points, cells, faces):
         if not self.quadratic:
@@ -81,7 +48,7 @@ class BlockLine(Block):
             C = mul(N.T, self.coords)      # interpolated coordinates x, y
             C.round(8)
 
-            P = points.get_from_border(C)
+            P = points.get_from_all(C)     # could be expensive
             if P is None: P = points.add_new(C, border=True)
 
             p_arr[i] = P
@@ -110,7 +77,7 @@ class BlockLine(Block):
             C = mul(N.T, self.coords)      # interpolated coordinates x, y
             C.round(8)
 
-            P = points.get_from_border(C)
+            P = points.get_from_all(C)
             if P is None: P = points.add_new(C, border=True)
 
             p_arr[i] = P

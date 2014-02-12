@@ -56,11 +56,12 @@ class tensor2(ndarray):
 
     def S(self):  # returns a matrix with size of a tensor2
         T = self
-        return T - self.J1()/3.0*self.I
+        return tensor2(T - self.J1()/3.0*self.I)
 
     def J2D(self):  #???
-        j1 = self.J1()
-        return self.J2()-j1*j1/6.0
+        return self.S().J2()
+        #j1 = self.J1()
+        #return self.J2()-j1*j1/6.0
 
     def J3D(self):
         j1 = self.J1()

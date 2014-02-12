@@ -47,14 +47,32 @@ class ModelConcreteTruss(Model):
         self.A    = params.get("A"      , self.A)
         self.s_yc = params.get("sig_yc"  , self.s_yc)
         self.s_yt = params.get("sig_yt"  , self.s_yt)
-        self.H    = params.get("Hy"     , self.H)
+        self.H    = params.get("H"     , self.H)
         self.H    = self.COEF*self.E if self.H==0. else self.H
         #if self.s_y0<=0.: raise Exception("ModelConcreteTruss: Invalid value for parameter sig_y.")
         if self.E   <=0.: raise Exception("ModelConcreteTruss: Invalid value for parameter E.")
         if self.A   <=0.: raise Exception("ModelConcreteTruss: Invalid value for parameter A.")
 
-    def set_state(self, **state):
-        self.s = state.get("sa", self.s)
+    def set_state(self, reset=False, **state):
+        if reset:
+            self.s    = 0.0    # σ
+            self.e    = 0.0    # ε
+            self.e_pa = 0.0    # εp¯ 
+            self.dg   = 0.0    # Δγ
+
+        self.s    = state.get("sa"  , self.s   )
+        self.e    = state.get("ea"  , self.e   )
+        self.e_pa = state.get("e_pa", self.e_pa)
+        self.dg   = state.get("dg"  , self.dg  )
+        self.sig[0] = self.s
+
+    def get_state(self):
+        return {
+                "sa"  : self.s,
+                "ea"  : self.e,
+                "e_pa": self.e_pa,
+                "dg"  : self.dg,
+                }
 
     def yield_func(self, s):
         if s>0: # tension
@@ -98,6 +116,7 @@ class ModelConcreteTruss(Model):
         vals = {}
         vals["sa"] = self.s
         vals["ea"] = self.e
+        vals["e_pa"] = self.e_pa
         vals["Fa"] = self.s*self.A
         return vals
 

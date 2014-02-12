@@ -231,36 +231,6 @@ class CollectionNode(list):
         x, y, z = (C + [0])[:3]
         return CollectionNode(n for n in self if n.x==x and n.y==y and n.z==z)
 
-    #def with_tag(self, *args):
-    #    return CollectionNode(n for n in self if n.tag in args)
-
-    #def with_id(self, *args):
-    #    return CollectionNode(n for n in self if n.id in args)
-
-    #def with_x(self, *args):
-    #    tmp = RealList(args)
-    #    return CollectionNode(n for n in self if n.x in tmp)
-
-    #def with_y(self, *args):
-    #    tmp = RealList(args)
-    #    return CollectionNode(n for n in self if n.y in tmp)
-
-    #def with_z(self, *args):
-    #    tmp = RealList(args)
-    #    return CollectionNode(n for n in self if n.z in tmp)
-
-    #def with_x_in_interval(self, start, end):
-    #    TOL = 1.0E-8
-    #    return CollectionNode(n for n in self if n.x+TOL>start and n.x-TOL<end)
-
-    #def with_y_in_interval(self, start, end):
-    #    TOL = 1.0E-8
-    #    return CollectionNode(n for n in self if n.y+TOL>start and n.y-TOL<end)
-
-    #def with_z_in_interval(self, start, end):
-    #    TOL = 1.0E-8
-    #    return CollectionNode(n for n in self if n.z+TOL>start and n.z-TOL<end)
-
     def _with_attr(self, attr, val=None):
         """
         Filters the collection according to a given condition
@@ -335,13 +305,11 @@ class CollectionNode(list):
 
         for key, value in kwargs.iteritems():
             coll = coll._with_attr(key, value)
-            #coll = coll + self._with_attr(key, value)
 
         for value in args:
             # filter usign lambda function
             f = value
             coll = CollectionNode(n for n in coll if f(n))
-            #coll = coll + CollectionNode(n for n in self if f(n))
 
         return coll
 

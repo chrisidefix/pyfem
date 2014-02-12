@@ -56,6 +56,22 @@ def deriv_lin4(R):
     D[0,3] = 1./16.*( -81.*r*r - 18.*r + 27.)
     return D
 
+def shape_lin5(R):
+    #
+    #    @-----@-----@-----@-----@  --> r
+    #    0     3     2     4     1
+    #    |           |           |
+    #   r=-1  -1/2   r=0  1/2   r=+1
+
+    r = R[0]
+    N = empty(5)
+    N[0] = r*(r-1.)*( 1.-2.*r)*(-1.-2.*r)/6.
+    N[1] = r*(r+1.)*( 1.-2.*r)*(-1.-2.*r)/6.
+    N[2] =   (1.-r)*( 1.-2.*r)*(-1.-2.*r)*(-1.-r)
+    N[3] = r*(1.-r)*( 1.-2.*r)*(-1.-r)*4./3.
+    N[4] = r*(1.-r)*(-1.-2.*r)*(-1.-r)*4./3.
+    return N
+
 def shape_tri3(R):
     #    s
     #    ^
@@ -392,6 +408,136 @@ def shape_hex8(R):
     N[7] = 0.125*(1.0-r+s-r*s+t+s*t-r*t-r*s*t)
     return N
 
+def shape_tet4(R):
+    """
+
+    Local IDs
+                     Nodes                                   Faces
+        z
+        |
+       ,+--y
+     x'
+    """
+
+    r, s, t = R[:3]
+    N = empty(4)
+    N[0] = 1.0-r-s-t
+    N[1] = r
+    N[2] = s
+    N[3] = t
+    return N
+
+def deriv_tet4(R):
+    r, s, t = R[:3]
+    D = empty(3, 4)
+    D[0,0] = -1.0;   D[1,0]=-1.0;   D[2,0]=-1.0
+    D[0,1] =  1.0;   D[1,1]= 0.0;   D[2,1]= 0.0
+    D[0,2] =  0.0;   D[1,2]= 1.0;   D[2,2]= 0.0
+    D[0,3] =  0.0;   D[1,3]= 0.0;   D[2,3]= 1.0
+    return D
+
+def shape_tet10(R):
+
+    """
+
+                             t
+                             |
+                             |
+                             | 3
+                             @,
+                            /|`
+                            ||  `,
+                           / |    ',
+                           | |      \
+                          /  |       `.
+                          |  |         `,  9
+                         /   @ 7         `@
+                         |   |             \
+                        /    |              `.
+                        |    |                ',
+                     8 @     |                  \
+                       |     @.,,_       6       `.
+                      |     / 0   ``'-.,,@_        `.
+                      |    /              ``''-.,,_  ', 2
+                     |    /                        ``'@.,,,
+                     |   '                       ,.-``     ``''- s
+                    |  ,@ 4                 _,-'`
+                    ' /                 ,.'`
+                   | /             _.@``
+                   '/          ,-'`   5
+                  |/      ,.-``
+                  /  _,-``
+                .@ '`
+               / 1
+              /
+             /
+            r
+
+    """
+    r, s, t = R[:3]
+    N = empty(10)
+
+    u = 1.0 - r - s - t
+
+    # corners
+    N[0] = u*(2.0*u - 1.0)
+    N[1] = r*(2.0*r - 1.0)
+    N[2] = s*(2.0*s - 1.0)
+    N[3] = t*(2.0*t - 1.0)
+
+    # midedge
+    N[4] = 4.0 * u * r
+    N[5] = 4.0 * r * s
+    N[6] = 4.0 * s * u
+    N[7] = 4.0 * u * t
+    N[8] = 4.0 * r * t
+    N[9] = 4.0 * s * t
+
+    return N
+
+def deriv_tet10(R):
+
+    r, s, t = R[:3]
+    D = empty(3, 10)
+
+    # r-derivatives: dN0/dr to dN9/dr
+    D[0,0] =  4.0*(r + s + t) - 3.0
+    D[0,1] =  4.0*r - 1.0
+    D[0,2] =  0.0
+    D[0,3] =  0.0
+    D[0,4] =  4.0 - 8.0*r - 4.0*s - 4.0*t
+    D[0,5] =  4.0*s
+    D[0,6] = -4.0*s
+    D[0,7] = -4.0*t
+    D[0,8] =  4.0*t
+    D[0,9] =  0.0
+
+    # s-derivatives: dN0/ds to dN9/ds
+    D[1,0] =  4.0*(r + s + t) - 3.0
+    D[1,1] =  0.0
+    D[1,2] =  4.0*s - 1.0
+    D[1,3] =  0.0
+    D[1,4] = -4.0*r
+    D[1,5] =  4.0*r
+    D[1,6] =  4.0 - 4.0*r - 8.0*s - 4.0*t
+    D[1,7] = -4.0*t
+    D[1,8] =  0.0
+    D[1,9] =  4.0*t
+
+    # t-derivatives: dN0/dt to dN9/dt
+    D[2,0] =  4.0*(r + s + t) - 3.0
+    D[2,1] =  0.0
+    D[2,2] =  0.0
+    D[2,3] =  4.0*t - 1.0
+    D[2,4] = -4.0*r
+    D[2,5] =  0.0
+    D[2,6] = -4.0*s
+    D[2,7] =  4.0 - 4.0*r - 4.0*s - 8.0*t
+    D[2,8] =  4.0*r
+    D[2,9] =  4.0*s
+
+    return D
+
 
 deriv_hex8_store = {}
 
@@ -637,6 +783,20 @@ def coords_quad12():
     [ -_1_3,   1.0, 1.0 ], \
     [  -1.0, -_1_3, 1.0 ]] )
 
+def coords_tet10():
+    return array([ \
+    [ 0.0, 0.0, 0.0, 1.0 ], \
+    [ 1.0, 0.0, 0.0, 1.0 ], \
+    [ 0.0, 1.0, 0.0, 1.0 ], \
+    [ 0.0, 0.0, 1.0, 1.0 ], \
+
+    [ 0.5, 0.0, 0.0, 1.0 ], \
+    [ 0.5, 0.5, 0.0, 1.0 ], \
+    [ 0.0, 0.5, 0.0, 1.0 ], \
+    [ 0.0, 0.0, 0.5, 1.0 ], \
+    [ 0.5, 0.0, 0.5, 1.0 ], \
+    [ 0.0, 0.5, 0.5, 1.0 ]])
+
 def coords_tet4():
     return array([ \
     [ 0.0, 0.0, 0.0, 1.0 ], \
@@ -755,6 +915,23 @@ def get_ndim(shape_type):
     elif shape_type == HEX8  : return 3
     elif shape_type == HEX20 : return 3
 
+def get_nfacets(shape_type):
+    """
+    Returns the number of facets
+    """
+    if   shape_type == TRI3  : return 3
+    elif shape_type == TRI6  : return 3
+    elif shape_type == TRI9  : return 3
+    elif shape_type == QUAD4 : return 4
+    elif shape_type == QUAD8 : return 4
+    elif shape_type == QUAD12: return 4
+    elif shape_type == TET4  : return 4
+    elif shape_type == TET10 : return 4
+    elif shape_type == HEX8  : return 6
+    elif shape_type == HEX20 : return 6
+
+    return 0
+
 def shape_func(shape_type, R):
     if   shape_type == LIN2  : return shape_lin2(R)
     elif shape_type == LIN3  : return shape_lin3(R)
@@ -802,9 +979,9 @@ def bdistance(shape_type, R):
     if   shape_type == TRI3 :  return min(r, s, 1.0-r-s)
     elif shape_type == TRI6 :  return min(r, s, 1.0-r-s)
     elif shape_type == TRI9 :  return min(r, s, 1.0-r-s)
-    elif shape_type == QUAD4:  return min(1.0 - abs(r), 1.0 - (s))
-    elif shape_type == QUAD8:  return min(1.0 - abs(r), 1.0 - (s))
-    elif shape_type == QUAD12: return min(1.0 - abs(r), 1.0 - (s))
+    elif shape_type == QUAD4:  return min(1.0 - abs(r), 1.0 - abs(s))
+    elif shape_type == QUAD8:  return min(1.0 - abs(r), 1.0 - abs(s))
+    elif shape_type == QUAD12: return min(1.0 - abs(r), 1.0 - abs(s))
     elif shape_type == TET4 :  return min(r, s, t, 1.0-r-s-t)
     elif shape_type == TET10:  return min(r, s, t, 1.0-r-s-t)
     elif shape_type == HEX8 :  return min(1.0 - abs(r), 1.0 - abs(s), 1.0 - abs(t))
@@ -822,12 +999,12 @@ def get_ips_data(shape_type):
     elif shape_type == LINK2 :  IP = LIN_IP2;  FIP = None
     elif shape_type == LINK3 :  IP = LIN_IP3;  FIP = None
     elif shape_type == QUAD4 :  IP = QUAD_IP2; FIP = LIN_IP2
-    elif shape_type == QUAD8 :  IP = QUAD_IP2; FIP = LIN_IP2
-    elif shape_type == QUAD12:  IP = QUAD_IP3; FIP = LIN_IP3
+    elif shape_type == QUAD8 :  IP = QUAD_IP3; FIP = LIN_IP2
+    elif shape_type == QUAD12:  IP = QUAD_IP4; FIP = LIN_IP3
     elif shape_type == TET4  :  IP = TET_IP4;  FIP = TRI_IP1
     elif shape_type == TET10 :  IP = TET_IP4;  FIP = TRI_IP1
     elif shape_type == HEX8  :  IP = HEX_IP2;  FIP = QUAD_IP2
-    elif shape_type == HEX20 :  IP = HEX_IP2;  FIP = QUAD_IP2
+    elif shape_type == HEX20 :  IP = HEX_IP3;  FIP = QUAD_IP2
 
     return IP, FIP
 
@@ -893,21 +1070,26 @@ def extrapolator(shape_type):
 
     return E
 
-def inverse_map(shape_type, C, X):
-    TOL   = 1.0E-4
+def inverse_map(shape_type, C, X, TOL=1.0e-7):
     MAXIT = 25
     dim   = get_ndim(shape_type)
     R = zeros(dim)
+    if C.shape[1]==2:
+        C = numpy.hstack([C,zeros((C.shape[0],1))])
+    if X.shape[0]==2:
+        X = array([X[0], X[1], 0.0])
+    #OUT("C")
+    #OUT("X")
 
     for k in range(MAXIT):
         # calculate Jacobian
         D = deriv_func(shape_type, R)
         J = mul(D, C)
-        #OUT("pdet(J)")
 
         # calculate trial of real coordinates
         N = shape_func(shape_type, R)
         Xt = mul(N.T, C).T # interpolating
+        #OUT("Xt")
 
         # calculate the error
         deltaX = Xt - X;
@@ -925,10 +1107,36 @@ def inverse_map(shape_type, C, X):
 def is_inside(shape_type, C, X):
     if not is_solid(shape_type): return False
 
-    TOL = 1.0E-6
-    R = inverse_map(shape_type, C, X)
+    TOL = 1.0E-7
+    R = inverse_map(shape_type, C, X, TOL)
     if bdistance(shape_type, R) > -TOL:
         return True;
     else:
         return False;
+
+
+def check_shape_f():
+    C = get_local_coords(QUAD12)
+    dx = array([0.001, 0.0, 0.0])
+    dy = array([0.00, 0.001, 0.0])
+    for R in C:
+        n = shape_func(QUAD12, R)
+        nnx= shape_func(QUAD12, R+dx)
+        nny= shape_func(QUAD12, R+dy)
+        d = deriv_func(QUAD12, R)
+        ddx = (nnx-n)/0.001
+        ddy = (nny-n)/0.001
+        D = array([ddx, ddy])
+        print n
+        print
+        print d - D
+        #print d
+        #print D
+        print
+
+    pass
+
+if __name__ == "__main__":
+    print "Hi"
+    check_shape_f()
 

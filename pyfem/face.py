@@ -138,7 +138,7 @@ class Face:
 
         """
 
-        if len(set(getattr(node,coord) for node in self.nodes))==1:
+        if len(set(getattr(node, coord) for node in self.nodes))==1:
             return getattr(self.nodes[0], coord)
         else:
             return None

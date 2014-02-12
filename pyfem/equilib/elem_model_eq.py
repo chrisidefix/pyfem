@@ -350,10 +350,10 @@ class ElemModelEq(ElemModel):
         for i, label in enumerate(all_ip_vals[0].keys()):
             nodal_values[label] = N[:,i]
 
-        # Filling elem_values dict
-        if self.is_truss:
-            for i, label in enumerate(all_ip_vals[0].keys()):
-                elem_values[label] = average(IP[:,i])
+        # Filling elem_values dict ***************88
+        #if self.is_truss:
+        for i, label in enumerate(all_ip_vals[0].keys()):
+            elem_values[label] = average(IP[:,i])
 
         #OUT('elem_values')
         #exit()
@@ -396,7 +396,7 @@ class ElemModelEq(ElemModel):
                 #IP[i,j] = val
 #
         #E = extrapolator(self.shape_type)
-        N = mul(E, IP)
+        #N = mul(E, IP)
 
         # Filling nodal_values dict
         #for i, label in enumerate(all_ip_vals[0].keys()):

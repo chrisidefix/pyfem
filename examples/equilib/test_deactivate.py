@@ -6,9 +6,9 @@ from pyfem import *
 bl0 = Block2D()
 bl0.make_box( (0,0), (1,1) )
 bl0.set_divisions(4,4)
-bl1 = bl0.copy().move(x=1)
-bl2 = bl0.copy().move(y=1)
-bl3 = bl0.copy().move(x=1,y=1)
+bl1 = bl0.copy().move(dx=1)
+bl2 = bl0.copy().move(dy=1)
+bl3 = bl0.copy().move(dx=1,dy=1)
 bl3.set_tag("exc")
 
 bl_bar = BlockLine()

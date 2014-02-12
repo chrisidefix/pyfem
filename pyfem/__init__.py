@@ -5,6 +5,8 @@ Raul Durand & Dorival Pedroso.
 Copyright 2010-2013.
 """
 
+from plot import *
+
 from mesh    import *
 from domain  import *
 from solver  import *

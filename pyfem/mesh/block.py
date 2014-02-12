@@ -25,7 +25,7 @@ class Block:
         Block.subtypes.append(sub_type)
 
     def __init__(self):
-        self.id = -1
+        self.id  = -1
         self.tag = ""
         self.coords    = None
         self.linear    = True

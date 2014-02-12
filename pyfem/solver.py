@@ -42,6 +42,7 @@ class Solver:
         self.tracked_elems = []
         self.tracked_nodes = []
         self.tracked_coll_nodes = []
+        self.tracked_coll_ips   = []
 
         if domain is not None:
             if isinstance(domain, Domain):
@@ -75,6 +76,8 @@ class Solver:
 
     def set_track_per_inc(self, per_inc):
         self.track_per_inc = per_inc
+
+    set_inc_tracking = set_track_per_inc
 
     def prime_and_check(self):
         pass
@@ -217,23 +220,38 @@ class Solver:
             ndata += 1 + len(elem.nodes)
 
         if path:
-            filename = path + "/output" + str(self.stage) + ".vtk"
+            if path[-1] != "/":
+                path = path + "/"
+
+            isdir = os.path.isdir(path)
+            if not isdir:
+                os.makedirs(path)
+        else:
+            path = "./"
+
+        if self.stage==1:
+            filelist = [ f for f in os.listdir(path) if f.endswith((".vtk","dat",)) ]
+            for f in filelist:
+                os.remove(path + f)
+
+        if path:
+            filename = path + "output" + str(self.stage) + ".vtk"
         else:
             filename = "output" + str(self.stage) + ".vtk"
 
         with open(filename, "w") as output:
-            #print("# vtk DataFile Version 3.0", file=output)
 
             print >> output, "# vtk DataFile Version 3.0"
             print >> output, "pyfem output "
             print >> output, "ASCII"
             print >> output, "DATASET UNSTRUCTURED_GRID"
             print >> output, ""
-            print >> output, "POINTS ", nnodes,  " float"
+            print >> output, "POINTS ", nnodes,  " float64"
 
             # Write nodes
             for node in self.nodes:
-                print >> output, "{:15.3}".format(round(node.X[0],3)), "{:15.3}".format(node.X[1]), "{:15.3}".format(node.X[2])
+                #print >> output, "{:20.10}".format(node.X[0]), "{:20.10}".format(node.X[1]), "{:20.10}".format(node.X[2])
+                print >> output, "%20.10f    %20.10f    %20.10f" % (node.X[0], node.X[1], node.X[2])
             print >> output, ""
 
             # Write connectivities
@@ -256,24 +274,24 @@ class Solver:
             print >> output, "POINT_DATA ", nnodes
 
             # Write vectors
-            print >> output, "VECTORS ", "Disp float"
+            print >> output, "VECTORS ", "Disp float64"
             for node in self.nodes:
                 if node.keys.has_key("ux"):
-                    print >> output, "{:15.4}".format(node.keys["ux"].U),
-                    print >> output, "{:15.4}".format(node.keys["uy"].U),
+                    print >> output, "{:20.10}".format(node.keys["ux"].U),
+                    print >> output, "{:20.10}".format(node.keys["uy"].U),
                     if ndim==3:
-                        print >> output, "{:15.4}".format(node.keys["uz"].U)
+                        print >> output, "{:20.10}".format(node.keys["uz"].U)
                     else:
-                        print >> output, "{:15.4}".format(0.0)
+                        print >> output, "{:20.10}".format(0.0)
                 else:
-                    print >> output, "{:15.4}{:15.4}{:15.4}".format(0.0, 0.0, 0.0)
+                    print >> output, "{:20.10}{:20.10}{:20.10}".format(0.0, 0.0, 0.0)
             print >> output
 
             for i in range(nncomps):
-                print >> output, "SCALARS ", nodal_labels[i], " float 1"
+                print >> output, "SCALARS ", nodal_labels[i], " float64 1"
                 print >> output, "LOOKUP_TABLE default"
                 for j in range(nnodes):
-                    print >> output, "{:15.4}".format(float(nodal_vals[j,i]))
+                    print >> output, "{:20.10}".format(float(nodal_vals[j,i]))
                 print >> output
 
             if not self.track_per_inc:
@@ -282,11 +300,11 @@ class Solver:
             # Write element data
             print >> output, "CELL_DATA ", naelems
             for i in range(necomps):
-                print >> output, "SCALARS ", elem_labels[i], " float 1"
+                print >> output, "SCALARS ", elem_labels[i], " float64 1"
                 print >> output, "LOOKUP_TABLE default"
                 for j in range(naelems):
                     e_idx = self.aelems[j].id
-                    print >> output, "{:15.4}".format(float(elem_vals[e_idx, i]))
+                    print >> output, "{:20.10}".format(float(elem_vals[e_idx, i]))
                 print >> output
 
             # Write cell type
@@ -298,14 +316,43 @@ class Solver:
 
         pass
 
-    def track(self, *args):
-        for obj in args:
-            if isinstance(obj, Node):
-                self.tracked_nodes.append(obj)
-            if isinstance(obj, Element):
-                self.tracked_elems.append(obj)
-            if isinstance(obj, CollectionNode):
-                self.tracked_coll_nodes.append(obj)
+        # Writting tracked data
+        for n in self.tracked_nodes:
+            if n.data_table.filename:
+                n.data_table.write(path + n.data_table.filename)
+
+        for e in self.tracked_elems:
+            if e.data_table.filename:
+                e.data_table.write(path + e.data_table.filename)
+
+        for c in self.tracked_coll_nodes:
+            if c.data_book.filename:
+                c.data_book.write(path + c.data_book.filename)
+
+        for c in self.tracked_coll_ips:
+            if c.data_book.filename:
+                c.data_book.write(path + c.data_book.filename)
+
+    def track(self, obj, filename=""):
+        if isinstance(obj, Node):
+            self.tracked_nodes.append(obj)
+            obj.data_table.filename = filename
+
+        if isinstance(obj, Element):
+            self.tracked_elems.append(obj)
+            obj.data_table.filename = filename
+
+        if isinstance(obj, CollectionNode):
+            if len(obj)==0:
+                raise Exception("Empty collection to track.")
+            self.tracked_coll_nodes.append(obj)
+            obj.data_book.filename = filename
+
+        if isinstance(obj, CollectionIp):
+            if len(obj)==0:
+                raise Exception("Empty collection to track.")
+            self.tracked_coll_ips.append(obj)
+            obj.data_book.filename = filename
 
     def track_old(self, *args):
         assert len(args)==2
@@ -360,13 +407,41 @@ class Solver:
                 X0 = node.X
 
                 # Get data
-                data = {"id": node.id, "dist": dist}
+                data = {"id": node.id, "dist": dist, "x": node.x, "y": node.y}
+
+                if self.ndim==3:
+                    data["z"] = node.z
+
                 for i, key in enumerate(nodal_labels):
                     data[key] = float(nodal_vals[node.id, i])
 
                 # Write table row
                 table.open_new_row()
                 table.set_data(data)
+
+        # Writing history from ip collection
+        for coll in self.tracked_coll_ips:
+            dist = 0.0
+            X0   = coll[0].X
+
+            coll.data_book.add_table()
+            table = coll.data_book[-1]
+
+            #  Write table
+            for ip in coll:
+                dist += norm(ip.X - X0)
+                X0 = ip.X
+
+                # Get data
+                data = {"id": ip.id, "dist": dist, "x": ip.x, "y": ip.y}
+
+                if self.ndim==3:
+                    data["z"] = ip.z
+
+                data.update( ip.mat_model.get_vals() )
+
+                # Write table row
+                table.add_row(data)
 
         # Writing history from elements
         for elem in self.tracked_elems:
@@ -377,7 +452,7 @@ class Solver:
             table.open_new_row()
             table.set_data(data)
 
-    def write_history2(self, *args):
+    def write_history_old(self, *args):
         if args:
             nodal_vals, labels = args
         else:
@@ -417,7 +492,7 @@ class Solver:
                 for node in coll:
                     dist += norm(node.X - X0)
                     X0 = node.X
-                    print >> output, "{:10}".format(node.id), "{:16.5}".format(dist), 
+                    print >> output, "{:10}".format(node.id), "{:16.5}".format(dist),
                     for i in range(len(labels)):
                         print >> output, "{:16.5}".format(float(nodal_vals[node.id, i])),
                     print >> output

@@ -19,6 +19,7 @@ class MatModelDruckerPrager(Model):
         self.alpha = 0.0
         self.kappa = 0.0
         self.plast = False
+        self.dg    = 0.0
 
         data = args[0] if args else kwargs
 
@@ -40,6 +41,7 @@ class MatModelDruckerPrager(Model):
         cp.kappa = self.kappa
         cp.plast = self.plast
         cp.ndim  = self.ndim
+        cp.dg    = self.dg
         cp.attr  = self.attr.copy()
         cp.T= self.T
         return cp
@@ -49,31 +51,32 @@ class MatModelDruckerPrager(Model):
         return True
 
     def set_params(self, **params):
+        self.E  = params.get("E" , 0.0)
+        self.nu = params.get("nu", 0.0)
+        self.T  = params.get("T" , 0.0)
+        assert self.nu>=0.0 and self.nu<0.5
+        assert self.E>0
+        assert self.T>=0
+
         if set(params.keys()) >= {"alpha", "kappa"}:
-            self.E     = params.get("E", 0.0)
-            self.nu    = params.get("nu", 0.0)
             self.alpha = params.get("alpha", 0.0)
             self.kappa = params.get("kappa", 0.0)
-            assert self.nu>=0.0 and self.nu<0.5
-            assert self.E>0
             assert self.alpha>0
             assert self.kappa>0
         elif set(params.keys) >= {"C","phi"}:
-            self.E     = params.get("E", 0.0)
-            self.nu    = params.get("nu",0.0)
             self.C     = params.get("C", 0.0)
             #self.C     = params.get("c", 0.0)
             self.phi   = params.get("phi", 0.0)
-            assert self.nu>=0.0 and self.nu<0.5
-            assert self.E>0
             assert self.C>=0
             assert self.phi>=0
             sr3 = 3.0**0.5
-            alpha = 2.0*       sin(self.phi)/(sr3*(3.0-sin(self.phi)))
-            kappa = 6.0*self.C*cos(self.phi)/(sr3*(3.0-sin(self.phi)))
+            self.alpha = 2.0*       sin(self.phi)/(sr3*(3.0-sin(self.phi)))
+            self.kappa = 6.0*self.C*cos(self.phi)/(sr3*(3.0-sin(self.phi)))
 
-        self.T = 0.01
-
+        min_p = self.kappa/(3*self.alpha)
+        if "T" not in params or self.T>min_p:
+            self.T = min_p*0.99
+        #OUT("self.T")
 
     def set_state(self, **state):
         sqrt2 = 2.0**0.5
@@ -96,7 +99,17 @@ class MatModelDruckerPrager(Model):
                 }
 
     def yield_func(self, sig):
+        p = sig.J1()/3.0
+        if p >self.T:
+            return 3.*p - 3.*self.T
+
         return self.alpha*sig.J1() + sig.J2D()**0.5 - self.kappa
+
+    def get_state(self):
+        return {
+                "sxx"  : self.sxx,
+                "exx"  : self.exx,
+                }
 
     def calcDe_(self):
         E  = self.E
@@ -115,7 +128,15 @@ class MatModelDruckerPrager(Model):
         return self.De
 
     def yield_deriv(self, sig):
+        p = sig.J1()/3.0
+        if p >self.T:
+            return tensor2([1., 1., 1., 0., 0., 0.,])
+
         srJ2D = sig.J2D()**0.5
+
+        if srJ2D ==0.0:
+            return tensor2([1., 1., 1., 0., 0., 0.,])
+
         return self.alpha*sig.I + 0.5*sig.S()/srJ2D
 
     def yield_deriv2(self, sig):
@@ -130,7 +151,7 @@ class MatModelDruckerPrager(Model):
 
         #assert srJ2D != 0.0
         if srJ2D==0:
-            return tensor2([1.,1.,1.0001,0,0,0])
+            return tensor2([1.,1.,1.,0.,0.,0.])
 
         v = tensor2([\
                 alpha + ( 2.0*s0-s1-s2)/(6.0*srJ2D) ,\
@@ -182,6 +203,7 @@ class MatModelDruckerPrager(Model):
 
     def stress_update(self, deps):
         self.eps += deps
+        sig_ini = self.sig.copy()
         FTOL = 1.0E-3
         F    =  self.yield_func(self.sig)
         if F>FTOL:
@@ -193,56 +215,107 @@ class MatModelDruckerPrager(Model):
         dsig   = D.dot(deps)     # dsig = D . deps
         sig_tr = self.sig + dsig # sig_tr = sig + dsig;
 
+        # Tension cut-off
+        p = sig_tr.trace()/3.0
+        if abs(p - self.T) < FTOL:
+            beta = (3*self.T - self.sig.J1())/sig_tr.J1()
+            sig_int = self.sig + beta*sig_tr
+            if self.yield_func(sig_int)<=0:
+                self.sig = sig_int   # intersection
+            else:
+                p = self.T
+                self.sig = tensor2([p,p,p,0.,0.,0.])
+            dsig = self.sig - sig_ini;
+            self.plast = True;
+            self.dg    = 0.00001
+
+            if self.sig[0]>self.T:
+                self.sig[0] = self.T
+            if self.sig[1]>self.T:
+                self.sig[1] = self.T
+            if self.sig[2]>self.T:
+                self.sig[2] = self.T
+
+
+            return dsig
+
         # Elastic integration
         if self.yield_func(sig_tr) <= 0.0:
             self.sig  = sig_tr
             self.plast = False
+            self.dg    = 0.0
+
+            if self.sig[0]>self.T:
+                self.sig[0] = self.T
+            if self.sig[1]>self.T:
+                self.sig[1] = self.T
+            if self.sig[2]>self.T:
+                self.sig[2] = self.T
+
             return dsig
 
         # Plastic integration
         self.plast = True;
-        sig_ini = self.sig.copy()
-
-        # Traction case
-        p = sig_tr.trace()/3.0
-        if p > self.T:
-            p = self.T
-            self.sig = tensor2([p,p,p,0.,0.,0.])
-            dsig = self.sig - sig_ini;
-            self.plast = False;
-            return dsig
 
         # Find gamma
-        sig_tr_dr = self.yield_deriv(sig_tr)
-        De_sig_tr_dr = D.dot(sig_tr_dr)
+        v_tr = self.yield_deriv(sig_tr)
+        De_v_tr = D.dot(v_tr)
         a  = 0.0
-        b  = norm(sig_tr.S())/norm(De_sig_tr_dr)
-        #n  = int(log(norm(b-a)/0.0000000001, 2)) + 1
-        fa = self.yield_func(sig_tr - a*De_sig_tr_dr)
-        fb = self.yield_func(sig_tr - b*De_sig_tr_dr)
+        #b  = norm(sig_tr.S())/norm(De_v_tr)
+        b  = norm(sig_tr)/norm(De_v_tr)
+        fa = self.yield_func(sig_tr - a*De_v_tr)
+        fb = self.yield_func(sig_tr - b*De_v_tr)
+
+        while fb>0.0:
+            b *= 1.2
+            fb = self.yield_func(sig_tr - b*De_v_tr)
+
         if fa*fb>0:
+            OUT("v_tr")
+            OUT("a")
+            OUT("fa")
+            OUT("b")
+            OUT("fb")
+            OUT("sig_tr")
+            OUT("sig_tr - a*De_v_tr")
+            OUT("sig_tr - b*De_v_tr")
             raise Exception("MatModelDruckerPrager.stress_update: Invalid root")
 
         # Bisection iterations
-        sig1 = sig_tr - a*De_sig_tr_dr
+        sig1 = sig_tr - a*De_v_tr
         while abs(fa)>FTOL:
-            gam   = (a+b)/2.0
-            sig1  = sig_tr - gam*De_sig_tr_dr
+            self.dg   = (a+b)/2.0
+            sig1  = sig_tr - self.dg*De_v_tr
             fsig1 = self.yield_func(sig1)
             if fa*fsig1>0.0:
-                a  = gam
+                a  = self.dg
                 fa = fsig1
             if fb*fsig1>0.0:
-                b  = gam
+                b  = self.dg
                 fb = fsig1
+
 
         # Delta
         self.sig = sig1.copy()
+
+        if self.sig[0]>self.T:
+            self.sig[0] = self.T
+        if self.sig[1]>self.T:
+            self.sig[1] = self.T
+        if self.sig[2]>self.T:
+            self.sig[2] = self.T
 
         F    =  self.yield_func(self.sig)
         if F>FTOL:
             OUT("self.sig")
             raise Exception("MatModelDruckerPrager.stress_update: Invalid stress tensor at end of integration. F = ", F)
+
+        p = sig_tr.trace()/3.0
+        #if p > self.T:
+        #    OUT("p")
+        #    OUT("self.T")
+        #    raise Exception("MatModelDruckerPrager.stress_update: Invalid stress tensor at end of integration. F = ", F)
+
 
         dsig     = self.sig - sig_ini;
         return dsig
@@ -289,7 +362,6 @@ class MatModelDruckerPrager(Model):
             self.sig = tensor2([p,p,p,0.,0.,0.])
             dsig = self.sig - sig_ini;
             self.eps += deps - deps_e
-            print "Hiiiiiiiiiiiiiiiiiii"
             return dsig
 
         for i in range(NINCS):
@@ -326,7 +398,6 @@ class MatModelDruckerPrager(Model):
 
         vals = {}
         if self.ndim==3:
-            #vec p = eps.principal();
             sqrt2 = 2.0**0.5
             vals["sxx"] = sig[0]
             vals["syy"] = sig[1]
@@ -340,14 +411,10 @@ class MatModelDruckerPrager(Model):
             vals["exy"] = eps[3]/sqrt2
             vals["eyz"] = eps[4]/sqrt2
             vals["exz"] = eps[5]/sqrt2
-            #vals["e1"] = p(0);
-            #vals["e2"] = p(1);
-            #vals["e3"] = p(2);
-            vals["sig_m"] = sig[0]+sig[1]+sig[2]
             vals["J1" ]   = sig.J1()
+            vals["F" ]   = self.yield_func(self.sig)
+            vals["J2D"] = sig.J2D()
             vals["srJ2D"] = sig.J2D()**0.5
-            #vals["plast"] = static_cast<double>(plast);
-            #vals["F"] = yield_func(sig);
 
         return vals
 

@@ -43,7 +43,9 @@ class MatModelMohrCoulombJoint(Model):
         return deepcopy(self)
 
     def prime_and_check(self):
-        pass
+        if self.ndim==2 and self.sig.size==3:
+            self.sig = array([self.sig[0], self.sig[1]])
+            self.eps = array([self.eps[0], self.eps[1]])
 
     def set_params(self, **params):
         self.ks  = params.get("Ks" , self.ks)
@@ -65,8 +67,12 @@ class MatModelMohrCoulombJoint(Model):
 
     def yield_func(self, tau):
         sign = self.attr.get("sign", 0.0)
+        #OUT("sign")
+        #OUT("self.C")
         sign = 0.0 if sign>0.0 else abs(sign)
-        return abs(tau) - (self.C + self.kh*self.w_pa + self.mu*sign)
+        f = abs(tau) - (self.C + self.kh*self.w_pa + self.mu*sign)
+        #OUT("f")
+        return f
 
     def calcDe(self):
         ks  = self.ks
@@ -108,15 +114,19 @@ class MatModelMohrCoulombJoint(Model):
         kh      = self.kh
         dw      = deps[0]
         tau_ini = self.sig[0]
+        #OUT("tau_ini")
+        #OUT("deps")
 
         tau_tr  = tau_ini + ks*dw           # τ trial: τ_tr = τ_ini + ks*Δω
         f_tr    = self.yield_func(tau_tr)   # f trial
+        #OUT("f_tr")
 
 
         if f_tr<0.0:
             self.dg = 0.0
             tau = tau_tr
         else:
+            #print ">>>>>Hiii"
             self.dg     = f_tr/(ks+kh)                   # Δγ
             dw_p        = self.dg*copysign(1, tau_tr)    # Δωp
             self.w_pa  += self.dg                        # ωp¯ += Δγ
