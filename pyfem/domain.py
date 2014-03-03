@@ -29,6 +29,7 @@ class Domain:
         self.nodes = CollectionNode()
         self.elems = CollectionElem()
         self.faces = CollectionFace()
+        self.edges = CollectionEdge()
         self.solver = None
 
         if mesh:
@@ -106,5 +107,16 @@ class Domain:
                 face.nodes.append(self.nodes[point.id])
             self.faces.append(face)
 
+        # Setting edges
+        self.edges = CollectionEdge()
+        for i, edge_shape in enumerate(mesh.edges):
+            edge = Edge()
+            edge.id  = i
+            edge.tag = edge_shape.tag
+            edge.shape_type = edge_shape.shape_type
+            edge.owner_elem = self.elems[edge_shape.owner_shape.id]
+            for point in edge_shape.points:
+                edge.nodes.append(self.nodes[point.id])
+            self.edges.append(edge)
 
 

@@ -8,6 +8,15 @@ import scipy
 
 from numpy import linalg
 from scipy.sparse.linalg import factorized
+import time, datetime
+
+def secs2time(secs):
+    s    = round(secs, 2)
+    m, s = divmod(s, 60)
+    h, m = divmod(m, 60)
+    if h>0:
+        return "%dh%dm%.3fs" % (h,m,s)
+    return "%dm%.3fs" % (m,s)
 
 class SolverEq(Solver):
     """ A finite element solver for static linear/non-linear equilibrium analysis.
@@ -25,6 +34,10 @@ class SolverEq(Solver):
         self.LUsolver = None
         self.plane_stress = False
         self.nmaxits = 100
+        self.time0 = time.time()
+
+    def time(self):
+        return secs2time(time.time() - self.time0)
 
     def set_plane_stress(self, value):
         self.plane_stress = True
@@ -38,12 +51,14 @@ class SolverEq(Solver):
                 raise Exception("SolverEq.prime_and_check: Element model was not set")
 
         # Setting extra linked elements
+        # TODO: use elem_model.parent.lnk_elems instead inside lnk elem models.
         for e in self.elems:
             e.elem_model.lnk_elem_models= []
             for lnk_e in e.lnk_elems:
                 e.elem_model.lnk_elem_models.append(lnk_e.elem_model)
 
         # Setting analysis conditions at elements and mat_models
+        # TODO: use solver constants class
         for e in self.elems:
             for ip in e.ips:
                 ip.mat_model.attr["plane_stress"] = self.plane_stress
@@ -63,7 +78,6 @@ class SolverEq(Solver):
         # Fill collection of prescribed dofs and unknown dofs
         self.pdofs = []
         self.udofs = []
-
 
         for n in self.nodes:
             if n.n_shares == 0: continue
@@ -92,6 +106,7 @@ class SolverEq(Solver):
         for e in self.aelems:
             Ke = e.elem_model.stiff()
             loc = e.elem_model.get_eqn_map()
+            nr, nc = Ke.shape
 
             for i in range(Ke.shape[0]):
                 for j in range(Ke.shape[1]):
@@ -105,7 +120,6 @@ class SolverEq(Solver):
         scheme = self.scheme
 
         #self.stage += 1
-
         #if self.stage==0:
             #self.write_history()
 
@@ -139,6 +153,7 @@ class SolverEq(Solver):
 
         # Clear boundary conditions
         self.nodes.clear_bc()
+        print "  solver time:", secs2time(time.time() - self.time0), "\n"
 
     def solve_stage(self, U, F, raise_error=True):
         scheme = self.scheme
@@ -146,7 +161,6 @@ class SolverEq(Solver):
 
         if self.verbose:
             print "  stage", self.stage, ":"
-
 
         # Incremental vectors
         nu = len(self.udofs)
@@ -229,7 +243,7 @@ class SolverEq(Solver):
             if self.track_per_inc:
                 self.write_history()
 
-        if self.verbose: print "  end stage", self.stage, "\n"
+        if self.verbose: print "  end stage", self.stage
         return True
 
 

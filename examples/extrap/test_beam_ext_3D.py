@@ -12,7 +12,7 @@ block.set_quadratic()
 # Define domain and conditions
 
 # ... Generating the mesh
-mesh = Mesh([block])
+mesh = Mesh(block)
 mesh.generate()
 
 # ... Setting the domain and loading the mesh
@@ -21,7 +21,7 @@ domain.load_mesh(mesh)
 
 # ... Setting element model
 elem_model = EqElasticSolid(E=20.0E6, nu=0.0)
-domain.elems.solids.set_elem_model(elem_model)
+domain.elems.solids.set_elem_model(elem_model, nips=8) # TODO: Check for 27 ips
 
 # ... Setting boundary conditions
 domain.faces.sub(x=0.0).set_bc(ux=0)
@@ -36,7 +36,7 @@ domain.solver.set_scheme("NR")
 domain.solver.set_precision(1E-3)
 tnodes = domain.elems.nodes.sub(x=0.0).sub(z=1.0)
 tnodes.sort_in_y()
-domain.solver.track(tnodes, "tnodes")
+domain.solver.track(tnodes)
 domain.solver.solve()
 
 #dl = domain.get_data_line([],[])
@@ -76,8 +76,8 @@ pylab.plot(data[1][0], data[1][1], 'ko-', markerfacecolor='white')
 pylab.plot(data[2][0], data[2][1], 'ko-', markerfacecolor='white')
 pylab.plot(data[3][0], data[3][1], 'ko-', markerfacecolor='white')
 #pylab.plot(DD, sigl, 'ko-', markerfacecolor='white')
-pylab.plot(tnodes.data_book[-1].get_col("dist"), tnodes.data_book[-1].get_col("syz",-1.0),'k^', label='proposed extrapolation')
-pylab.plot(tnodes.data_book[-1].get_col("dist"), tnodes.data_book[-1].get_col("syz",+1.0),'k-', label='beam theory')
+pylab.plot(tnodes.data_book[-1].get_col("y"), tnodes.data_book[-1].get_col("syz",-1.0),'k^', label='proposed extrapolation')
+pylab.plot(tnodes.data_book[-1].get_col("y"), tnodes.data_book[-1].get_col("syz",+1.0),'k-', label='beam theory')
 
 from pylab import rc
 rc('text', usetex=True)

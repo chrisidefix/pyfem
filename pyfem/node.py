@@ -13,6 +13,7 @@ from tools.matvec import *
 from tools.stream import *
 from tools.table  import *
 from tools.real_list import *
+from tools.collection import *
 
 
 #/////////////////////////////////////////////////////////////////////////////////// Class Node 
@@ -145,7 +146,7 @@ class Node:
 
 
 
-class CollectionNode(list):
+class CollectionNode(Collection):
     """ Object that contains Node objects as a collection.
     """
     def __init__(self, *args):
@@ -230,88 +231,6 @@ class CollectionNode(list):
         #check_args(datatype(typ=[list, tuple], size=[2,3]))
         x, y, z = (C + [0])[:3]
         return CollectionNode(n for n in self if n.x==x and n.y==y and n.z==z)
-
-    def _with_attr(self, attr, val=None):
-        """
-        Filters the collection according to a given condition
-        =====================================================
-
-        INPUT:
-            attr: A node attribute, e.g. x, id, tag.
-            val : Value for the attribute
-                  values can be float, string, etc. according to attr type.
-                  If value is a list then the condition will be true if attr
-                  value is equal to any element of the list.
-                  If value is a tuple then it is considered as a closed interval
-                  for real values: (start, end]) In this case the condition
-                  will be true if the real interval contains the attr value.
-
-        RETURNS:
-            collection: A new collection with nodes that match the condition attr=value
-
-        EXAMPLE:
-            tmp = self._with_attr('x'  , 0.5)
-            tmp = self._with_attr('y'  , [1.0, 2.0])
-            tmp = self._with_attr('x>=', 1.4) # Unsuported
-
-        """
-
-        if attr in ['x', 'y', 'z']:
-            TOL = 1.0E-8
-
-            if isinstance(val,list):
-                tmp = RealList(val, TOL)
-                return CollectionNode(n for n in self if getattr(n,attr) in tmp)
-
-            if isinstance(val, tuple):
-                start = val[0]
-                end   = val[1]
-                return CollectionNode(n for n in self if getattr(n,attr)>start-TOL and getattr(n,attr)<end+TOL)
-
-            return CollectionNode(n for n in self if abs(getattr(n,attr)-val)<TOL)
-
-        if attr in ['id', 'tag']:
-            return CollectionNode(n for n in self if getattr(n,attr) == val)
-
-        assert False
-
-    def sub(self, *args, **kwargs):
-        """sub(att1=value1, [att2=value2 [,...]])
-        Filters the collection according to given criteria.
-
-        :param value1: A value for node attribute att1 (*str*) used to filter the collection.
-        :type  value1: float or str
-        :param value2: A value for node attribute att2 (*str*) used to filter the collection.
-        :type  value2: float or str
-
-        :returns: A new collection with nodes that match the given criteria.
-
-        The following code filters the nodes collection returning all nodes with x coordinate
-        equal to zero:
-
-        >>> tmp = nodes.sub(x=0.0)
-
-        other examples are:
-
-        >>> tmp = nodes.sub(x=0.0).sub(y=0.0)
-        >>> tmp = nodes.sub(x=[1.0, 2.0, 3.0, 5.0])
-        >>> tmp = nodes.sub(lambda n: n.x>2)
-        >>> tmp = nodes.sub(lambda n: n.x>=2 and x<=4)
-        """
-
-        # Resultant collection initialization
-        coll = CollectionNode()
-        coll = self
-
-        for key, value in kwargs.iteritems():
-            coll = coll._with_attr(key, value)
-
-        for value in args:
-            # filter usign lambda function
-            f = value
-            coll = CollectionNode(n for n in coll if f(n))
-
-        return coll
 
     def sort(self):
         list.sort(self, key= lambda n: n.id)

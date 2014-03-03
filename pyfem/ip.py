@@ -8,6 +8,7 @@ Copyright 2010-2013.
 from tools.matvec import *
 from tools.stream import *
 from tools.table  import *
+from tools.collection import *
 from tools.real_list import *
 
 
@@ -52,15 +53,18 @@ class Ip:
         return self.mat_model.get_vals()[var]
 
 
-class CollectionIp(list):
-    def __init__(self):
+class CollectionIp(Collection):
+    def __init__(self, coll=None):
+        if coll:
+            self[:] = coll
+
         self.data_book = Book()
 
     def set_state(self, state):
         for ip in self:
             ip.mat_model.set_state(state)
 
-    def _with_attr(self, attr, val=None):
+    def _with_attr0(self, attr, val=None):
         """
         Filters the collection according to a given condition
         =====================================================
@@ -101,7 +105,7 @@ class CollectionIp(list):
 
         assert False
 
-    def sub(self, *args, **kwargs):
+    def sub0(self, *args, **kwargs):
         """sub(att1=value1, [att2=value2 [,...]])
         Filters the collection according to given criteria.
 

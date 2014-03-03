@@ -22,11 +22,11 @@ class ElemModel:
         self.thickness  = 1.0
         self.nodes  = []
         self.ips    = []
-        self.fips   = []
         self.atts   = {}
         self.active = True
         self.tmp_mat_model = None
         self.lnk_elem_models = []
+        self.parent = None
 
     def copy(self):
         cp = self.__class__()
@@ -35,7 +35,6 @@ class ElemModel:
         cp.thickness  = self.thickness
         cp.nodes      = list(self.nodes)
         cp.ips        = list(self.ips)
-        cp.fips       = list(self.fips)
         cp.atts       = self.atts.copy()
         cp.active     = self.active
         cp.tmp_mat_model = self.tmp_mat_model
@@ -109,38 +108,27 @@ class ElemModel:
         pass
 
     def config_ips(self):
-        IP, FIP = get_ips_data(self.shape_type)
-        nips  = IP .shape[0]
-        nfips = FIP.shape[0] if is_solid(self.shape_type) else 0
+        nips = self.parent._nips # default number is zero
+        IP = get_ips_data(self.shape_type, nips)
+        nips  = IP.shape[0]      # updates value of nips
 
         # ips for element
         for i in range(nips):
-            self.ips.append(Ip())
-            ip = self.ips[-1]
+            ip    = Ip()
             ip.id = i
             ip.owner_id = self.id
             ip.R = IP[i]
-            #ip.R = IP[i,0:3]
             ip.w = IP[i,3]
-
-        # ips for faces
-        for i in range(nfips):
-            self.fips.append(Ip())
-            fip = self.fips[-1]
-            #fip.R = FIP[i,0:3]
-            fip.R = FIP[i]
-            fip.w = FIP[i,3]
+            self.ips.append(ip)
 
         # Finding ips real coords
-        if is_line_joint(self.shape_type): return
-
         C = self.coords()
+        if is_line_joint(self.shape_type):
+            C = self.parent.lnk_elems[0].elem_model.coords() # get coordinates from line element
+
         for ip in self.ips:
             N = shape_func(self.shape_type, ip.R)
             ip.X = mul(N.T, C)
-
-    def enhance_quadrature_rule(self, rule):
-        pass
 
     def __str__(self):
         shape_type = self.shape_type

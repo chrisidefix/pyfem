@@ -23,6 +23,7 @@ class MatModelMohrCoulombJoint(Model):
         self.eps  = zeros(3)
         self.w_pa = 0.0
         self.dg   = 0.0
+        self.sigc = 0.0
 
         # Parameters
         self.ks  = 0.0
@@ -50,28 +51,38 @@ class MatModelMohrCoulombJoint(Model):
     def set_params(self, **params):
         self.ks  = params.get("Ks" , self.ks)
         self.ks  = params.get("ks" , self.ks)
+        self.Kn  = params.get("kn" , self.ks) # Kn=ks by default
         self.Kn  = params.get("Kn" , self.ks) # Kn=ks by default
+        self.h   = params.get("h"  , self.h)
         self.Dm  = params.get("Dm" , self.Dm)
         self.C   = params.get("C"  , self.C)
         self.mu  = params.get("mu" , self.mu)
+        self.kh  = params.get("kh" , self.kh)
         phi      = params.get("phi", 0.0)
-        self.kh  = 1.0E-15*self.ks
 
-        self.h   = self.Dm*pi # perimeter
+        if not self.h:
+            self.h = self.Dm*pi # perimeter
 
-        if self.mu==0:
+        if not self.mu:
             self.mu = tan(phi)   # μ = tan(φ)
+
 
     def set_state(self, **state):
         self.sig[0] = state.get("tau", self.sig[0])
 
+    def get_state(self):
+        return {
+                "sig"  : self.sig,
+                "eps"  : self.eps,
+                "w_pa" : self.w_pa,
+                "dg"   : self.dg,
+                "sigc" : self.sigc
+                }
+
     def yield_func(self, tau):
-        sign = self.attr.get("sign", 0.0)
-        #OUT("sign")
-        #OUT("self.C")
-        sign = 0.0 if sign>0.0 else abs(sign)
-        f = abs(tau) - (self.C + self.kh*self.w_pa + self.mu*sign)
-        #OUT("f")
+        sigc = 0.0 if self.sigc>0.0 else abs(self.sigc)
+
+        f = abs(tau) - (self.C + self.kh*self.w_pa + self.mu*sigc)
         return f
 
     def calcDe(self):
@@ -96,7 +107,6 @@ class MatModelMohrCoulombJoint(Model):
             Ksep = ks
         else:
             Ksep = ks*kh/(ks + kh)
-            # Ksep += 
 
         if self.ndim==2:
             return  array([\
@@ -114,19 +124,14 @@ class MatModelMohrCoulombJoint(Model):
         kh      = self.kh
         dw      = deps[0]
         tau_ini = self.sig[0]
-        #OUT("tau_ini")
-        #OUT("deps")
 
         tau_tr  = tau_ini + ks*dw           # τ trial: τ_tr = τ_ini + ks*Δω
         f_tr    = self.yield_func(tau_tr)   # f trial
-        #OUT("f_tr")
-
 
         if f_tr<0.0:
             self.dg = 0.0
             tau = tau_tr
         else:
-            #print ">>>>>Hiii"
             self.dg     = f_tr/(ks+kh)                   # Δγ
             dw_p        = self.dg*copysign(1, tau_tr)    # Δωp
             self.w_pa  += self.dg                        # ωp¯ += Δγ
@@ -137,7 +142,7 @@ class MatModelMohrCoulombJoint(Model):
 
         # Calculate dsig
         dtau    = tau - tau_ini
-        dsig    = self.Kn*deps
+        dsig    = self.Kn*deps     # 
         dsig[0] = dtau             # correcting first term
 
         # Update sig
@@ -146,15 +151,14 @@ class MatModelMohrCoulombJoint(Model):
         return dsig
 
     def get_vals(self):
-        sign = self.attr.get("sign", 0.0)
-        sign = 0.0 if sign>0.0 else abs(sign)
-        tau_max = self.C + sign*self.mu
+        tau_max = self.C + abs(self.sigc)*self.mu
 
         vals = {}
         vals["tau"    ] = self.sig[0]
-        vals["rdis"   ] = self.eps[0]
-        vals["sign"   ] = self.attr["sign"]
+        vals["ur"     ] = self.eps[0]
+        vals["sigc"   ] = self.sigc
         vals["tau_max"] = tau_max
+        vals["w_pa"   ] = self.w_pa
 
         return vals
 

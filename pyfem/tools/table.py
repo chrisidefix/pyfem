@@ -1,6 +1,15 @@
 from collections import *
 import json
 
+def json_dump(object, filename):
+    with open(filename, 'w') as outfile:
+        json.dump(object, outfile, indent=4, sort_keys=False)
+
+def json_load(filename):
+    with open(filename, 'r') as infile:
+        object = json.load(infile)
+    return object
+
 class Table(OrderedDict):
     def __init__(self):
         OrderedDict.__init__(self)
@@ -51,8 +60,10 @@ class Table(OrderedDict):
     def add_cols(self, str_keys, *data):
         pass
 
-    def write_csv(self, filename):
-        pass
+    def write_txt(self, filename):
+        with open(filename, 'w') as outfile:
+            pass
+            #print outfile, ""
 
     def write(self, filename):
         if not filename:
@@ -63,7 +74,6 @@ class Table(OrderedDict):
         #print json.dumps(self)
         with open(filename, 'w') as outfile:
             json.dump(self, outfile, indent=4, sort_keys=False)
-        outfile.close()
 
     def plot(self, xkey, ykeys, xlabel=None, ylabel=None):
         import pylab
@@ -91,7 +101,6 @@ class Book(list):
         #print json.dumps(self)
         with open(filename, 'w') as outfile:
             json.dump(self, outfile, indent=4, sort_keys=False)
-        outfile.close()
 
     def plot(self, key, coef=1.0, xlabel='d', ylabel=None, legend=[]):
         if not ylabel: ylabel = key

@@ -44,7 +44,7 @@ class Block3D(Block):
     def set_face_tag(self, idx, tag):
         self.face_tags[idx] = tag
 
-    def make_box(self, C1, C2):
+    def make_box(self, C1, C2, A = None):
         """ Generates the block coordinates by defining two diagonal coordinates of a box.
 
         :param C1: Coordinates of the first point
@@ -53,10 +53,14 @@ class Block3D(Block):
         :type  C2: list
         """
 
-        if len(C1) !=3 or len(C2) != 3:
-            raise Exception("Block3D.make_box: Coords list size does not match 3")
+        if len(C1) !=3 or len(C2) != 3: raise Exception("Block3D.make_box: Coords size does not match 3")
 
-        self.coords = zeros(8, 3)
+        if A:
+            if len(A) !=3: raise Exception("Block3D.make_box: Coefficients size does not match 3")
+            self.coords = zeros(20, 3)
+        else:
+            self.coords = zeros(8, 3)
+
         x0 = float(C1[0])
         y0 = float(C1[1])
         z0 = float(C1[2])
@@ -72,6 +76,21 @@ class Block3D(Block):
         self.coords[5, 0] = x0+lx; self.coords[5, 1] = y0;    self.coords[5, 2] = z0+lz;
         self.coords[6, 0] = x0+lx; self.coords[6, 1] = y0+ly; self.coords[6, 2] = z0+lz;
         self.coords[7, 0] = x0;    self.coords[7, 1] = y0+ly; self.coords[7, 2] = z0+lz;
+
+        if A:
+            ax, ay, az = A
+            self.coords[ 8, 0] = x0+lx*ax; self.coords[ 8, 1] = y0;       self.coords[ 8, 2] = z0;
+            self.coords[ 9, 0] = x0+lx;    self.coords[ 9, 1] = y0+ly*ay; self.coords[ 9, 2] = z0;
+            self.coords[10, 0] = x0+lx*ax; self.coords[10, 1] = y0+ly;    self.coords[10, 2] = z0;
+            self.coords[11, 0] = x0;       self.coords[11, 1] = y0+ly*ay; self.coords[11, 2] = z0;
+            self.coords[12, 0] = x0+lx*ax; self.coords[12, 1] = y0;       self.coords[12, 2] = z0+lz;
+            self.coords[13, 0] = x0+lx;    self.coords[13, 1] = y0+ly*ay; self.coords[13, 2] = z0+lz;
+            self.coords[14, 0] = x0+lx*ax; self.coords[14, 1] = y0+ly;    self.coords[14, 2] = z0+lz;
+            self.coords[15, 0] = x0;       self.coords[15, 1] = y0+ly*ay; self.coords[15, 2] = z0+lz;
+            self.coords[16, 0] = x0;       self.coords[16, 1] = y0;       self.coords[16, 2] = z0+az*lz;
+            self.coords[17, 0] = x0+lx;    self.coords[17, 1] = y0;       self.coords[17, 2] = z0+az*lz;
+            self.coords[18, 0] = x0+lx;    self.coords[18, 1] = y0+ly;    self.coords[18, 2] = z0+az*lz;
+            self.coords[19, 0] = x0;       self.coords[19, 1] = y0+ly;    self.coords[19, 2] = z0+az*lz;
 
     def split(self, points, cells, faces):
         # Check number of points

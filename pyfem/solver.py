@@ -23,6 +23,7 @@ class Solver:
         self.nincs = nincs
         self.ndim  = -1
         self.Dt    = 0.0
+        self.time  = 0.0
         self.residue   = 0.0
         self.nmaxits   = 50
         self.precision = precision
@@ -307,14 +308,23 @@ class Solver:
                     print >> output, "{:20.10}".format(float(elem_vals[e_idx, i]))
                 print >> output
 
+            # Write cell tag
+            print >> output, "SCALARS tag int 1"
+            print >> output, "LOOKUP_TABLE default"
+            for j in range(naelems):
+                try:
+                    tag = int(self.aelems[j].tag)
+                except ValueError:
+                    tag = 0
+                print >> output, "%d"%(tag)
+            print >> output
+
             # Write cell type
             print >> output, "SCALARS cell_type int 1"
             print >> output, "LOOKUP_TABLE default"
             for j in range(naelems):
                 print >> output, "%d"%(self.aelems[j].shape_type)
             print >> output
-
-        pass
 
         # Writting tracked data
         for n in self.tracked_nodes:
@@ -388,10 +398,10 @@ class Solver:
             #  Write header
             table = node.data_table
             data  = node.get_vals()
+            data["time"] = self.time
 
             #  Write table row
-            table.open_new_row()
-            table.set_data(data)
+            table.add_row(data)
 
         # Writing history from node collection
         for coll in self.tracked_coll_nodes:
@@ -400,6 +410,7 @@ class Solver:
 
             coll.data_book.add_table()
             table = coll.data_book[-1]
+            table["time"] = self.time
 
             #  Write table
             for node in coll:
@@ -416,8 +427,7 @@ class Solver:
                     data[key] = float(nodal_vals[node.id, i])
 
                 # Write table row
-                table.open_new_row()
-                table.set_data(data)
+                table.add_row(data)
 
         # Writing history from ip collection
         for coll in self.tracked_coll_ips:
@@ -426,6 +436,7 @@ class Solver:
 
             coll.data_book.add_table()
             table = coll.data_book[-1]
+            table["time"] = self.time
 
             #  Write table
             for ip in coll:
@@ -449,8 +460,8 @@ class Solver:
 
             #  Write table
             data = elem.elem_model.get_elem_vals()
-            table.open_new_row()
-            table.set_data(data)
+            data["time"] = self.time
+            table.add_row(data)
 
     def write_history_old(self, *args):
         if args:

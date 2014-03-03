@@ -37,5 +37,5 @@ dom.solver.set_scheme("NR")
 dom.solver.set_incs(6)
 dom.solver.solve()
 
-#dom.solver.write_output()
+dom.solver.write_output()
 

@@ -10,6 +10,7 @@ from collections import Counter
 
 from pyfem.tools.matvec import *
 from pyfem.tools.stream import *
+from pyfem.tools.collection import *
 from shape_types import *
 from shape_functions import *
 
@@ -59,7 +60,7 @@ class Point:
         return str(os)
 
 
-class CollectionPoint(list):
+class CollectionPoint(Collection):
     def __init__(self, *args):
         list.__init__(self, *args)
         self.border_points = set()
@@ -105,87 +106,15 @@ class CollectionPoint(list):
         for p in self:
             p.tag = tag
 
-    def _with_attr(self, attr, val=None):
-        """
-        Filters the collection according to a given condition
-        =====================================================
+    def sort_in_x(self):
+        list.sort(self, key= lambda p: p.x)
+        for i, p in enumerate(self):
+            p.id = i
 
-        INPUT:
-            attr: A point attribute, e.g. x, id, tag.
-            val : Value for the attribute
-                  values can be float, string, etc. according to attr type.
-                  If value is a list then the condition will be true if attr
-                  value is equal to any element of the list.
-                  If value is a tuple then it is considered as a closed interval
-                  for real values: (start, end]) In this case the condition
-                  will be true if the real interval contains the attr value.
-
-        RETURNS:
-            collection: A new collection with points that match the condition attr=value
-
-        EXAMPLE:
-            tmp = self._with_attr('x'  , 0.5)
-            tmp = self._with_attr('y'  , [1.0, 2.0])
-            tmp = self._with_attr('x>=', 1.4) # Unsuported
-
-        """
-
-        if attr in ['x', 'y', 'z']:
-            TOL = 1.0E-8
-
-            if isinstance(val,list):
-                tmp = RealList(val, TOL)
-                return CollectionPoint(p for p in self if getattr(p,attr) in tmp)
-
-            if isinstance(val, tuple):
-                start = val[0]
-                end   = val[1]
-                return CollectionPoint(p for p in self if getattr(p,attr)>start-TOL and getattr(p,attr)<end+TOL)
-
-            return CollectionPoint(p for p in self if abs(getattr(p,attr)-val)<TOL)
-
-        if attr in ['id', 'tag']:
-            return CollectionPoint(p for p in self if getattr(p,attr) == val)
-
-        assert False
-
-    def sub(self, *args, **kwargs):
-        """sub(att1=value1, [att2=value2 [,...]])
-        Filters the collection according to given criteria.
-
-        :param value1: A value for point attribute att1 (*str*) used to filter the collection.
-        :type  value1: float or str
-        :param value2: A value for point attribute att2 (*str*) used to filter the collection.
-        :type  value2: float or str
-
-        :returns: A new collection with points that match the given criteria.
-
-        The following code filters the points collection returning all points with x coordinate
-        equal to zero:
-
-        >>> tmp = points.sub(x=0.0)
-
-        other examples are:
-
-        >>> tmp = points.sub(x=0.0).sub(y=0.0)
-        >>> tmp = points.sub(x=[1.0, 2.0, 3.0, 5.0])
-        >>> tmp = points.sub(lambda p: p.x>2)
-        >>> tmp = points.sub(lambda p: p.x>=2 and x<=4)
-        """
-
-        # Resultant collection initialization
-        coll = CollectionPoint()
-        coll = self
-
-        for key, value in kwargs.iteritems():
-            coll = coll._with_attr(key, value)
-
-        for value in args:
-            # filter usign lambda function
-            f = value
-            coll = CollectionPoint(p for p in coll if f(p))
-
-        return coll
+    def sort_in_y(self):
+        list.sort(self, key= lambda p: p.y)
+        for i, p in enumerate(self):
+            p.id = i
 
 class Cell:
     def __init__(self):
@@ -267,16 +196,15 @@ class Cell:
         else:
             return None
 
-
-class CollectionCell(list):
+class CollectionCell(Collection):
     def __init__(self, *args):
         list.__init__(self, *args)
         self.changed = False # States if the collections was changed after bins construction
         self.bins    = None  # Cell bins for fast search
         self.l_bin   = 0.0   # Lenght of each bin
-        self.min_x   = 0.0
-        self.min_y   = 0.0
-        self.min_z   = 0.0
+        self.cmin_x   = 0.0
+        self.cmin_y   = 0.0
+        self.cmin_z   = 0.0
 
     def add_new(self, typ, conn, tag=None, owner_shape=None):
         cell             = Cell()
@@ -305,11 +233,14 @@ class CollectionCell(list):
     def unique(self):
         # Get unique cells (used e.g. to eliminate repeated faces after mesh generation)
         cells_set = Counter(self)
+
         self[:] = [cell for cell, count in cells_set.iteritems() if count==1]
 
         # Renumerate cells
         for i, cell in enumerate(self):
             cell.id = i
+
+        self.changed = True
 
     def set_tag(self, tag):
         for c in self:
@@ -327,9 +258,9 @@ class CollectionCell(list):
         max_y = max(P.y for P in all_points)
         max_z = max(P.z for P in all_points)
 
-        self.min_x = min_x
-        self.min_y = min_y
-        self.min_z = min_z
+        self.cmin_x = min_x
+        self.cmin_y = min_y
+        self.cmin_z = min_z
 
         # Get global lengths
         Lx = max_x - min_x
@@ -353,7 +284,8 @@ class CollectionCell(list):
         max_l = max(max_lx, max_ly, max_lz)
 
         # Get number of divisions
-        ndiv = min(50, int(max_L/max_l))
+        #ndiv = min(50, 4*int(max_L/max_l)) # calibrate for bins efficiency
+        ndiv = min(50, 1*int(max_L/max_l)) # calibrate for bins efficiency
 
         l_bin = max_L/ndiv     # Get bin length
         self.l_bin = l_bin
@@ -369,23 +301,23 @@ class CollectionCell(list):
                 for i in range(nx):
                     self.bins[i,j,k] = []
 
-        # Fill bins
+        # Fill bins (TODO: Needs improvement - get first point and put cell on its bin and neig. bins)
         for cell in self:
-            bins = set()
+            bins_p = set() # bins positions
             for row in cell.coords:
                 x, y, z = row
                 ix = int((x - min_x)/l_bin)
                 iy = int((y - min_y)/l_bin)
                 iz = int((z - min_z)/l_bin)
-                bins.add( (ix, iy, iz) )
+                bins_p.add( (ix, iy, iz) )
 
-            for bin in bins:
+            for bin in bins_p:
                 self.bins[ bin[0],bin[1],bin[2] ].append(cell)
 
         # Set self change status
         self.changed = False
 
-    def find_cell(self, X):
+    def find_cell(self, X, Tol=1.e-7, exc_cells=[]):
         # Point coordinates
         x, y, z = (X + [0])[:3]
 
@@ -394,16 +326,19 @@ class CollectionCell(list):
             self.build_bins()
 
         # Find bin index
-        ix = int((x - self.min_x)/self.l_bin)
-        iy = int((y - self.min_y)/self.l_bin)
-        iz = int((z - self.min_z)/self.l_bin)
+        ix = int((x - self.cmin_x)/self.l_bin)
+        iy = int((y - self.cmin_y)/self.l_bin)
+        iz = int((z - self.cmin_z)/self.l_bin)
 
         #print ix, iy, iz
 
         # Search cell in bin
         bin = self.bins[ix, iy, iz]
         for cell in bin:
-            if is_inside(cell.shape_type, cell.coords, X):
+            if is_inside(cell.shape_type, cell.coords, X, Tol=1.e-7):
+                if cell in exc_cells:
+                    print "Hurray.. skipping cell"
+                    continue
                 return cell
 
         # If not found rebuild bins in case of recent change
@@ -411,7 +346,7 @@ class CollectionCell(list):
             self.build_bins()
             return self.find_cell(X)
 
-        print "CollectionCell.find_cell: Search in bins failed. Searching whole collection..."
+        print "  CollectionCell.find_cell: Bin search failed. Searching whole collection..."
         for cell in self:
             if is_inside(cell.shape_type, cell.coords, X):
                 return cell
@@ -494,10 +429,10 @@ def generate_faces(shape):
         for F in faces:
             F.shape_type = TRI3
             F.owner_shape = shape
-        faces[0].points = [pts[0], pts[2], pts[1]]
+        faces[0].points = [pts[0], pts[3], pts[2]]
         faces[1].points = [pts[0], pts[1], pts[3]]
-        faces[2].points = [pts[1], pts[2], pts[3]]
-        faces[3].points = [pts[0], pts[3], pts[2]]
+        faces[2].points = [pts[0], pts[2], pts[1]]
+        faces[3].points = [pts[1], pts[2], pts[3]]
         return faces
 
     if shape.shape_type==TET10:
@@ -505,10 +440,15 @@ def generate_faces(shape):
         for F in faces:
             F.shape_type = TRI6
             F.owner_shape = shape
-        faces[0].points = [pts[0], pts[2], pts[1], pts[6], pts[5], pts[4]]
-        faces[1].points = [pts[0], pts[1], pts[3], pts[5], pts[8], pts[7]]
-        faces[2].points = [pts[1], pts[2], pts[3], pts[5], pts[9], pts[8]]
-        faces[3].points = [pts[0], pts[3], pts[2], pts[7], pts[9], pts[6]]
+
+        #faces[0].points = [pts[i] for i in [0,3,2,7,9,6] ]
+        #for f in faces:
+            #f.points = [ pts[i] for i in FACETS_INDS[shape_type][j] ]
+
+        faces[0].points = [pts[0], pts[3], pts[2], pts[7], pts[9], pts[6]]
+        faces[1].points = [pts[0], pts[1], pts[3], pts[4], pts[8], pts[7]]
+        faces[2].points = [pts[0], pts[2], pts[1], pts[6], pts[5], pts[4]]
+        faces[3].points = [pts[1], pts[2], pts[3], pts[5], pts[9], pts[8]]
         return faces
 
     if shape.shape_type==HEX8:
@@ -541,38 +481,19 @@ def generate_faces(shape):
 
 def generate_edges(shape):
     """ Generates a list with edges for a given shape
+        in case of 2D elements it return a list of facets
     """
     if shape.shape_type not in [HEX8, HEX20, TET4, TET10]:
-        return []
+        return generate_faces(shape)
+
     pts = shape.points
-
-    #if shape.shape_type==TET4:
-    #    edges = [Cell() for i in range(4)]
-    #    for E in edges:
-    #        E.shape_type = TRI3
-    #        E.owner_shape = shape
-    #    edges[0].points = [pts[0], pts[2], pts[1]]
-    #    edges[1].points = [pts[0], pts[1], pts[3]]
-    #    edges[2].points = [pts[1], pts[2], pts[3]]
-    #    edges[3].points = [pts[0], pts[3], pts[2]]
-    #    return edges
-
-    #if shape.shape_type==TET10:
-    #    edges = [Cell() for i in range(4)]
-    #    for E in edges:
-    #        E.shape_type = TRI6
-    #        E.owner_shape = shape
-    #    edges[0].points = [pts[0], pts[2], pts[1], pts[6], pts[5], pts[4]]
-    #    edges[1].points = [pts[0], pts[1], pts[3], pts[5], pts[8], pts[7]]
-    #    edges[2].points = [pts[1], pts[2], pts[3], pts[5], pts[9], pts[8]]
-    #    edges[3].points = [pts[0], pts[3], pts[2], pts[7], pts[9], pts[6]]
-    #    return edges
 
     if shape.shape_type==HEX8:
         edges = [Cell() for i in range(12)]
         for E in edges:
-            E.shape_type = QUAD4
-            E.owner_shape = shape
+            E.shape_type = LIN2
+            E.owner_shape = shape.owner_shape
+
         edges[ 0].points = [pts[0], pts[4]]
         edges[ 1].points = [pts[1], pts[2]]
         edges[ 2].points = [pts[0], pts[1]]
@@ -590,8 +511,9 @@ def generate_edges(shape):
     if shape.shape_type==HEX20:
         edges = [Cell() for i in range(12)]
         for E in edges:
-            E.shape_type = QUAD8
-            E.owner_shape = shape
+            E.shape_type = LIN3
+            E.owner_shape = shape.owner_shape
+
         edges[ 0].points = [pts[0], pts[4], pts[7]]
         edges[ 1].points = [pts[1], pts[2], pts[6]]
         edges[ 2].points = [pts[0], pts[1], pts[5]]
@@ -607,4 +529,4 @@ def generate_edges(shape):
         edges[11].points = [pts[4], pts[5], pts[6]]
         return edges
 
-    raise Exception("generate_faces: No rule to manage shape_type", shape.shape_type)
+    raise Exception("generate_edges: No rule to manage shape_type", shape.shape_type)

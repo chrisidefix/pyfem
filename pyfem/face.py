@@ -117,16 +117,16 @@ class Face:
         """
         return self.nodes.max_z
 
-    def _unique(self, coord):
+    def _unique(self, axis):
         """
         Returns an unique coordinate for all face nodes
         ===============================================
 
         INPUT:
-            coord: 'x', 'y', or 'z'
+            axis: 'x', 'y', or 'z'
 
         RETURNS:
-            Check if all values for a given coordinate (coord) are equal
+            Check if all values for a given coordinate axis are equal
             for all face nodes. If all are equal then it returns the value
             for that coordinate otherwise it returns None.
 
@@ -138,8 +138,8 @@ class Face:
 
         """
 
-        if len(set(getattr(node, coord) for node in self.nodes))==1:
-            return getattr(self.nodes[0], coord)
+        if len(set(getattr(node, axis) for node in self.nodes))==1:
+            return getattr(self.nodes[0], axis)
         else:
             return None
 
@@ -158,10 +158,11 @@ class Face:
         return str(os)
 
 
+
 #/////////////////////////////////////////////////////////////////////////////////// Class CollectionFace
 
 
-class CollectionFace(list):
+class CollectionFace(Collection):
     """ Object that contains Face objects as a collection.
     """
     @property
@@ -226,82 +227,6 @@ class CollectionFace(list):
         for f in self:
             f.set_bc(*args, **kwargs)
 
-    def _with_attr(self, attr, val=None):
-        """
-        Filters the collection according to a given condition
-        =====================================================
-
-        INPUT:
-            attr: A node attribute, e.g. x, id, tag.
-            val : Value for the attribute
-                  values can be float, string, etc. according to attr type.
-                  If value is a list then the condition will be true if attr
-                  value is equal to any element of the list.
-
-        RETURNS:
-            collection: A new collection with nodes that match the condition attr=value
-
-        EXAMPLE:
-            tmp = self._with_attr('x',0.5)
-            tmp = self._with_attr('y',[1,2])
-
-        """
-
-        if attr in ['x', 'y', 'z']:
-            TOL = 1.0E-8
-
-            if isinstance(val, tuple):
-                raise Exception('CollectionFace::_with_attr: Invalid argument')
-
-            if isinstance(val,list):
-                tmp = RealList(val, TOL)
-            else:
-                tmp = RealList([val], TOL)
-
-            return CollectionFace(f for f in self if getattr(f, attr) in tmp)
-
-        if attr in ['id', 'tag']:
-            return CollectionFace(f for f in self if getattr(f,attr) == val)
-
-        assert False
-
-    def sub(self, *args, **kwargs):
-        """sub(att1=value1, [att2=value2 [,...]])
-        Filters the collection of faces according to given criteria.
-
-        :param value1: A value for face attribute att1 (*str*) used to filter the collection.
-        :type  value1: float or str
-        :param value2: A value for face attribute att2 (*str*) used to filter the collection.
-        :type  value2: float or str
-
-        :returns: A new collection with faces that match the given criteria.
-
-        The following code filters the faces collection faces0 returning all faces with x coordinate
-        equal to zero:
-
-        >>> tmp = faces0.sub(x=0.0)
-
-        other examples are:
-
-        >>> tmp = faces0.sub(x=0.0)
-        >>> tmp = faces0.sub(tag="top_nodes")
-        >>> tmp = faces0.sub(x=[0.0, 20.0])
-        >>> tmp = faces0.sub(lambda f: f.y==0 and f.min_x>=10.0)
-        """
-
-        # Resultant collection initialization
-        coll = CollectionFace()
-
-        for key, value in kwargs.iteritems():
-            coll = coll + self._with_attr(key, value)
-
-        for value in args:
-            # filter usign lambda function
-            func = value
-            coll = coll + CollectionFace(n for n in self if func(n))
-
-        return coll
-
     def __str__(self):
         os = Stream()
         os << "<CollectionFace> [ "
@@ -312,3 +237,48 @@ class CollectionFace(list):
 
 
 
+class Edge(Face):
+    def set_bc(self, *args, **kwargs):
+        """set_bc(key1=value1, [key2=value2 [,...]])
+        Sets the boundary conditions to all nodes in edge. Edge boundary conditions
+        can be applied.
+
+        :param value1: A boundary condition value for key1 (*str*) degree of freedom.
+        :type  value1: float
+        :param value2: A boundary condition value for key2 (*str*) degree of freedom (optional).
+        :type  value2: float
+
+        The following example applies boundary conditions (traction of 0.5 in x direction) to edge f0.
+
+        >>> edge0.set_bc(tx=0.5)
+
+        other examples are:
+
+        >>> edge0.set_bc(ux=0.0, uy=0.0, uz=0.0)
+        >>> edge0.set_bc(ty=-10.0)
+        >>> edge0.set_bc(tn= 10.0)
+        """
+
+        if self.owner_elem is None:
+            raise Exception("No owner element for edge")
+
+        if self.owner_elem.shape_type==0 or self.owner_elem.elem_model is None:
+            raise Exception("Owner element is not well defined")
+
+        if args: brys = args[0] # dictionary as input
+        else:    brys = kwargs  # keyword arguments
+
+        for key, value in brys.iteritems():
+            self.owner_elem.elem_model.set_edge_bry(self.nodes, self.shape_type, key, value)
+
+class CollectionEdge(CollectionFace):
+    def set_bc(self, *args, **kwargs):
+        """ Sets the given boundary conditions to all edges in the collection.
+        """
+
+        if not self:
+            brys = args[0] if args else kwargs
+            print "CollectionEdge.set_bc: WARNING - Applying boundary conditions", brys, "to an empty collection."
+
+        for f in self:
+            f.set_bc(*args, **kwargs)

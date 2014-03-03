@@ -6,6 +6,7 @@ Copyright 2010-2013.
 """
 
 from plot import *
+from tools import *
 
 from mesh    import *
 from domain  import *
@@ -14,4 +15,5 @@ from equilib import *
 
 from seepage  import *
 from hydromec import *
+
 

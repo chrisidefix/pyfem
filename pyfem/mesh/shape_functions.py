@@ -857,7 +857,8 @@ def get_local_coords(shape_type):
     elif shape_type == TET10 : return coords_tet10()
     elif shape_type == HEX8  : return coords_hex8()
     elif shape_type == HEX20 : return coords_hex20()
-    else: return None
+    else:
+        raise Exception("get_local_coords: Unknown shape_type %d" % shape_type)
 
 def get_nnodes(shape_type):
     if   shape_type == LIN2  : return 2
@@ -875,6 +876,8 @@ def get_nnodes(shape_type):
     elif shape_type == TET10 : return 10
     elif shape_type == HEX8  : return 8
     elif shape_type == HEX20 : return 20
+    else:
+        raise Exception("get_nnodes: Unknown shape_type %d" % shape_type)
 
 def get_shape_str(shape_type):
     if   shape_type == LIN2  : return "LIN2"
@@ -892,7 +895,8 @@ def get_shape_str(shape_type):
     elif shape_type == TET10 : return "TET10"
     elif shape_type == HEX8  : return "HEX8"
     elif shape_type == HEX20 : return "HEX20"
-    else: return None
+    else:
+        raise Exception("get_shape_str: Unknown shape_type %d" % shape_type)
 
 def get_ndim(shape_type):
     """
@@ -914,6 +918,8 @@ def get_ndim(shape_type):
     elif shape_type == TET10 : return 3
     elif shape_type == HEX8  : return 3
     elif shape_type == HEX20 : return 3
+    else:
+        raise Exception("get_nnodes: Unknown shape_type %d" % shape_type)
 
 def get_nfacets(shape_type):
     """
@@ -948,6 +954,8 @@ def shape_func(shape_type, R):
     elif shape_type == TET10 : return shape_tet10(R)
     elif shape_type == HEX8  : return shape_hex8(R)
     elif shape_type == HEX20 : return shape_hex20(R)
+    else:
+        raise Exception("shape_func: Unknown shape_type %d" % shape_type)
 
 def deriv_func(shape_type, R):
     if   shape_type == LIN2  : return deriv_lin2(R)
@@ -965,7 +973,8 @@ def deriv_func(shape_type, R):
     elif shape_type == TET10 : return deriv_tet10(R)
     elif shape_type == HEX8  : return deriv_hex8(R)
     elif shape_type == HEX20 : return deriv_hex20(R)
-    pass
+    else:
+        raise Exception("deriv_func: Unknown shape_type %d" % shape_type)
 
 def bdistance(shape_type, R):
     """ Returns a real value which is a pseudo distance from a point to the border of an element
@@ -988,25 +997,80 @@ def bdistance(shape_type, R):
     elif shape_type == HEX20:  return min(1.0 - abs(r), 1.0 - abs(s), 1.0 - abs(t))
     assert False
 
-def get_ips_data(shape_type):
-    if   shape_type == LIN2  :  IP = LIN_IP2;  FIP = None
-    elif shape_type == LIN3  :  IP = LIN_IP2;  FIP = None
-    elif shape_type == LIN4  :  IP = LIN_IP3;  FIP = None
-    elif shape_type == TRI3  :  IP = TRI_IP3;  FIP = LIN_IP2
-    elif shape_type == TRI6  :  IP = TRI_IP3;  FIP = LIN_IP2
-    elif shape_type == TRI9  :  IP = TRI_IP6;  FIP = LIN_IP3
-    elif shape_type == LINK1 :  IP = None;     FIP = None
-    elif shape_type == LINK2 :  IP = LIN_IP2;  FIP = None
-    elif shape_type == LINK3 :  IP = LIN_IP3;  FIP = None
-    elif shape_type == QUAD4 :  IP = QUAD_IP2; FIP = LIN_IP2
-    elif shape_type == QUAD8 :  IP = QUAD_IP3; FIP = LIN_IP2
-    elif shape_type == QUAD12:  IP = QUAD_IP4; FIP = LIN_IP3
-    elif shape_type == TET4  :  IP = TET_IP4;  FIP = TRI_IP1
-    elif shape_type == TET10 :  IP = TET_IP4;  FIP = TRI_IP1
-    elif shape_type == HEX8  :  IP = HEX_IP2;  FIP = QUAD_IP2
-    elif shape_type == HEX20 :  IP = HEX_IP3;  FIP = QUAD_IP2
 
-    return IP, FIP
+def face_shape_type(shape_type):
+    if   shape_type == TRI3  : return LIN2
+    elif shape_type == TRI6  : return LIN3
+    elif shape_type == TRI9  : return LIN4
+    elif shape_type == QUAD4 : return LIN2
+    elif shape_type == QUAD8 : return LIN3
+    elif shape_type == QUAD12: return LIN4
+    elif shape_type == TET4  : return TRI3
+    elif shape_type == TET10 : return TRI6
+    elif shape_type == HEX8  : return QUAD4
+    elif shape_type == HEX20 : return QUAD8
+    else:
+        raise Exception("face_shape_type: Unknown shape_type %d" % shape_type)
+
+
+FACETS_INDICES = {
+    TRI3 :  [ [0, 1],                   [1, 2],                   [2, 0]                                                                                                 ],
+    TRI6 :  [ [0, 1, 3],                [1, 2, 4],                [2, 0, 5]                                                                                              ],
+    TRI9 :  [ [0, 1, 3, 6],             [1, 2, 4, 7],             [2, 0, 5, 8]                                                                                           ],
+    QUAD4:  [ [0, 1],                   [1, 2],                   [2, 3],                   [3, 0]                                                                       ],
+    QUAD8:  [ [0, 1, 4],                [1, 2, 5],                [2, 3, 6],                [3, 0, 7]                                                                    ],
+    TET4 :  [ [0, 3, 2],                [0, 1, 3],                [0, 2, 1],                [1, 2, 3]                                                                    ],
+    TET10:  [ [0, 3, 2, 7, 9, 6],       [0, 1, 3, 4, 8, 7],       [0, 2, 1, 6, 5, 4],       [1, 2, 3, 5, 9, 8]                                                           ],
+    HEX8 :  [ [0, 4, 7, 3],             [1, 2, 6, 5],             [0, 1, 5, 4],             [2, 3, 7, 6],             [0, 3, 2, 1],             [4, 5, 6, 7]             ],
+    HEX20:  [ [0, 4, 7, 3,16,15,19,11], [1, 2, 6, 5, 9,18,13,17], [0, 1, 5, 4, 8,17,12,16], [2, 3, 7, 6,10,19,14,18], [0, 3, 2, 1,11,10, 9, 8], [4, 5, 6, 7,12,13,14,15] ],
+    }
+
+
+def generate_faces2(cell):
+    all_inds = FACETS_INDICES[cell.shape_type]
+    if not all_inds: return []
+
+    nfaces = len(all_inds)
+    pts    = cell.points
+
+    for finds in all_inds:
+        F = Cell()
+        F.shape_type = XXX
+        F.owner_shape = cell
+        F.points = [ pts[i] for i in finds ]
+
+
+IP_FEM = {
+    LIN2:   {0: LIN_IP2,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
+    LIN3:   {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
+    LIN4:   {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
+    TRI3:   {0: TRI_IP1,  3: TRI_IP3,  6: TRI_IP6},
+    TRI6:   {0: TRI_IP3,  3: TRI_IP3,  6: TRI_IP6},
+    TRI9:   {0: TRI_IP6,  3: TRI_IP3,  6: TRI_IP6},
+    LINK1:  {},
+    LINK2:  {0: LIN_IP2,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
+    LINK3:  {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
+    QUAD4:  {0: QUAD_IP2, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
+    QUAD8:  {0: QUAD_IP3, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
+    QUAD12: {0: QUAD_IP4, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
+    TET4:   {0: TET_IP4,  1: TET_IP1,  4: TET_IP4,  5: TET_IP5,  11: TET_IP11},
+    TET10:  {0: TET_IP4,  1: TET_IP1,  4: TET_IP4,  5: TET_IP5,  11: TET_IP11},
+    HEX8:   {0: HEX_IP2,  8: HEX_IP2, 27: HEX_IP3},
+    HEX20:  {0: HEX_IP3,  8: HEX_IP2, 27: HEX_IP3}
+}
+
+def get_ips_data(shape_type, nips=0):
+
+    ip_l = IP_FEM.get(shape_type, None)
+
+    if ip_l:
+        ips_data = ip_l.get(nips, None)
+        if ips_data is not None:
+            return ips_data
+        else:
+            raise Exception("get_ips_data: Number of ips (%d) for %s is not available" % (nips, get_shape_str(shape_type)) )
+    else:
+        raise Exception("get_ips_data: Data for shape %s is not available" % (get_shape_str(shape_type)) )
 
 def is_solid(shape_type):
     """ Returns a boolean stating if an element shape is a solid-like geomtry
@@ -1023,7 +1087,7 @@ def is_joint(shape_type):
     return True  if shape_type in [LINK1, LINK2, LINK3] else False
 
 @memoize
-def extrapolator(shape_type):
+def extrapolator(shape_type, nips):
     """ Returns a numpy matrix E that extrapolates ip values to nodal values as:
 
                        NodalValues = E * IpValues;
@@ -1040,9 +1104,8 @@ def extrapolator(shape_type):
     """
 
     nnodes  = get_nnodes(shape_type)
-    IP, FIP = get_ips_data(shape_type)
+    IP      = get_ips_data(shape_type, nips)
     ndim    = get_ndim(shape_type) # shape ndim: not related with the analysis ndim
-    nips    = IP.shape[0]
 
     #filling N matrix with shape functions of all ips
     N = empty(nips, nnodes)
@@ -1050,7 +1113,9 @@ def extrapolator(shape_type):
         N[i,:] = shape_func(shape_type, R)
 
     #calculate extrapolator matrix
-    if nips==nnodes: return inv(N)
+    if nips==nnodes:
+        return inv(N)
+
     if nips>=nnodes: return pinv(N)
 
     if nips==1: return pinv(N) # Correction procedure is not applicable for nips==1
@@ -1078,8 +1143,6 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
         C = numpy.hstack([C,zeros((C.shape[0],1))])
     if X.shape[0]==2:
         X = array([X[0], X[1], 0.0])
-    #OUT("C")
-    #OUT("X")
 
     for k in range(MAXIT):
         # calculate Jacobian
@@ -1089,7 +1152,6 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
         # calculate trial of real coordinates
         N = shape_func(shape_type, R)
         Xt = mul(N.T, C).T # interpolating
-        #OUT("Xt")
 
         # calculate the error
         deltaX = Xt - X;
@@ -1104,12 +1166,11 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
 
     return R
 
-def is_inside(shape_type, C, X):
+def is_inside(shape_type, C, X, Tol = 1.e-7):
     if not is_solid(shape_type): return False
 
-    TOL = 1.0E-7
-    R = inverse_map(shape_type, C, X, TOL)
-    if bdistance(shape_type, R) > -TOL:
+    R = inverse_map(shape_type, C, X, Tol)
+    if bdistance(shape_type, R) > -Tol:
         return True;
     else:
         return False;
@@ -1130,8 +1191,6 @@ def check_shape_f():
         print n
         print
         print d - D
-        #print d
-        #print D
         print
 
     pass

@@ -41,7 +41,6 @@ class ElemModelLineJoint(ElemModelEq):
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, Ch, Ct)
             M    = ip.mat_model
-            M.attr["sign"] = self.calc_sign(ip.R, Ch, Ct)
             Dep  = M.stiff()
             coef = detJ*ip.w
 
@@ -106,20 +105,28 @@ class ElemModelLineJoint(ElemModelEq):
 
         return B, detJ
 
-    def calcT_test(self, J):
+    def calcT_new(self, J):
         if self.ndim==2:
+            L0 = J/norm(J)
             L1 = array([[-L0[0,1], L0[0,0]]])
             return concatenate([L0, L1], axis=0)
 
         ndim = self.ndim
         e0 = J[0]/norm(J)
+        #OUT("J")
+        #OUT("e0")
 
         a = e0.copy()
         a[0] += 666.0  # costant added to generate a non parallel vector to e0
+        #OUT("a")
 
         q = numpy.dot(numpy.identity(ndim) - numpy.outer(e0,e0), a)
+        #OUT("numpy.identity(ndim) - numpy.outer(e0,e0)")
+        #OUT("numpy.outer(e0,e0)")
+        #OUT("q")
+        if norm(q)==0.0:
+            print "ERROR..."
 
-        OUT('norm(q)')
         e1 = q/norm(q)
         e2 = cross(e0,e1)
 
@@ -127,6 +134,10 @@ class ElemModelLineJoint(ElemModelEq):
 
     def calcT(self, J):
         L0 = J/norm(J)
+
+        if norm(J)==0.0:
+            Ct = self.truss.coords()
+            Ch = self.hook.coords()
 
         if self.ndim==2:
             L1 = array([[-L0[0,1], L0[0,0]]])
@@ -153,13 +164,12 @@ class ElemModelLineJoint(ElemModelEq):
 
         return concatenate([L0, L1, L2], axis=0)
 
-    def calc_sign(self, R, Ch, Ct):
+    def calc_sigc(self, R, Ch, Ct):
 
         # Mounting Ts matrix
         D = deriv_func(self.shape_type, R)
         J = mul(D, Ct)       # Jacobian
         T = self.calcT(J)    #
-        #OUT("T")
         if self.ndim==2:
             l0 = T[0, 0]; m0 = T[0, 1]; n0 = 0.0
             l1 = T[1, 0]; m1 = T[1, 1]; n1 = 0.0
@@ -185,27 +195,24 @@ class ElemModelLineJoint(ElemModelEq):
         M = shape_func(self.hook.shape_type, R);
 
         # Mounting E matrix
-        E = extrapolator(self.hook.shape_type)
+        hook_nips = len(self.hook.ips)
+        E = extrapolator(self.hook.shape_type, hook_nips)
 
         #Mounting Sig matrix
         stack = []
         for ip in self.hook.ips:
             stack.append([ip.mat_model.sig])
-        Sig = concatenate(stack, axis=0)
 
-        use_avg_stress = True
-        if use_avg_stress:
-            sig = mul(M.T, E, Sig) # stress vector at link ip
-            return 1./3.*(sig[0]+sig[1]+sig[2])
+        Sig = concatenate(stack, axis=0)
 
         # Calculating stresses at current link ip
         sig = mul(Ts, mul(M.T, E, Sig).T); # stress vector at link ip
 
         # Calculating average confinement stress
-        sign = 0.5*(sig[0]+sig[1])
+        #sigc = 1/3.*(sig[0]+sig[1]+sig[2])
+        sigc = 0.5*(sig[1]+sig[2])
 
-        return sign
-
+        return sigc
 
     def update(self, DU, DF):
         ndim = self.ndim
@@ -224,6 +231,7 @@ class ElemModelLineJoint(ElemModelEq):
             B, detJ = self.calcB(ip.R, Ch, Ct)
             deps = mul(B, dU)
             M    = ip.mat_model
+            M.sigc = self.calc_sigc(ip.R, Ch, Ct)
             dsig = M.stress_update(deps)
             coef = detJ*ip.w
 
@@ -279,7 +287,7 @@ class ElemModelLineJoint(ElemModelEq):
             for j, val in enumerate(ip_vals.values()):
                 IP[i,j] = val
 
-        E = extrapolator(self.shape_type)
+        E = extrapolator(self.shape_type, nips)
         N = mul(E, IP)
 
         # Increment zeros for values related to tresspased element nodes
@@ -305,48 +313,3 @@ class ElemModelLineJoint(ElemModelEq):
 
         return nodal_values, elem_values
 
-    # Debug functions
-    def print_jacobians(self):
-        ndim   = self.ndim
-        nnodes = len(self.nodes)
-        truss_nnodes = len(self.truss.nodes)
-        Ct = self.truss.coords()
-        Ch = self.hook.coords()
-
-        for i, ip in enumerate(self.ips):
-            R = ip.R
-            D = deriv_func(self.shape_type, R)
-            J = mul(D, Ct)
-            T = self.calcT(J)
-
-            print "ip:", i, "\nR: ", R
-            print "J:", J , "\nnorm(J):", pdet(J)
-            print "T: ", T
-            print
-
-
-    def print_internal_force(self):
-        ndim   = self.ndim
-        nnodes = len(self.nodes)
-        Ct = self.truss.coords()
-        Ch = self.hook.coords()
-        F = zeros(nnodes*ndim)
-
-
-        for ip in self.ips:
-            B, detJ = self.calcB(ip.R, Ch, Ct)
-            M       = ip.mat_model
-            mcoef   = 1.
-            coef    = detJ*ip.w*mcoef
-            sig     = M.sig
-            h       = 3.14159*0.15
-            sig     = array([1.,2.,3.])
-            OUT("ip.R")
-            OUT("sig")
-            OUT("ip.w")
-            OUT("detJ")
-            ###
-            sig[0] *= M.h
-            F += mul(B.T, sig)*coef
-
-        print "F:", F

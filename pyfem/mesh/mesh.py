@@ -62,6 +62,14 @@ class Mesh:
     def set_verbose(self, verbose):
         self.verbose = verbose
 
+    def set_quadratic(self):
+        for b in self.blocks:
+            b.set_quadratic()
+
+    def set_linear(self):
+        for b in self.blocks:
+            b.set_linear()
+
     def from_geometry(self, Ps, Cs, Ts, Tags):
         # Loading points
         for i, P_coords in enumerate(Ps):
@@ -124,6 +132,7 @@ class Mesh:
 
         file = open(filename, 'r')
         data = json.load(file)
+        file.close()
 
         verts = data["verts"]
         cells = data["cells"]
@@ -132,40 +141,44 @@ class Mesh:
         for vert in verts:
             P = Point()
             P.id  = vert["id"]
-            P.tag = vert["tag"]
+            P.tag = str(vert["tag"])
             P.set_coords(vert["c"])
             self.points.append(P)
 
         for cell in cells:
             C = Cell()
             C.id  = cell["id"]
-            C.tag = cell["tag"]
+            C.tag = str(cell["tag"])
             conn  = cell["verts"]
-            jlingeo = cell.get("jlingeo",None)
+            geo   = cell["geo"]
+            npts  = len(conn)
+
             for id in conn:
                 C.points.append(self.points[id])
 
-            if jlingeo is None:
-                C.shape_type = get_shape_type_from_msh(cell["geo"], len(conn))
-            else:
-                C.lnk_cells = [cell["jlinid"], cell["jsldid"]] # line id plus solid id
-                C.shape_type = LINK2 if jlingeo==0 else LINK3
+            is_link = True if cell.get("jlinid", None) else False
 
+            if is_link:
+                lin_cell    = self.cells[cell["jlinid"]]
+                sld_cell    = self.cells[cell["jsldid"]]
+                C.lnk_cells = [lin_cell, sld_cell] # line id plus solid id
+                npts        = len(lin_cell.points)
+
+            shape_type = get_shape_type_from_msh(geo, npts)
+            C.shape_type = shape_type
             self.cells.append(C)
 
-        # Updating linked cells
-        for C in self.cells:
-            for i, id in enumerate(C.lnk_cells):
-                C.lnk_cells[i] = self.cells[id]
-
-        file.close()
-
-        # Generate faces
+        # Generate facets
         all_faces = Counter()
-        for S in self.cells:
-            faces = generate_faces(S)
-            for F in faces:
-                all_faces[F] += 1 # Counting faces
+        for i, C in enumerate(self.cells):
+            if is_solid(C.shape_type):
+                faces = generate_faces(C)
+                ftags = cells[i].get("ftags", None)
+                if ftags:
+                    for j, F in enumerate(faces):
+                        F.tag = str(ftags[j])
+                for F in faces:
+                    all_faces[F] += 1 # Counting faces
 
         # Discarding repeated faces
         self.faces = [F for F, count in all_faces.iteritems() if count==1]
@@ -285,7 +298,7 @@ class Mesh:
         for i, block in enumerate(self.blocks):
             block.id = i
 
-		# Spliting blocks
+        # Spliting blocks
         self.points = CollectionPoint()
         self.cells  = CollectionCell()
         self.faces  = CollectionCell()
@@ -318,12 +331,26 @@ class Mesh:
             self.write_file(filename, format)
 
     def get_edges(self, **args):
-        edges = []
-        for f in self.faces:
-            edges.extend(f.edges)
+        edges = CollectionCell()
 
-        edges = edges.sub(**args).unique()
+        # Search for edges in faces only
+        for f in self.faces:
+            f_edges = generate_faces(f)
+            for ed in f_edges:
+                ed.owner_shape = f.owner_shape
+            edges.extend(f_edges)
+
+        # Filter edges
+        edges = edges.sub(**args)
+
+        # Remove duplicates
+        edges_set = Counter(edges)
+        edges = CollectionCell(cell for cell, count in edges_set.iteritems() )
+
+        # Extend collection of edges
         self.edges.extend(edges)
+
+        return edges
 
     def write_file(self, filename, format = "vtk"):
         """
@@ -390,6 +417,14 @@ class Mesh:
             print >> output, "CELL_TYPES ", ncells
             for cell in self.cells:
                 print >> output, get_vtk_type(cell.shape_type)
+            print >> output
+
+            # Write cell type
+            print >> output, "CELL_DATA ", ncells
+            print >> output, "SCALARS cell_type int 1"
+            print >> output, "LOOKUP_TABLE default"
+            for cell in self.cells:
+                print >> output, cell.shape_type
             print >> output
 
     def write_msh(self, filename):

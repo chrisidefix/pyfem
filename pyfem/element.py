@@ -25,9 +25,10 @@ class Element:
         self.elem_model = None
         self.lnk_elems = []
         self.attr      = {}
+        self._nips     = 0 # Number of ips
         self.data_table = Table()
 
-    def set_elem_model(self, model):
+    def set_elem_model(self, model, nips):
         """ Sets the mathematical model to be used to represent the material and
         behavior of the element.
 
@@ -41,12 +42,14 @@ class Element:
         self.elem_model = model.copy()
 
         elem_model = self.elem_model
+        self._nips = nips
 
-        elem_model.id    = self.id
-        elem_model.ndim  = self.ndim
-        elem_model.nodes = self.nodes
+        elem_model.id     = self.id
+        elem_model.ndim   = self.ndim
+        elem_model.nodes  = self.nodes
         elem_model.shape_type  = self.shape_type
-        elem_model.attr  = self.attr
+        elem_model.attr   = self.attr
+        elem_model.parent = self
         elem_model.setup()
 
     def set_nodes(self, nodes):
@@ -129,7 +132,7 @@ class Element:
 
 
 
-class CollectionElem(list):
+class CollectionElem(Collection):
     """ Object that contains Element objects as a collection.
     """
     @property
@@ -172,107 +175,6 @@ class CollectionElem(list):
         """
         return CollectionElem(e for e in self if e.is_solid)
 
-    def with_tag(self, *args):
-        return CollectionElem(e for e in self if e.tag in args)
-
-    def with_id(self, *args):
-        return CollectionElem(e for e in self if e.id in args)
-
-    def with_dx(self, *args):
-        tmp = RealList(args)
-        return CollectionElem(e for e in self if e.nodes.max_x - e.nodes.min_x in tmp)
-
-    def with_dy(self, *args):
-        tmp = RealList(args)
-        return CollectionElem(e for e in self if e.nodes.max_y - e.nodes.min_y in tmp)
-
-    def with_dz(self, *args):
-        tmp = RealList(args)
-        return CollectionElem(e for e in self if e.nodes.max_z - e.nodes.min_z in tmp)
-
-    def _with_attr(self, attr, val):
-        """
-        Filters the collection according to a given condition
-        =====================================================
-
-        INPUT:
-            attr: A element attribute, e.g. x, id, tag.
-            val : Value for the attribute
-                  values can be float, string, etc. according to attr type.
-                  If value is a list then the condition will be true if attr
-                  value is equal to any element of the list.
-                  If value is a tuple then it is considered as a closed interval
-                  for real values: (start, end]) In this case the condition
-                  will be true if the real interval contains the attr value.
-
-        RETURNS:
-            collection: A new collection with elements that match the condition attr=value
-
-        EXAMPLE:
-            tmp = self._with_attr(x=0.5)
-            tmp = self._with_attr(y=[1.0, 2.0])
-
-        """
-
-        if attr in ['x', 'y', 'z']:
-            TOL = 1.0E-8
-
-            if isinstance(val, tuple):
-                raise Exception('CollectionElem::_with_attr: Invalid argument')
-
-            if isinstance(val,list):
-                tmp = RealList(val, TOL)
-            else:
-                tmp = RealList([val], TOL)
-
-            return CollectionElem(e for e in self if getattr(e, attr) in tmp)
-
-        if attr in ['dx', 'dy', 'dz']:
-            TOL = 1.0E-8
-            tmp = RealList(args)
-            if attr=='dx': return CollectionElem(e for e in self if abs(e.nodes.max_x - e.nodes.min_x - val)<TOL)
-            if attr=='dy': return CollectionElem(e for e in self if abs(e.nodes.max_y - e.nodes.min_y - val)<TOL)
-            if attr=='dz': return CollectionElem(e for e in self if abs(e.nodes.max_z - e.nodes.min_z - val)<TOL)
-
-
-        if attr in ['id', 'tag']:
-            return CollectionElem(e for e in self if getattr(e,attr) == val)
-
-        assert False
-
-    def sub(self, *args, **kwargs):
-        """sub(att1=value1, [att2=value2 [,...]])
-        Filters the collection according to given criteria.
-
-        :param value1: A value for node attribute att1 (*str*) used to filter the collection.
-        :type  value1: float or str
-        :param value2: A value for node attribute att2 (*str*) used to filter the collection.
-        :type  value2: float or str
-
-        :returns: A new collection with nodes that match the given criteria.
-
-        The following code filters the nodes collection returning all nodes with tag equal
-        to "soft_soil".
-
-        >>> tmp = elems.sub(tag="soft_soil")
-
-        other examples are:
-        >>> tmp = elems.sub(dx=1.0)
-        """
-
-        # Resultant collection initialization
-        coll = CollectionElem()
-
-        for key, value in kwargs.iteritems():
-            coll = coll + self._with_attr(key, value)
-
-        for value in args:
-            # filter usign lambda function
-            f = value
-            coll = coll + CollectionElem(e for e in self if f(e))
-
-        return coll
-
     def __add__(self, other):
         tmp = set(self)
         return CollectionElem(list(self) + [e for e in other if not e in tmp])
@@ -281,7 +183,7 @@ class CollectionElem(list):
         tmp = set(other)
         return CollectionElem(e for e in self if not e in tmp)
 
-    def set_elem_model(self, model):
+    def set_elem_model(self, model, nips=0):
         """ Sets the mathematical model to be used to represent the material and
         behavior for all elements in the collection.
 
@@ -289,7 +191,7 @@ class CollectionElem(list):
         :type  model: ElemModel
         """
         for e in self:
-            e.set_elem_model(model)
+            e.set_elem_model(model, nips)
 
     def set_mat_model(self, model):
         for e in self:

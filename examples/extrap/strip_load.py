@@ -66,8 +66,8 @@ blocks = BlocksGrid(
 
 blocks.set_quadratic()
 
-blocks.set_cubic()
-blocks.set_triangles()
+#blocks.set_cubic()
+#blocks.set_triangles()
 
 mesh.add_blocks(blocks)
 mesh.generate()
@@ -85,6 +85,9 @@ domain.faces.sub(y=min_y).set_bc(ux=0.0, uy=0.0)
 domain.faces.sub(x=0.0)  .set_bc(ux=0.0)
 domain.faces.sub(x=max_x).set_bc(ux=0.0, uy=0.0)
 domain.faces.sub(y=0.0)  .sub(lambda f: f.max_x<=a).set_bc(ty=-p)
+
+#ln = domain.faces.sub(y=0.0).sub(lambda f: f.max_x<=a).nodes
+#OUT("ln")
 
 #Setting solver and solving
 domain.set_solver(SolverEq())

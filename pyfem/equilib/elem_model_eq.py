@@ -152,6 +152,9 @@ class ElemModelEq(ElemModel):
         # Mount incremental displacement vector
         dU = DU[loc]
 
+        #if self.id==6:
+            #OUT("dU")
+
         C = self.coords()
         for ip in self.ips:
             B, detJ = self.calcB(ip.R, C)
@@ -205,53 +208,104 @@ class ElemModelEq(ElemModel):
         self.nodes.set_brys_from_vec(["fx","fy","fz"][:ndim], dF)
 
     def set_face_bry(self, fnodes, fshape_type, key, val):
-        if key == "tz" and self.ndim == 2:
-            raise Exception("tz boudary load is only available for ndim=3")
+        if key not in ["ux", "uy", "uz", "tx", "ty", "tz", "tn"]:
+            raise Exception("ElemModelEq.set_face_bry: %s face traction boundary condition not applicable for current element." % key)
+
+        if (key == "tz" or key=="uz") and self.ndim == 2:
+            raise Exception("ElemModelEq.set_face_bry: %s boudary condition not available for 2D." % key)
 
         # Apply the boundary conditions
         if key in ["ux", "uy", "uz"]:
             for node in fnodes:
-                #node.set_bc(**{key: val})
                 node.set_bc({key: val})
-        elif key in ["tx", "ty", "tz", "tn"]:
-            ndim = self.ndim
-            nfnodes = len(fnodes)
+            return
 
-            # Calculate the face coordinates matrix
-            C = zeros(nfnodes, ndim)
-            for i, node in enumerate(fnodes):
-                C[i,0] = node.X[0]
-                C[i,1] = node.X[1]
-                if ndim==3:
-                    C[i,2] = fnodes[i].X[2]
+        # Force boundary condition
+        ndim = self.ndim
+        nfnodes = len(fnodes)
 
-            # Calculate the vector with values to apply
-            V = zeros(ndim)
-            if key=="tx": V[0] = val
-            if key=="ty": V[1] = val
-            if key=="tz": V[2] = val
+        # Calculate the face coordinates matrix
+        C = zeros(nfnodes, ndim)
+        for i, node in enumerate(fnodes):
+            C[i,0] = node.X[0]
+            C[i,1] = node.X[1]
+            if ndim==3:
+                C[i,2] = fnodes[i].X[2]
 
-            # Calculate the nodal values
-            NV = zeros(nfnodes, ndim)
-            for fip in self.fips:
-                S = shape_func(fshape_type, fip.R)
-                D = deriv_func(fshape_type, fip.R)
-                J = mul(D, C)
-                detJ = pdet(J)
-                w = fip.w;
+        # Calculate the vector with values to apply
+        V = zeros(ndim)
+        if key=="tx": V[0] = val
+        if key=="ty": V[1] = val
+        if key=="tz": V[2] = val
 
-                if key == "tn" and ndim==2:
-                    n = array([[J[0,1], -J[0,0]]])
-                    V = val*n/norm(n)
-                if key == "tn" and ndim==3:
-                    n = cross(J[0,:], J[1,:])
-                    V = val*n/norm(n)
+        # Calculate the nodal values
+        NV = zeros(nfnodes, ndim)
 
-                NV += mul(as_col(S), as_row(V))*(detJ*w)
+        face_ips = get_ips_data(fshape_type)
 
-            fnodes.set_brys_from_mat(["fx", "fy", "fz"][:ndim], NV)
-        else:
-            raise Exception("ElemModelEq.set_face_bry: Unknown boundary condition key")
+        for R in face_ips:
+            w = R[-1]
+            S = shape_func(fshape_type, R)
+            D = deriv_func(fshape_type, R)
+            J = mul(D, C)
+            detJ = pdet(J)
+
+            if key == "tn" and ndim==2:
+                n = array([[J[0,1], -J[0,0]]])
+                V = val*n/norm(n)
+            if key == "tn" and ndim==3:
+                n = cross(J[0,:], J[1,:])
+                V = val*n/norm(n)
+
+            NV += mul(as_col(S), as_row(V))*(detJ*w)
+
+        fnodes.set_brys_from_mat(["fx", "fy", "fz"][:ndim], NV)
+
+    def set_edge_bry(self, ed_nodes, ed_shape_type, key, val):
+        if self.ndim == 2:
+            raise Exception("ElemModelEq.set_edge_bry: edge boundary conditions not available for 2D (%s)."%key)
+
+        if key not in ["ux", "uy", "uz", "tx", "ty", "tz"]:
+            raise Exception("ElemModelEq.set_edge_bry: %s edge traction boundary condition not applicable for current element." % key)
+
+        # Apply the boundary conditions
+        if key in ["ux", "uy", "uz"]:
+            for node in ed_nodes:
+                node.set_bc({key: val})
+            return
+
+        # Force boundary condition
+        ndim = self.ndim
+        nfnodes = len(ed_nodes)
+
+        # Calculate the edge coordinates matrix
+        C = zeros(nfnodes, ndim)
+        for i, node in enumerate(ed_nodes):
+            C[i,0] = node.X[0]
+            C[i,1] = node.X[1]
+            C[i,2] = node.X[2]
+
+        # Calculate the vector with values to apply
+        V = zeros(ndim)
+        if key=="tx": V[0] = val
+        if key=="ty": V[1] = val
+        if key=="tz": V[2] = val
+
+        # Calculate the nodal values
+        NV = zeros(nfnodes, ndim)
+
+        edge_ips = get_ips_data(ed_shape_type)
+
+        for R in edge_ips:
+            w = R[-1]
+            S = shape_func(ed_shape_type, R)
+            D = deriv_func(ed_shape_type, R)
+            J = mul(D, C)
+            detJ = pdet(J)
+
+            NV += mul(as_col(S), as_row(V))*(detJ*w)
+
+        ed_nodes.set_brys_from_mat(["fx", "fy", "fz"][:ndim], NV)
 
     def set_body_force(self, bf):
         # Body Forces Vector F:
@@ -343,14 +397,14 @@ class ElemModelEq(ElemModel):
             for j, val in enumerate(ip_vals.values()):
                 IP[i,j] = val
 
-        E = extrapolator(self.shape_type)
+        E = extrapolator(self.shape_type, nips)
         N = mul(E, IP)
 
         # Filling nodal_values dict
         for i, label in enumerate(all_ip_vals[0].keys()):
             nodal_values[label] = N[:,i]
 
-        # Filling elem_values dict ***************88
+        # Filling elem_values dict ***************
         #if self.is_truss:
         for i, label in enumerate(all_ip_vals[0].keys()):
             elem_values[label] = average(IP[:,i])
