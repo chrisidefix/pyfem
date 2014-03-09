@@ -11,6 +11,7 @@ from collections import Counter
 from shape_types import *
 from block       import *
 from entities    import *
+from pyfem.tools.table import *
 
 import json
 
@@ -428,18 +429,26 @@ class Mesh:
             print >> output
 
     def write_msh(self, filename):
-        # writing msh json format NOT WORKING... there is no way to get elements face tags
+        # writing msh json format NOT FULLY WORKING... there is no way to get elements face tags
         """
         Saves the mesh information in msh (json) format
         """
-        verts = [ {"id":p.id, "tag":eval("0"+p.tag), "c":[p.x, p.y, p.z] } for p in self.points ]
+        verts = [ {"id":p.id, "tag":eval("0"+p.tag), "c":[p.x, p.y, p.z][:self.ndim] } for p in self.points ]
 
         cells = []
         for c in self.cells:
             geo   = get_msh_shape_type(c.shape_type)
-            verts = [p.id for p in c.points]
-            ftags = [ 0 for f in get_nfacets(c.shape_type)]
-            cell  = {"id":c.id, "tag":eval("0"+c.tag), "geo":geo, "part":0, "verts":verts, "ftags":[] }
+            cverts = [p.id for p in c.points]
+            #ftags = [ 0 for f in get_nfacets(c.shape_type)]
+            cell  = {"id":c.id, "tag":0, "geo":geo, "part":0, "verts":cverts }
+            if geo==13: #JOINT
+                cell["jlinid"] = c.lnk_cells[0].id
+                cell["jsldid"] = c.lnk_cells[1].id
+
+            cells.append(cell)
+
+        OUT("filename")
+        json_dump({"verts":verts, "cells":cells}, filename)
 
 
     def gui_get_default_data(self):

@@ -120,8 +120,6 @@ class SolverEq(Solver):
         scheme = self.scheme
 
         #self.stage += 1
-        #if self.stage==0:
-            #self.write_history()
 
         if not scheme: scheme = "MNR"
 
@@ -131,6 +129,9 @@ class SolverEq(Solver):
 
         # Initialize SolverEq object and check
         self.prime_and_check()
+
+        #if self.stage==0:
+            #self.write_history()
 
         if self.verbose:
             print "  active elems:", len(self.aelems)

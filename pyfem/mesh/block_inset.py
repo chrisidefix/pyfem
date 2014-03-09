@@ -6,6 +6,7 @@ from pyfem.tools.stream import *
 from shape_functions    import *
 from block import *
 
+
 class BlockInset(Block):
     """ Block class to discretize line-shaped crossing elements.
 

@@ -1044,7 +1044,7 @@ IP_FEM = {
     LIN2:   {0: LIN_IP2,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
     LIN3:   {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
     LIN4:   {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
-    TRI3:   {0: TRI_IP1,  3: TRI_IP3,  6: TRI_IP6},
+    TRI3:   {0: TRI_IP1,  1: TRI_IP1,  3: TRI_IP3,  6: TRI_IP6},
     TRI6:   {0: TRI_IP3,  3: TRI_IP3,  6: TRI_IP6},
     TRI9:   {0: TRI_IP6,  3: TRI_IP3,  6: TRI_IP6},
     LINK1:  {},
