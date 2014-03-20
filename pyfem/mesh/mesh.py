@@ -182,7 +182,10 @@ class Mesh:
                     all_faces[F] += 1 # Counting faces
 
         # Discarding repeated faces
-        self.faces = [F for F, count in all_faces.iteritems() if count==1]
+        self.faces = CollectionCell(F for F, count in all_faces.iteritems() if count==1)
+        # Renumbering faces
+        for i, F in enumerate(self.faces):
+            F.id = i
 
         # Find dimension
         self.ndim = 2 if all(P.z == 0.0 for P in self.points) else 3
@@ -284,7 +287,7 @@ class Mesh:
             elif isinstance(blk, list):
                 self.add_blocks(*blk)
 
-    def generate(self, filename=None, format="vtk"):
+    def generate(self, filename=None, format="vtk", reset=True):
         """
         Generates a structured mesh based on information given by geometrical
         blocks using the add_blocks function.  The resulting mesh is stored internally.
@@ -293,16 +296,23 @@ class Mesh:
 
         if self.verbose:
             print "Mesh generation"
-            print "  analysing", len(self.blocks), "blocks..."
+            print "  analyzing", len(self.blocks), "blocks..."
 
         # Numbering blocks
         for i, block in enumerate(self.blocks):
             block.id = i
 
         # Spliting blocks
-        self.points = CollectionPoint()
-        self.cells  = CollectionCell()
-        self.faces  = CollectionCell()
+        if reset:
+            self.points = CollectionPoint()
+            self.cells  = CollectionCell()
+            self.faces  = CollectionCell()
+
+        # Checking all ids were set
+        assert all([point.id != -1 for point in self.points])
+        assert all([cell .id != -1 for cell  in self.cells])
+        assert all([face .id != -1 for face  in self.faces ])
+
         for i, block in enumerate(self.blocks):
             if self.verbose: print "  spliting block", block.id, "..."
             block.split(self.points, self.cells, self.faces)
@@ -359,17 +369,14 @@ class Mesh:
         """
         name, ext = os.path.splitext(filename)
 
-        if ext:
-            if ext[0]==".":
-                ext = ext[1:]
+        if not ext:
+            ext = "." + format
 
-        if ext    == "": ext = "vtk"
-        if format == "": format = ext
-        filename = name + "." + ext
+        filename = name + ext
 
-        if format=="vtk":
+        if   ext==".vtk":
             self.write_vtk(filename)
-        elif format=="msh":
+        elif ext==".msh":
             self.write_msh(filename)
         else:
             print "Mesh.write_file: Invalid format", format
@@ -389,6 +396,8 @@ class Mesh:
         ndata = 0
         for cell in self.cells:
             ndata += 1 + len(cell.points)
+
+        has_crossed = any(cell.crossed for cell in self.cells)
 
         with open(filename, "w") as output:
             print >> output, "# vtk DataFile Version 3.0"
@@ -420,12 +429,20 @@ class Mesh:
                 print >> output, get_vtk_type(cell.shape_type)
             print >> output
 
-            # Write cell type
             print >> output, "CELL_DATA ", ncells
+
+            # Write cell type as cell data
             print >> output, "SCALARS cell_type int 1"
             print >> output, "LOOKUP_TABLE default"
             for cell in self.cells:
                 print >> output, cell.shape_type
+            print >> output
+
+            # Write flag for crossed cells
+            print >> output, "SCALARS crossed int 1"
+            print >> output, "LOOKUP_TABLE default"
+            for cell in self.cells:
+                print >> output, int(cell.crossed)
             print >> output
 
     def write_msh(self, filename):
@@ -447,7 +464,6 @@ class Mesh:
 
             cells.append(cell)
 
-        OUT("filename")
         json_dump({"verts":verts, "cells":cells}, filename)
 
 

@@ -15,10 +15,12 @@ LINK2  = 101
 LINK3  = 102
 LIN4   = 105
 TRI9   = 110
+TRI10  = 111
 QUAD12 = 120
+QUAD16 = 121
 
 def get_vtk_type(shape_type):
-    if shape_type in [LINK1, LINK2, LINK3, LIN4, TRI9, QUAD12]:
+    if shape_type in [LINK1, LINK2, LINK3, LIN4, TRI9, TRI10, QUAD12, QUAD16]:
         return 2 # vtk_poly_vertex
 
     # Conventional:
@@ -34,8 +36,12 @@ def get_shape_type(vtk_type, npoints=None):
             return LINK3
         elif npoints==9:
             return TRI9
+        elif npoints==10:
+            return TRI10
         elif npoints==12:
             return QUAD12
+        elif npoints==16:
+            return QUAD16
     return vtk_type
 
 def get_shape_type_from_msh(geo, npoints=None):
@@ -72,6 +78,14 @@ def get_shape_type_from_msh(geo, npoints=None):
             return LINK2
         elif npoints==3:
             return LINK3
+    elif geo==14:
+        return LIN4
+    elif geo==15:
+        return TRI10
+    elif geo==16:
+        return QUAD12
+    elif geo==17:
+        return QUAD16
 
     assert False
 
@@ -98,5 +112,13 @@ def get_msh_shape_type(shape_type, npoints=None):
         return 12
     elif shape_type in [LINK2, LINK3]:
         return 13
+    elif shape_type==LIN4:
+        return 14
+    elif shape_type==TRI10:
+        return 15
+    elif shape_type==QUAD12:
+        return 16
+    elif shape_type==QUAD16:
+        return 17
 
     assert False

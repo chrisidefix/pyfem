@@ -198,6 +198,8 @@ class Block2D(Block):
     def split_o2(self, points, cells, faces):
         nx    = self.nx
         ny    = self.ny
+        nshp  = self.coords.shape[0]
+        sfun  = { 4:shape_quad4, 8:shape_quad8, 12:shape_quad12, 16:shape_quad16 }[nshp]
         p_arr = numpy.empty((2*nx+1, 2*ny+1), dtype='object')
 
         # Generating points
@@ -209,12 +211,8 @@ class Block2D(Block):
                 s=(1.0/ny)*j-1.0
 
                 # calculate shape function values
-                if self.coords.shape[0]==4:
-                    N = shape_quad4([r, s])
-                else:
-                    N = shape_quad8([r, s])
-
-                C = mul(N.T, self.coords)      # interpolated coordinates x, y
+                N =sfun([r, s])
+                C = mul(N.T, self.coords)  # interpolated coordinates x, y
                 C.round(8)
 
                 if i in [0, 2*nx]  or  j in [0, 2*ny]: # check if point is on block bry
@@ -262,7 +260,7 @@ class Block2D(Block):
                 for faces_conn, idx in zip(faces_conn, tag_idx):
                     faces.add_new(LIN3, faces_conn, self.face_tags[idx], cell) # can add duplicates
 
-    def split_o3(self, points, cells, faces):
+    def split_o3_old(self, points, cells, faces):
         nx    = self.nx
         ny    = self.ny
         p_arr = numpy.empty((3*nx+1, 3*ny+1), dtype='object')
@@ -309,7 +307,82 @@ class Block2D(Block):
                 p10 = p_arr[i-2][j  ]
                 p11 = p_arr[i-3][j-2]
 
-                cell = cells.add_new(QUAD4, [p0, p1, p2, p3], self.tag)
+                cell = cells.add_new(QUAD12, [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11], self.tag)
+
+                # Array of faces vertices and tag indexes for face
+                faces_conn = []
+                tag_idx    = []
+
+                # Identifying faces
+                if i==3:
+                    faces_conn.append([ p3, p0, p7, p11 ])
+                    tag_idx.append(0)
+                if i==3*nx:
+                    faces_conn.append([ p1, p2, p5, p9 ])
+                    tag_idx.append(1)
+                if j==3:
+                    faces_conn.append([ p0, p1, p4, p8 ])
+                    tag_idx.append(2)
+                if j==3*ny:
+                    faces_conn.append([ p2, p3, p6, p10 ])
+                    tag_idx.append(3)
+
+                # Generating faces
+                for faces_conn, idx in zip(faces_conn, tag_idx):
+                    faces.add_new(LIN4, faces_conn, self.face_tags[idx], cell) # can add duplicates
+
+    def split_o3(self, points, cells, faces):
+        nx    = self.nx
+        ny    = self.ny
+        nshp  = self.coords.shape[0]
+        sfun  = { 4:shape_quad4, 8:shape_quad8, 12:shape_quad12, 16:shape_quad16 }[nshp]
+
+        p_arr = numpy.empty((3*nx+1, 3*ny+1), dtype='object')
+
+        # Generating points
+        for j in range(3*ny+1):
+            for i in range(3*nx+1):
+                #if i%3 and j%3: continue # False point
+
+                r=((2.0/3.0)/nx)*i-1.0
+                s=((2.0/3.0)/ny)*j-1.0
+
+                # calculate shape function values
+                N = sfun([r,s])
+                C = mul(N.T, self.coords)      # interpolated coordinates x, y
+                C.round(8)
+
+                if i in [0, 3*nx]  or  j in [0, 3*ny]: # check if point is on block bry
+                    P = points.get_from_border(C)
+                    if P is None: P = points.add_new(C, border=True)
+                else:
+                    P = points.add_new(C)
+
+                p_arr[i,j] = P
+
+        # Generating cells and faces
+        for j in range(3, 3*ny+1, 3):
+            for i in range(3, 3*nx+1, 3):
+                # vertices of QUAD16 element
+                p0  = p_arr[i-3][j-3]
+                p1  = p_arr[i  ][j-3]
+                p2  = p_arr[i  ][j  ]
+                p3  = p_arr[i-3][j  ]
+                p4  = p_arr[i-2][j-3]
+                p5  = p_arr[i  ][j-2]
+                p6  = p_arr[i-1][j  ]
+                p7  = p_arr[i-3][j-1]
+                p8  = p_arr[i-1][j-3]
+                p9  = p_arr[i  ][j-1]
+                p10 = p_arr[i-2][j  ]
+                p11 = p_arr[i-3][j-2]
+
+                p12 = p_arr[i-2][j-2]
+                p13 = p_arr[i-1][j-2]
+                p14 = p_arr[i-1][j-1]
+                p15 = p_arr[i-2][j-1]
+
+                cell = cells.add_new(QUAD16, [p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15], self.tag)
 
                 # Array of faces vertices and tag indexes for face
                 faces_conn = []

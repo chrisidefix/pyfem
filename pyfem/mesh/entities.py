@@ -125,6 +125,8 @@ class Cell:
         self.lnk_cells   = []    # linked shapes
         self.owner_shape = None  # If the shape represents a face
         self.data        = {}    # Extra data
+        self.crossed     = False
+        self.neighs      = None
 
     def __eq__(self, other):
         if other==None:
@@ -196,15 +198,28 @@ class Cell:
         else:
             return None
 
+    def bounding_box(self):
+        C    = self.coords
+        cmin = C.min(axis=0)
+        cmax = C.max(axis=0)
+        XYZ  = numpy.vstack([cmin, cmax])
+        X, Y, Z = XYZ[:,0], XYZ[:,1], XYZ[:,2]
+        return [(x,y,z) for z in Z for y in Y for x in X]
+
 class CollectionCell(Collection):
     def __init__(self, *args):
         list.__init__(self, *args)
         self.changed = False # States if the collections was changed after bins construction
         self.bins    = None  # Cell bins for fast search
         self.l_bin   = 0.0   # Lenght of each bin
-        self.cmin_x   = 0.0
-        self.cmin_y   = 0.0
-        self.cmin_z   = 0.0
+        self.Cmin    = None
+        self.Cmax    = None
+        #self.cmin_x  = 0.0
+        #self.cmin_y  = 0.0
+        #self.cmin_z  = 0.0
+        #self.cmax_x  = 0.0
+        #self.cmax_y  = 0.0
+        #self.cmax_z  = 0.0
 
     def add_new(self, typ, conn, tag=None, owner_shape=None):
         cell             = Cell()
@@ -251,21 +266,17 @@ class CollectionCell(Collection):
         all_points = set(P for cell in self for P in cell.points)
 
         # Get max lengths
-        min_x = min(P.x for P in all_points)
-        min_y = min(P.y for P in all_points)
-        min_z = min(P.z for P in all_points)
-        max_x = max(P.x for P in all_points)
-        max_y = max(P.y for P in all_points)
-        max_z = max(P.z for P in all_points)
-
-        self.cmin_x = min_x
-        self.cmin_y = min_y
-        self.cmin_z = min_z
+        self.Cmin = empty(3)
+        self.Cmax = empty(3)
+        self.Cmin[0] = min(P.x for P in all_points)
+        self.Cmin[1] = min(P.y for P in all_points)
+        self.Cmin[2] = min(P.z for P in all_points)
+        self.Cmax[0] = max(P.x for P in all_points)
+        self.Cmax[1] = max(P.y for P in all_points)
+        self.Cmax[2] = max(P.z for P in all_points)
 
         # Get global lengths
-        Lx = max_x - min_x
-        Ly = max_y - min_y
-        Lz = max_z - min_z
+        Lx, Ly, Lz = self.Cmax - self.Cmin
         max_L = max(Lx, Ly, Lz)
 
         max_lx = 0.0
@@ -284,8 +295,8 @@ class CollectionCell(Collection):
         max_l = max(max_lx, max_ly, max_lz)
 
         # Get number of divisions
-        #ndiv = min(50, 4*int(max_L/max_l)) # calibrate for bins efficiency
         ndiv = min(50, 1*int(max_L/max_l)) # calibrate for bins efficiency
+        #ndiv = int(max_L/max_l) # calibrate for bins efficiency
 
         l_bin = max_L/ndiv     # Get bin length
         self.l_bin = l_bin
@@ -301,14 +312,14 @@ class CollectionCell(Collection):
                 for i in range(nx):
                     self.bins[i,j,k] = []
 
-        # Fill bins (TODO: Needs improvement - get first point and put cell on its bin and neig. bins)
+        # Fill bins
         for cell in self:
             bins_p = set() # bins positions
-            for row in cell.coords:
+            for row in cell.bounding_box():
                 x, y, z = row
-                ix = int((x - min_x)/l_bin)
-                iy = int((y - min_y)/l_bin)
-                iz = int((z - min_z)/l_bin)
+                ix = int((x - self.Cmin[0])/l_bin)
+                iy = int((y - self.Cmin[1])/l_bin)
+                iz = int((z - self.Cmin[2])/l_bin)
                 bins_p.add( (ix, iy, iz) )
 
             for bin in bins_p:
@@ -317,42 +328,83 @@ class CollectionCell(Collection):
         # Set self change status
         self.changed = False
 
-    def find_cell(self, X, Tol=1.e-7, exc_cells=[]):
+    def fill_neighs(self):
+        # Find nnodes
+        nnodes = 0
+        for c in self:
+            ids = [p.id for p in c.points]
+            nnodes = max(nnodes, max(ids))
+
+        nnodes +=1
+
+        # Find node shares
+        node_shares = [ [] for i in range(nnodes) ]
+
+        for c in self:
+            for p in c.points:
+                node_shares[p.id].append(c)
+
+        # Find neighs
+        for c in self:
+            c.neighs = []
+
+        for cell_l in node_shares:
+            for ci in cell_l:
+                for cj in cell_l:
+                    if ci.id != cj.id:
+                        ci.neighs.append(cj)
+
+    def find_cell(self, X, Tol=1.e-7, inc_cells=[], exc_cells=[], use_bins=True, rebuild_bins=False):
         # Point coordinates
         x, y, z = (X + [0])[:3]
 
-        # Build bins if empty
-        if self.bins is None:
-            self.build_bins()
+        # Searching in prefered list
+        if inc_cells:
+            for cell in inc_cells:
+                if is_inside(cell.shape_type, cell.coords, X, Tol):
+                    if cell in exc_cells:
+                        print "Warning.. skipping cell"
+                        continue
+                    return cell
 
-        # Find bin index
-        ix = int((x - self.cmin_x)/self.l_bin)
-        iy = int((y - self.cmin_y)/self.l_bin)
-        iz = int((z - self.cmin_z)/self.l_bin)
+        if use_bins:
+            # Build bins if empty
+            if self.bins is None:
+                self.build_bins()
 
-        #print ix, iy, iz
+            if ( any(X<self.Cmin-Tol) or any(X>self.Cmax+Tol) ):
+                raise Exception("CollectionCell.find_cell: point %s outside cells collection bounding box." % X)
 
-        # Search cell in bin
-        bin = self.bins[ix, iy, iz]
-        for cell in bin:
-            if is_inside(cell.shape_type, cell.coords, X, Tol=1.e-7):
+            # Find bin index
+            ix = int((x - self.Cmin[0])/self.l_bin)
+            iy = int((y - self.Cmin[1])/self.l_bin)
+            iz = int((z - self.Cmin[2])/self.l_bin)
+
+            # Search cell in bin
+            bin = self.bins[ix, iy, iz]
+            for cell in bin:
+                if is_inside(cell.shape_type, cell.coords, X, Tol):
+                    if cell in exc_cells:
+                        print "Warning.. skipping cell"
+                        continue
+                    return cell
+
+            # If not found rebuild bins in case of recent change
+            if self.changed and rebuild_bins:
+                print "  CollectionCell.find_cell: Bin search failed. Rebuilding bins..."
+                self.build_bins()
+                return self.find_cell(X, Tol)
+
+            print "  CollectionCell.find_cell: Bin search failed. Searching whole collection..."
+
+        for cell in self:
+            if is_inside(cell.shape_type, cell.coords, X):
                 if cell in exc_cells:
-                    print "Hurray.. skipping cell"
+                    print "Warning.. skipping cell"
                     continue
                 return cell
 
-        # If not found rebuild bins in case of recent change
-        if self.changed:
-            self.build_bins()
-            return self.find_cell(X)
-
-        print "  CollectionCell.find_cell: Bin search failed. Searching whole collection..."
-        for cell in self:
-            if is_inside(cell.shape_type, cell.coords, X):
-                return cell
-
-        raise Exception("CollectionCell::find_cell: Cell not found at X=", X)
-
+        return None
 
 def generate_faces(shape):
     """ Generates a list with faces for a given shape

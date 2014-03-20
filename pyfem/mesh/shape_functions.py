@@ -187,7 +187,7 @@ def deriv_tri9(R):
     r, s = R[:2]
     D = empty(2, 9)
 
-    q = 1.0 - r - s
+    q = 1. - r - s
 
     D[0,0] = -1.0 + 9.0*q - 13.5*q**2 - 27.0*s*(q - r)/6.0
     D[0,1] =  1.0 - 9.0*r + 13.5*r**2 - 27.0*s*(q - r)/6.0
@@ -208,6 +208,83 @@ def deriv_tri9(R):
     D[1,6] = -4.5*r*(-1.0 + 3.0*r) + 27.0*r*(q - s)/4.0
     D[1,7] =  4.5*r*(-1.0 + 6.0*s) + 27.0*r*(q - s)/4.0
     D[1,8] =  4.5*q*(-1.0 + 3.0*q - 6.0*s) + 4.5*s + 27.0*r*(q - s)/4.0
+
+    return D
+
+def shape_tri10(R):
+    #       s
+    #       |
+    #       2, (0,1)
+    #       | ',
+    #       |   ',
+    #       5     '7
+    #       |       ',
+    #       |         ',
+    #       8      9    '4
+    #       |             ',
+    #       | (0,0)         ', (1,0)
+    #       0-----3-----6-----1 ---- r
+    # 
+
+    r, s = R[:2]
+    N = empty(10)
+
+    z  = 1. - r - s
+    t1 = s * (3. * s - 1.)
+    t2 = z * (3. * z - 1.)
+    t3 = r * (3. * r - 1.)
+
+    N[0] = 0.5 * t2 * (3. * z - 2.)
+    N[1] = 0.5 * t3 * (3. * r - 2.)
+    N[2] = 0.5 * t1 * (3. * s - 2.)
+    N[3] = 4.5 * r * t2
+    N[4] = 4.5 * s * t3
+    N[5] = 4.5 * z * t1
+    N[6] = 4.5 * z * t3
+    N[7] = 4.5 * r * t1
+    N[8] = 4.5 * s * t2
+    N[9] = 27. * s * z * r
+
+    return N
+
+def deriv_tri10(R):
+    r, s = R[:2]
+    D = empty(2, 10)
+
+    z  = 1. - r - s
+    q0  = 4.5 * (6. * z - 1.)
+    q1  = 4.5 * s * (3. * s - 1.)
+    q2  = 4.5 * z * (3. * z - 1.)
+    q3  = 4.5 * r * (3. * r - 1.)
+    q4  = 4.5 * (6. * s - 1.)
+    q5  = 4.5 * (6. * r - 1.)
+    q6  = q0 * s
+    q7  = q0 * r
+    q8  = -0.5 * (27. * z * z - 18. * z + 2.)
+    q9  =  0.5 * (27. * s * s - 18. * s + 2.)
+    q10 =  0.5 * (27. * r * r - 18. * r + 2.)
+
+    D[0,0] = q8
+    D[0,1] = q10
+    D[0,2] = 0.
+    D[0,3] = q2 - q7
+    D[0,4] = s * q5
+    D[0,5] = -q1
+    D[0,6] = z * q5 - q3
+    D[0,7] = q1
+    D[0,8] = -q6
+    D[0,9] = 27. * s * (z - r)
+
+    D[1,0] = q8
+    D[1,1] = 0.
+    D[1,2] = q9
+    D[1,3] = -q7
+    D[1,4] = q3
+    D[1,5] = z * q4 - q1
+    D[1,6] = -q3
+    D[1,7] = r * q4
+    D[1,8] = q2 - q6
+    D[1,9] = 27. * r * (z - s)
 
     return D
 
@@ -369,6 +446,92 @@ def deriv_quad12(R):
     D[1,9]  =  9.*RP*(-9.*s*s - 2.*s + 3.)/32.
     D[1,10] =  9.*(1. - r*r)*(1. - 3.*r)/32.
     D[1,11] =  9.*RM*(9.*s*s - 2.*s - 3.)/32.
+
+    return D
+
+def shape_quad16(R):
+    #     3--10---6---2   
+    #     |     s     |   
+    #     7  15 | 14  9   
+    #     |     --r   |
+    #    11  12   13  5
+    #     |           |
+    #     0---4---8---1
+    #
+    #     0---2---3---1--> r
+
+    r, s = R[:2]
+    N  = empty(16)
+
+    Nr = shape_lin4([r])
+    Ns = shape_lin4([s])
+
+    N[0]  = Nr[0]*Ns[0]
+    N[1]  = Nr[1]*Ns[0]
+    N[2]  = Nr[1]*Ns[1]
+    N[3]  = Nr[0]*Ns[1]
+
+    N[4]  = Nr[2]*Ns[0]
+    N[5]  = Nr[1]*Ns[2]
+    N[6]  = Nr[3]*Ns[1]
+    N[7]  = Nr[0]*Ns[3]
+
+    N[8]  = Nr[3]*Ns[0]
+    N[9]  = Nr[1]*Ns[3]
+
+    N[10] = Nr[2]*Ns[1]
+    N[11] = Nr[0]*Ns[2]
+    N[12] = Nr[2]*Ns[2]
+    N[13] = Nr[3]*Ns[2]
+
+    N[14] = Nr[3]*Ns[3]
+    N[15] = Nr[2]*Ns[3]
+
+    return N
+
+def deriv_quad16(R):
+    r, s = R[:2]
+    D = empty(2, 16)
+
+    Nr = shape_lin4([r])
+    Ns = shape_lin4([s])
+    Dr = deriv_lin4([r])
+    Ds = deriv_lin4([s])
+
+    D[0, 0] =  Dr[0,0]*Ns[0]
+    D[0, 1] =  Dr[0,1]*Ns[0]
+    D[0, 2] =  Dr[0,1]*Ns[1]
+    D[0, 3] =  Dr[0,0]*Ns[1]
+    D[0, 4] =  Dr[0,2]*Ns[0]
+    D[0, 5] =  Dr[0,1]*Ns[2]
+    D[0, 6] =  Dr[0,3]*Ns[1]
+    D[0, 7] =  Dr[0,0]*Ns[3]
+    D[0, 8] =  Dr[0,3]*Ns[0]
+    D[0, 9] =  Dr[0,1]*Ns[3]
+    D[0,10] =  Dr[0,2]*Ns[1]
+    D[0,11] =  Dr[0,0]*Ns[2]
+    D[0,12] =  Dr[0,2]*Ns[2]
+    D[0,13] =  Dr[0,3]*Ns[2]
+    D[0,14] =  Dr[0,3]*Ns[3]
+    D[0,15] =  Dr[0,2]*Ns[3]
+
+
+    D[1, 0] =  Nr[0]*Ds[0,0]
+    D[1, 1] =  Nr[1]*Ds[0,0]
+    D[1, 2] =  Nr[1]*Ds[0,1]
+    D[1, 3] =  Nr[0]*Ds[0,1]
+    D[1, 4] =  Nr[2]*Ds[0,0]
+    D[1, 5] =  Nr[1]*Ds[0,2]
+    D[1, 6] =  Nr[3]*Ds[0,1]
+    D[1, 7] =  Nr[0]*Ds[0,3]
+    D[1, 8] =  Nr[3]*Ds[0,0]
+    D[1, 9] =  Nr[1]*Ds[0,3]
+    D[1,10] =  Nr[2]*Ds[0,1]
+    D[1,11] =  Nr[0]*Ds[0,2]
+    D[1,12] =  Nr[2]*Ds[0,2]
+    D[1,13] =  Nr[3]*Ds[0,2]
+    D[1,14] =  Nr[3]*Ds[0,3]
+    D[1,15] =  Nr[2]*Ds[0,3]
 
     return D
 
@@ -698,146 +861,187 @@ def deriv_hex20(R):
     return D
 
 def coords_lin2():
-    return array([ \
-    [ -1.0, 1.0 ], \
+    return array([
+    [ -1.0, 1.0 ],
     [  1.0, 1.0 ]] )
 
 def coords_lin3():
-    return array([ \
-    [ -1.0, 1.0 ], \
-    [  1.0, 1.0 ], \
+    return array([
+    [ -1.0, 1.0 ],
+    [  1.0, 1.0 ],
     [  0.0, 1.0 ]] )
 
 def coords_lin4():
-    return array([ \
-    [ -1.0  , 1.0 ], \
-    [  1.0  , 1.0 ], \
-    [ -1./3., 1.0 ], \
+    return array([
+    [ -1.0  , 1.0 ],
+    [  1.0  , 1.0 ],
+    [ -1./3., 1.0 ],
     [  1./3., 1.0 ]] )
 
 def coords_tri3():
-    return array([ \
-    [ 0.0, 0.0, 1.0 ], \
-    [ 1.0, 0.0, 1.0 ], \
+    return array([
+    [ 0.0, 0.0, 1.0 ],
+    [ 1.0, 0.0, 1.0 ],
     [ 0.0, 1.0, 1.0 ]] )
 
 def coords_tri6():
-    return array([ \
-    [ 0.0, 0.0, 1.0 ], \
-    [ 1.0, 0.0, 1.0 ], \
-    [ 0.0, 1.0, 1.0 ], \
-    [ 0.5, 0.0, 1.0 ], \
-    [ 0.5, 0.5, 1.0 ], \
+    return array([
+    [ 0.0, 0.0, 1.0 ],
+    [ 1.0, 0.0, 1.0 ],
+    [ 0.0, 1.0, 1.0 ],
+    [ 0.5, 0.0, 1.0 ],
+    [ 0.5, 0.5, 1.0 ],
     [ 0.0, 0.5, 1.0 ]] )
 
 def coords_tri9():
     _1_3 = 1.0/3.0
     _2_3 = 2.0/3.0
-    return array([ \
-    [ 0.0,  0.0, 1.0 ], \
-    [ 1.0,  0.0, 1.0 ], \
-    [ 0.0,  1.0, 1.0 ], \
+    return array([
+    [ 0.0,  0.0, 1.0 ],
+    [ 1.0,  0.0, 1.0 ],
+    [ 0.0,  1.0, 1.0 ],
 
-    [ _1_3,  0.0, 1.0 ], \
-    [ _2_3, _1_3, 1.0 ], \
-    [  0.0, _2_3, 1.0 ], \
+    [ _1_3,  0.0, 1.0 ],
+    [ _2_3, _1_3, 1.0 ],
+    [  0.0, _2_3, 1.0 ],
 
-    [ _2_3,  0.0, 1.0 ], \
-    [ _1_3, _2_3, 1.0 ], \
+    [ _2_3,  0.0, 1.0 ],
+    [ _1_3, _2_3, 1.0 ],
     [  0.0, _1_3, 1.0 ]] )
 
+def coords_tri10():
+    _1_3 = 1.0/3.0
+    _2_3 = 2.0/3.0
+    return array([
+    [ 0.0,  0.0, 1.0 ],
+    [ 1.0,  0.0, 1.0 ],
+    [ 0.0,  1.0, 1.0 ],
+
+    [ _1_3,  0.0, 1.0 ],
+    [ _2_3, _1_3, 1.0 ],
+    [  0.0, _2_3, 1.0 ],
+
+    [ _2_3,  0.0, 1.0 ],
+    [ _1_3, _2_3, 1.0 ],
+    [  0.0, _1_3, 1.0 ],
+
+    [ _1_3, _1_3, 1.0 ]] )
+
 def coords_quad4():
-    return array([ \
-    [ -1.0, -1.0, 1.0 ], \
-    [  1.0, -1.0, 1.0 ], \
-    [  1.0,  1.0, 1.0 ], \
+    return array([
+    [ -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, 1.0 ],
     [ -1.0,  1.0, 1.0 ]] )
 
 def coords_quad8():
-    return array([ \
-    [ -1.0, -1.0, 1.0 ], \
-    [  1.0, -1.0, 1.0 ], \
-    [  1.0,  1.0, 1.0 ], \
-    [ -1.0,  1.0, 1.0 ], \
+    return array([
+    [ -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, 1.0 ],
+    [ -1.0,  1.0, 1.0 ],
 
-    [  0.0, -1.0, 1.0 ], \
-    [  1.0,  0.0, 1.0 ], \
-    [  0.0,  1.0, 1.0 ], \
+    [  0.0, -1.0, 1.0 ],
+    [  1.0,  0.0, 1.0 ],
+    [  0.0,  1.0, 1.0 ],
     [ -1.0,  0.0, 1.0 ]] )
 
 def coords_quad12():
     _1_3 = 1.0/3.0
-    return array([ \
-    [ -1.0, -1.0, 1.0 ], \
-    [  1.0, -1.0, 1.0 ], \
-    [  1.0,  1.0, 1.0 ], \
-    [ -1.0,  1.0, 1.0 ], \
+    return array([
+    [ -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, 1.0 ],
+    [ -1.0,  1.0, 1.0 ],
 
-    [ -_1_3,  -1.0, 1.0 ], \
-    [   1.0, -_1_3, 1.0 ], \
-    [  _1_3,   1.0, 1.0 ], \
-    [  -1.0,  _1_3, 1.0 ], \
+    [ -_1_3,  -1.0, 1.0 ],
+    [   1.0, -_1_3, 1.0 ],
+    [  _1_3,   1.0, 1.0 ],
+    [  -1.0,  _1_3, 1.0 ],
 
-    [  _1_3,  -1.0, 1.0 ], \
-    [   1.0,  _1_3, 1.0 ], \
-    [ -_1_3,   1.0, 1.0 ], \
+    [  _1_3,  -1.0, 1.0 ],
+    [   1.0,  _1_3, 1.0 ],
+    [ -_1_3,   1.0, 1.0 ],
     [  -1.0, -_1_3, 1.0 ]] )
 
-def coords_tet10():
-    return array([ \
-    [ 0.0, 0.0, 0.0, 1.0 ], \
-    [ 1.0, 0.0, 0.0, 1.0 ], \
-    [ 0.0, 1.0, 0.0, 1.0 ], \
-    [ 0.0, 0.0, 1.0, 1.0 ], \
+def coords_quad16():
+    _1_3 = 1.0/3.0
+    return array([
+    [ -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, 1.0 ],
+    [ -1.0,  1.0, 1.0 ],
 
-    [ 0.5, 0.0, 0.0, 1.0 ], \
-    [ 0.5, 0.5, 0.0, 1.0 ], \
-    [ 0.0, 0.5, 0.0, 1.0 ], \
-    [ 0.0, 0.0, 0.5, 1.0 ], \
-    [ 0.5, 0.0, 0.5, 1.0 ], \
+    [ -_1_3,  -1.0, 1.0 ],
+    [   1.0, -_1_3, 1.0 ],
+    [  _1_3,   1.0, 1.0 ],
+    [  -1.0,  _1_3, 1.0 ],
+
+    [  _1_3,  -1.0, 1.0 ],
+    [   1.0,  _1_3, 1.0 ],
+    [ -_1_3,   1.0, 1.0 ],
+    [  -1.0, -_1_3, 1.0 ],
+
+    [ -_1_3, -_1_3, 1.0 ],
+    [  _1_3, -_1_3, 1.0 ],
+    [  _1_3,  _1_3, 1.0 ],
+    [ -_1_3,  _1_3, 1.0 ]] )
+
+def coords_tet10():
+    return array([
+    [ 0.0, 0.0, 0.0, 1.0 ],
+    [ 1.0, 0.0, 0.0, 1.0 ],
+    [ 0.0, 1.0, 0.0, 1.0 ],
+    [ 0.0, 0.0, 1.0, 1.0 ],
+
+    [ 0.5, 0.0, 0.0, 1.0 ],
+    [ 0.5, 0.5, 0.0, 1.0 ],
+    [ 0.0, 0.5, 0.0, 1.0 ],
+    [ 0.0, 0.0, 0.5, 1.0 ],
+    [ 0.5, 0.0, 0.5, 1.0 ],
     [ 0.0, 0.5, 0.5, 1.0 ]])
 
 def coords_tet4():
-    return array([ \
-    [ 0.0, 0.0, 0.0, 1.0 ], \
-    [ 1.0, 0.0, 0.0, 1.0 ], \
-    [ 0.0, 1.0, 0.0, 1.0 ], \
+    return array([
+    [ 0.0, 0.0, 0.0, 1.0 ],
+    [ 1.0, 0.0, 0.0, 1.0 ],
+    [ 0.0, 1.0, 0.0, 1.0 ],
     [ 0.0, 0.0, 1.0, 1.0 ]] )
 
 def coords_hex8():
-    return array([ \
-    [ -1.0, -1.0, -1.0, 1.0 ], \
-    [  1.0, -1.0, -1.0, 1.0 ], \
-    [  1.0,  1.0, -1.0, 1.0 ], \
-    [ -1.0,  1.0, -1.0, 1.0 ], \
-    [ -1.0, -1.0,  1.0, 1.0 ], \
-    [  1.0, -1.0,  1.0, 1.0 ], \
-    [  1.0,  1.0,  1.0, 1.0 ], \
+    return array([
+    [ -1.0, -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, -1.0, 1.0 ],
+    [ -1.0,  1.0, -1.0, 1.0 ],
+    [ -1.0, -1.0,  1.0, 1.0 ],
+    [  1.0, -1.0,  1.0, 1.0 ],
+    [  1.0,  1.0,  1.0, 1.0 ],
     [ -1.0,  1.0,  1.0, 1.0 ]] )
 
 def coords_hex20():
-    return array([ \
-    [ -1.0, -1.0, -1.0, 1.0 ], \
-    [  1.0, -1.0, -1.0, 1.0 ], \
-    [  1.0,  1.0, -1.0, 1.0 ], \
-    [ -1.0,  1.0, -1.0, 1.0 ], \
-    [ -1.0, -1.0,  1.0, 1.0 ], \
-    [  1.0, -1.0,  1.0, 1.0 ], \
-    [  1.0,  1.0,  1.0, 1.0 ], \
-    [ -1.0,  1.0,  1.0, 1.0 ], \
+    return array([
+    [ -1.0, -1.0, -1.0, 1.0 ],
+    [  1.0, -1.0, -1.0, 1.0 ],
+    [  1.0,  1.0, -1.0, 1.0 ],
+    [ -1.0,  1.0, -1.0, 1.0 ],
+    [ -1.0, -1.0,  1.0, 1.0 ],
+    [  1.0, -1.0,  1.0, 1.0 ],
+    [  1.0,  1.0,  1.0, 1.0 ],
+    [ -1.0,  1.0,  1.0, 1.0 ],
 
-    [  0.0, -1.0, -1.0, 1.0 ], \
-    [  1.0,  0.0, -1.0, 1.0 ], \
-    [  0.0,  1.0, -1.0, 1.0 ], \
-    [ -1.0,  0.0, -1.0, 1.0 ], \
-    [  0.0, -1.0,  1.0, 1.0 ], \
-    [  1.0,  0.0,  1.0, 1.0 ], \
-    [  0.0,  1.0,  1.0, 1.0 ], \
-    [ -1.0,  0.0,  1.0, 1.0 ], \
+    [  0.0, -1.0, -1.0, 1.0 ],
+    [  1.0,  0.0, -1.0, 1.0 ],
+    [  0.0,  1.0, -1.0, 1.0 ],
+    [ -1.0,  0.0, -1.0, 1.0 ],
+    [  0.0, -1.0,  1.0, 1.0 ],
+    [  1.0,  0.0,  1.0, 1.0 ],
+    [  0.0,  1.0,  1.0, 1.0 ],
+    [ -1.0,  0.0,  1.0, 1.0 ],
 
-    [ -1.0, -1.0,  0.0, 1.0 ], \
-    [  1.0, -1.0,  0.0, 1.0 ], \
-    [  1.0,  1.0,  0.0, 1.0 ], \
+    [ -1.0, -1.0,  0.0, 1.0 ],
+    [  1.0, -1.0,  0.0, 1.0 ],
+    [  1.0,  1.0,  0.0, 1.0 ],
     [ -1.0,  1.0,  0.0, 1.0 ]] )
 
 def get_local_coords(shape_type):
@@ -850,9 +1054,11 @@ def get_local_coords(shape_type):
     elif shape_type == TRI3  : return coords_tri3()
     elif shape_type == TRI6  : return coords_tri6()
     elif shape_type == TRI9  : return coords_tri9()
+    elif shape_type == TRI10 : return coords_tri10()
     elif shape_type == QUAD4 : return coords_quad4()
     elif shape_type == QUAD8 : return coords_quad8()
     elif shape_type == QUAD12: return coords_quad12()
+    elif shape_type == QUAD16: return coords_quad16()
     elif shape_type == TET4  : return coords_tet4()
     elif shape_type == TET10 : return coords_tet10()
     elif shape_type == HEX8  : return coords_hex8()
@@ -869,9 +1075,11 @@ def get_nnodes(shape_type):
     elif shape_type == TRI3  : return 3
     elif shape_type == TRI6  : return 6
     elif shape_type == TRI9  : return 9
+    elif shape_type == TRI10 : return 10
     elif shape_type == QUAD4 : return 4
     elif shape_type == QUAD8 : return 8
     elif shape_type == QUAD12: return 12
+    elif shape_type == QUAD16: return 16
     elif shape_type == TET4  : return 4
     elif shape_type == TET10 : return 10
     elif shape_type == HEX8  : return 8
@@ -888,9 +1096,11 @@ def get_shape_str(shape_type):
     elif shape_type == TRI3  : return "TRI3"
     elif shape_type == TRI6  : return "TRI6"
     elif shape_type == TRI9  : return "TRI9"
+    elif shape_type == TRI10 : return "TRI10"
     elif shape_type == QUAD4 : return "QUAD4"
     elif shape_type == QUAD8 : return "QUAD8"
     elif shape_type == QUAD12: return "QUAD12"
+    elif shape_type == QUAD16: return "QUAD16"
     elif shape_type == TET4  : return "TET4"
     elif shape_type == TET10 : return "TET10"
     elif shape_type == HEX8  : return "HEX8"
@@ -911,9 +1121,11 @@ def get_ndim(shape_type):
     elif shape_type == TRI3  : return 2
     elif shape_type == TRI6  : return 2
     elif shape_type == TRI9  : return 2
+    elif shape_type == TRI10 : return 2
     elif shape_type == QUAD4 : return 2
     elif shape_type == QUAD8 : return 2
     elif shape_type == QUAD12: return 2
+    elif shape_type == QUAD16: return 2
     elif shape_type == TET4  : return 3
     elif shape_type == TET10 : return 3
     elif shape_type == HEX8  : return 3
@@ -928,9 +1140,11 @@ def get_nfacets(shape_type):
     if   shape_type == TRI3  : return 3
     elif shape_type == TRI6  : return 3
     elif shape_type == TRI9  : return 3
+    elif shape_type == TRI10 : return 3
     elif shape_type == QUAD4 : return 4
     elif shape_type == QUAD8 : return 4
     elif shape_type == QUAD12: return 4
+    elif shape_type == QUAD16: return 4
     elif shape_type == TET4  : return 4
     elif shape_type == TET10 : return 4
     elif shape_type == HEX8  : return 6
@@ -947,9 +1161,11 @@ def shape_func(shape_type, R):
     elif shape_type == TRI3  : return shape_tri3(R)
     elif shape_type == TRI6  : return shape_tri6(R)
     elif shape_type == TRI9  : return shape_tri9(R)
+    elif shape_type == TRI10 : return shape_tri10(R)
     elif shape_type == QUAD4 : return shape_quad4(R)
     elif shape_type == QUAD8 : return shape_quad8(R)
     elif shape_type == QUAD12: return shape_quad12(R)
+    elif shape_type == QUAD16: return shape_quad16(R)
     elif shape_type == TET4  : return shape_tet4(R)
     elif shape_type == TET10 : return shape_tet10(R)
     elif shape_type == HEX8  : return shape_hex8(R)
@@ -966,9 +1182,11 @@ def deriv_func(shape_type, R):
     elif shape_type == TRI3  : return deriv_tri3(R)
     elif shape_type == TRI6  : return deriv_tri6(R)
     elif shape_type == TRI9  : return deriv_tri9(R)
+    elif shape_type == TRI10 : return deriv_tri10(R)
     elif shape_type == QUAD4 : return deriv_quad4(R)
     elif shape_type == QUAD8 : return deriv_quad8(R)
     elif shape_type == QUAD12: return deriv_quad12(R)
+    elif shape_type == QUAD16: return deriv_quad16(R)
     elif shape_type == TET4  : return deriv_tet4(R)
     elif shape_type == TET10 : return deriv_tet10(R)
     elif shape_type == HEX8  : return deriv_hex8(R)
@@ -988,9 +1206,11 @@ def bdistance(shape_type, R):
     if   shape_type == TRI3 :  return min(r, s, 1.0-r-s)
     elif shape_type == TRI6 :  return min(r, s, 1.0-r-s)
     elif shape_type == TRI9 :  return min(r, s, 1.0-r-s)
+    elif shape_type == TRI10:  return min(r, s, 1.0-r-s)
     elif shape_type == QUAD4:  return min(1.0 - abs(r), 1.0 - abs(s))
     elif shape_type == QUAD8:  return min(1.0 - abs(r), 1.0 - abs(s))
     elif shape_type == QUAD12: return min(1.0 - abs(r), 1.0 - abs(s))
+    elif shape_type == QUAD16: return min(1.0 - abs(r), 1.0 - abs(s))
     elif shape_type == TET4 :  return min(r, s, t, 1.0-r-s-t)
     elif shape_type == TET10:  return min(r, s, t, 1.0-r-s-t)
     elif shape_type == HEX8 :  return min(1.0 - abs(r), 1.0 - abs(s), 1.0 - abs(t))
@@ -1002,9 +1222,11 @@ def face_shape_type(shape_type):
     if   shape_type == TRI3  : return LIN2
     elif shape_type == TRI6  : return LIN3
     elif shape_type == TRI9  : return LIN4
+    elif shape_type == TRI10 : return LIN4
     elif shape_type == QUAD4 : return LIN2
     elif shape_type == QUAD8 : return LIN3
     elif shape_type == QUAD12: return LIN4
+    elif shape_type == QUAD16: return LIN4
     elif shape_type == TET4  : return TRI3
     elif shape_type == TET10 : return TRI6
     elif shape_type == HEX8  : return QUAD4
@@ -1013,16 +1235,18 @@ def face_shape_type(shape_type):
         raise Exception("face_shape_type: Unknown shape_type %d" % shape_type)
 
 
+#TODO complete for Quad12, Tri10
 FACETS_INDICES = {
-    TRI3 :  [ [0, 1],                   [1, 2],                   [2, 0]                                                                                                 ],
-    TRI6 :  [ [0, 1, 3],                [1, 2, 4],                [2, 0, 5]                                                                                              ],
-    TRI9 :  [ [0, 1, 3, 6],             [1, 2, 4, 7],             [2, 0, 5, 8]                                                                                           ],
-    QUAD4:  [ [0, 1],                   [1, 2],                   [2, 3],                   [3, 0]                                                                       ],
-    QUAD8:  [ [0, 1, 4],                [1, 2, 5],                [2, 3, 6],                [3, 0, 7]                                                                    ],
-    TET4 :  [ [0, 3, 2],                [0, 1, 3],                [0, 2, 1],                [1, 2, 3]                                                                    ],
-    TET10:  [ [0, 3, 2, 7, 9, 6],       [0, 1, 3, 4, 8, 7],       [0, 2, 1, 6, 5, 4],       [1, 2, 3, 5, 9, 8]                                                           ],
-    HEX8 :  [ [0, 4, 7, 3],             [1, 2, 6, 5],             [0, 1, 5, 4],             [2, 3, 7, 6],             [0, 3, 2, 1],             [4, 5, 6, 7]             ],
-    HEX20:  [ [0, 4, 7, 3,16,15,19,11], [1, 2, 6, 5, 9,18,13,17], [0, 1, 5, 4, 8,17,12,16], [2, 3, 7, 6,10,19,14,18], [0, 3, 2, 1,11,10, 9, 8], [4, 5, 6, 7,12,13,14,15] ],
+    TRI3  :  [ [0, 1],                   [1, 2],                   [2, 0]                                                                                                 ],
+    TRI6  :  [ [0, 1, 3],                [1, 2, 4],                [2, 0, 5]                                                                                              ],
+    TRI9  :  [ [0, 1, 3, 6],             [1, 2, 4, 7],             [2, 0, 5, 8]                                                                                           ],
+    QUAD4 :  [ [0, 1],                   [1, 2],                   [2, 3],                   [3, 0]                                                                       ],
+    QUAD8 :  [ [0, 1, 4],                [1, 2, 5],                [2, 3, 6],                [3, 0, 7]                                                                    ],
+    QUAD16:  [ [0, 1, 4],                [1, 2, 5],                [2, 3, 6],                [3, 0, 7]                                                                    ],
+    TET4  :  [ [0, 3, 2],                [0, 1, 3],                [0, 2, 1],                [1, 2, 3]                                                                    ],
+    TET10 :  [ [0, 3, 2, 7, 9, 6],       [0, 1, 3, 4, 8, 7],       [0, 2, 1, 6, 5, 4],       [1, 2, 3, 5, 9, 8]                                                           ],
+    HEX8  :  [ [0, 4, 7, 3],             [1, 2, 6, 5],             [0, 1, 5, 4],             [2, 3, 7, 6],             [0, 3, 2, 1],             [4, 5, 6, 7]             ],
+    HEX20 :  [ [0, 4, 7, 3,16,15,19,11], [1, 2, 6, 5, 9,18,13,17], [0, 1, 5, 4, 8,17,12,16], [2, 3, 7, 6,10,19,14,18], [0, 3, 2, 1,11,10, 9, 8], [4, 5, 6, 7,12,13,14,15] ],
     }
 
 
@@ -1047,12 +1271,14 @@ IP_FEM = {
     TRI3:   {0: TRI_IP1,  1: TRI_IP1,  3: TRI_IP3,  6: TRI_IP6},
     TRI6:   {0: TRI_IP3,  3: TRI_IP3,  6: TRI_IP6},
     TRI9:   {0: TRI_IP6,  3: TRI_IP3,  6: TRI_IP6},
+    TRI10:  {0: TRI_IP6,  3: TRI_IP3,  6: TRI_IP6},
     LINK1:  {},
     LINK2:  {0: LIN_IP2,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
     LINK3:  {0: LIN_IP3,  2: LIN_IP2,  3: LIN_IP3,  4: LIN_IP4},
     QUAD4:  {0: QUAD_IP2, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
     QUAD8:  {0: QUAD_IP3, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
     QUAD12: {0: QUAD_IP4, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
+    QUAD16: {0: QUAD_IP4, 4: QUAD_IP2, 9: QUAD_IP3, 16: QUAD_IP4},
     TET4:   {0: TET_IP4,  1: TET_IP1,  4: TET_IP4,  5: TET_IP5,  11: TET_IP11},
     TET10:  {0: TET_IP4,  1: TET_IP1,  4: TET_IP4,  5: TET_IP5,  11: TET_IP11},
     HEX8:   {0: HEX_IP2,  8: HEX_IP2, 27: HEX_IP3},
@@ -1140,7 +1366,7 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
     dim   = get_ndim(shape_type)
     R = zeros(dim)
     if C.shape[1]==2:
-        C = numpy.hstack([C,zeros((C.shape[0],1))])
+        C = numpy.hstack([C, zeros((C.shape[0],1))])
     if X.shape[0]==2:
         X = array([X[0], X[1], 0.0])
 
@@ -1160,6 +1386,8 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
         # updating local coords R
         R -= deltaR
         if norm(deltaX) < TOL: break
+    else:
+        print "Warning: inverse_map: max iterations (%d) reached." % MAXIT
 
     if dim==2:
         R = array([R[0], R[1], 0.0])
@@ -1169,6 +1397,17 @@ def inverse_map(shape_type, C, X, TOL=1.0e-7):
 def is_inside(shape_type, C, X, Tol = 1.e-7):
     if not is_solid(shape_type): return False
 
+    # Testing with bounding box
+    ndim = C.shape[1]
+    cmin = C.min(axis=0)
+    cmax = C.max(axis=0)
+    maxl = max(cmax-cmin)
+    ttol = 0.1*maxl
+
+    if any( X[i] < cmin[i]-ttol or X[i] > cmax[i]+ttol for i in range(ndim) ):
+       return False
+
+    # Testing with inverse mapping
     R = inverse_map(shape_type, C, X, Tol)
     if bdistance(shape_type, R) > -Tol:
         return True;
