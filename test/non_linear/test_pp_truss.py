@@ -6,7 +6,6 @@ from pyfem import *
 #Blocks 
 block = Block2D()
 block.make_box( (0,0),  (1,1) )
-block.set_divisions(1,1)
 block.set_divisions(2,1)
 block.make_truss(htag='h', vtag='v', dtag='d')
 

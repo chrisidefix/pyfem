@@ -78,13 +78,14 @@ class BlockInset(Block):
         my_mesh.write("my_mesh.vtk")             # Saves into a file
     """
 
-    def __init__(self):
+    def __init__(self, coords=None, curve_type=0, npoints=2, closed=False):
 
         Block.__init__(self)
-        self.punctual     = False  # Flag to define embedded punctual method
-        self.closed       = False  # States if path is closed
-        self.curve_type   = 0      # 0:polyline, 1:closed polyline, 2: lagrangian, 3:cubic Bezier, 4:Bezier with control points
-        self.npoints      = 2      # 2:LIN2, 3:LIN3, 4:LIN4
+        self.punctual     = False        # Flag to define embedded punctual method
+        self.closed       = closed       # States if path is closed
+        self.curve_type   = curve_type   # 0:polyline, 1:closed polyline, 2: lagrangian, 3:cubic Bezier, 4:Bezier with control points
+        self.npoints      = npoints      # 2:LIN2, 3:LIN3, 4:LIN4
+        if coords: self.set_coords(coords)
 
         self._start_point = None   # The very first point
         self._end_point   = None   # Last endpoint found
@@ -104,7 +105,7 @@ class BlockInset(Block):
 
         self.curve_type = curve_type
 
-    def set_out_npoints(self, npoints):
+    def set_npoints(self, npoints):
         if npoints not in range(2,4):
             raise Exception("Block_inset.set_out_npoints: Wrong number of points.")
 

@@ -16,11 +16,12 @@ LINK3  = 102
 LIN4   = 105
 TRI9   = 110
 TRI10  = 111
-QUAD12 = 120
-QUAD16 = 121
+QUAD9  = 120
+QUAD12 = 121
+QUAD16 = 122
 
 def get_vtk_type(shape_type):
-    if shape_type in [LINK1, LINK2, LINK3, LIN4, TRI9, TRI10, QUAD12, QUAD16]:
+    if shape_type in [LINK1, LINK2, LINK3, LIN4, TRI9, TRI10, QUAD9, QUAD12, QUAD16]:
         return 2 # vtk_poly_vertex
 
     # Conventional:
@@ -62,7 +63,7 @@ def get_shape_type_from_msh(geo, npoints=None):
     elif geo==7:
         return QUAD8
     elif geo==8:
-        print "QUAD9 cell not defined."
+        return QUAD9
     elif geo==9:
         return TET4
     elif geo==10:
